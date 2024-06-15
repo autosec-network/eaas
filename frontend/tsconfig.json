@@ -11,6 +11,6 @@
 		"inlineSourceMap": true,
 		"outDir": "tmp"
 	},
-	"files": ["./.eslintrc.cjs", "./prettier.config.mjs"],
+	"files": ["./.eslintrc.cjs", "./prettier.config.mjs", "./postcss.config.cjs", "./tailwind.config.cjs"],
 	"include": ["src", "./*.d.ts", "./*.config.ts"]
 }

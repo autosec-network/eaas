@@ -1,11 +1,16 @@
-import { component$, useServerData } from '@builder.io/qwik';
+import { component$, useServerData, useVisibleTask$ } from '@builder.io/qwik';
 import { QwikCityProvider, RouterOutlet, ServiceWorkerRegister } from '@builder.io/qwik-city';
+import { initFlowbite } from 'flowbite';
 import { RouterHead } from './components/router-head/router-head';
 
 import './global.less';
 
 export default component$(() => {
 	const nonce = useServerData<string | undefined>('nonce');
+
+	useVisibleTask$(() => {
+		initFlowbite();
+	});
 
 	return (
 		<QwikCityProvider>
