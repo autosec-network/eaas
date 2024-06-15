@@ -1,8 +1,13 @@
 export interface EnvVars extends Secrets, Bindings, Partial<PagesEnvironmentvariables>, Record<string, any> {
 	NODE_ENV: 'production' | 'development';
+
+	TURNSTILE_SITE_KEY?: string;
 }
 
-interface Secrets {}
+interface Secrets {
+	AUTH_SECRET: string;
+	TURNSTILE_SECRET_KEY?: string;
+}
 
 interface Bindings {}
 
