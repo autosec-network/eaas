@@ -1,0 +1,40 @@
+{
+	"type": "module",
+	"scripts": {
+		"fmt": "prettier --check .",
+		"fmt:fix": "prettier --write .",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler ./**/*.tsbuildinfo",
+		"clean": "npm -w customer -w api run clean"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
+	"devDependencies": {
+		"@demosjarco/prettier-config": "1.0.2",
+		"@eslint/js": "10.0.1",
+		"@microsoft/eslint-formatter-sarif": "3.1.0",
+		"@types/node": "24.13.3",
+		"eslint": "10.6.0",
+		"eslint-config-prettier": "10.1.8",
+		"eslint-plugin-zod": "4.8.0",
+		"eslint-plugin-zod-mini": "1.5.0",
+		"prettier": "3.9.5",
+		"tsx": "4.23.1",
+		"typescript": "6.0.3",
+		"typescript-eslint": "8.63.0",
+		"wrangler": "4.112.0"
+	}
+}
