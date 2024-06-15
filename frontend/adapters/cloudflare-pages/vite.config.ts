@@ -15,7 +15,7 @@ export default extendConfig(baseConfig, () => {
 			cloudflarePagesAdapter({
 				ssg: {
 					include: ['/*'],
-					// origin: 'https://TODO.pages.dev',
+					origin: 'https://autosec-eaas.pages.dev',
 					sitemapOutFile: 'sitemap.xml',
 				},
 			}),

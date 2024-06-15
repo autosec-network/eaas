@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
  
-Sitemap: https://TODO.pages.dev/sitemap.xml
+Sitemap: https://autosec-eaas.pages.dev/sitemap.xml
