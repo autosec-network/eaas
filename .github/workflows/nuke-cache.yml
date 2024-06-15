@@ -1,0 +1,21 @@
+name: Cache Nuke
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  delete-cache:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    steps:
+      - uses: step-security/harden-runner@bf7454d06d71f1098171f2acdf0cd4708d7b5920 # v2.20.0
+        with:
+          egress-policy: audit
+          disable-sudo-and-containers: true
+      - run: gh cache delete --all --repo ${{ github.repository }}
+        env:
+          GH_TOKEN: ${{ github.token }}
