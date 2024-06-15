@@ -1,0 +1,79 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: 'devcontainers'
+    directory: '/'
+    schedule:
+        interval: 'weekly'
+  - package-ecosystem: 'docker'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    groups:
+      artifacts:
+        patterns:
+          - 'actions/*-artifact'
+      caches:
+        patterns:
+          - 'actions/cache'
+          - 'actions/cache/*'
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    ignore:
+      # Match lts/*
+      - dependency-name: '@types/node'
+        versions:
+          - '>=21.0.0'
+      # Currently not supported by plugins
+      - dependency-name: 'eslint'
+        versions:
+          - '>=9.0.0'
+    groups:
+      cloudflare:
+        patterns:
+          - 'cloudflare'
+          - '@cloudflare/*'
+          - 'wrangler'
+        exclude-patterns:
+          - '@cloudflare/workers-types'
+      code-management:
+        patterns:
+          - 'prettier'
+          - 'prettier-plugin-*'
+          - '@demosjarco/prettier-config'
+          - 'eslint'
+          - 'eslint-plugin-*'
+          - '@typescript-eslint/*'
+      design:
+        patterns:
+          - 'tailwind*'
+          - 'postcss'
+          - 'postcss-*'
+          - 'autoprefixer'
+          - 'flowbite'
+          - '@qwikest/icons'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'vite-*'
+      typescript-core:
+        patterns:
+          - 'typescript'
+          - 'ts-node'
+          - '@swc/*'
+      typescript-types:
+        patterns:
+          - '@types/*'
+          - '@cloudflare/workers-types'
+          - 'turnstile-types'
