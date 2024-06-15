@@ -17,6 +17,7 @@ export default component$(() => {
 			<body lang="en">
 				<RouterOutlet />
 				<ServiceWorkerRegister nonce={nonce} />
+				<script async defer src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
 			</body>
 		</QwikCityProvider>
 	);
