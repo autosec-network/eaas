@@ -1,0 +1,45 @@
+{
+	"name": "frontend",
+	"scripts": {
+		"build": "qwik build",
+		"build.client": "vite build",
+		"build.preview": "vite build --ssr src/entry.preview.tsx",
+		"build.types": "tsc --incremental --noEmit",
+		"deploy": "echo 'Run \"npm run qwik add\" to install a server adapter'",
+		"dev": "vite --mode ssr",
+		"dev.debug": "node --inspect-brk ./node_modules/vite/bin/vite.js --mode ssr --force",
+		"fmt": "prettier --write .",
+		"fmt.check": "prettier --check .",
+		"lint": "eslint \"src/**/*.ts*\"",
+		"preview": "qwik build preview && vite preview --open",
+		"start": "vite --open --mode ssr",
+		"qwik": "qwik"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>",
+		"George Portillo <georgeportillodesign@gmail.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
+	"engines": {
+		"node": "^18.17.0 || ^20.3.0 || >=21.0.0"
+	},
+	"engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
+	"dependencies": {},
+	"devDependencies": {
+		"@builder.io/qwik": "^1.5.7",
+		"@builder.io/qwik-city": "^1.5.7",
+		"@rollup/plugin-node-resolve": "^15.2.3",
+		"eslint-plugin-qwik": "^1.5.7",
+		"vite-tsconfig-paths": "^4.3.2"
+	}
+}

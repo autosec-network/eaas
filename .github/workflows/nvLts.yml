@@ -1,0 +1,45 @@
+name: Pin `node` `lts/*`
+
+on:
+  push:
+    paths:
+      - '.nvmrc'
+  pull_request:
+    types:
+      - opened
+    paths:
+      - '.nvmrc'
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * 0'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  editVersion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo: true
+      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4.0.2
+        id: sn
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: echo "${{ steps.sn.outputs.node-version }}" > .nvmrc
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git commit .nvmrc -m "Fixed node version" || echo "nv change not needed"
+      - run: git push
