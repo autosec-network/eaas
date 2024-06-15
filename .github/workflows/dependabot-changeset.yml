@@ -1,0 +1,64 @@
+name: Dependabot Changeset
+on:
+  pull_request_target:
+    types:
+      - opened
+      - reopened
+      - synchronize
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  changeset:
+    runs-on: ubuntu-latest
+    if: startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/') && github.actor == 'dependabot[bot]'
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo-and-containers: true
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Generate changeset file name
+        env:
+          GITHUB_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          SAFE_BRANCH_NAME=$(echo "$GITHUB_HEAD_REF" | sed 's/\//-/g')
+          echo "FILENAME=.changeset/$SAFE_BRANCH_NAME.md" >> $GITHUB_OUTPUT
+        id: changeset-filename
+        shell: bash
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --include-workspace-root
+      - name: Get packages affected
+        run: |
+          npx lerna list --json | jq -r '.[] | "'\''\(.name)'\'': patch"' | sed '1s/^/---\n/; $s/$/\n---\n/' > ${{ steps.changeset-filename.outputs.FILENAME }}
+        shell: bash
+      - name: Git Setup
+        run: |
+          git config user.name "dependabot[bot]"
+          git config user.email "dependabot[bot]@users.noreply.github.com"
+      - uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2.5.0
+        id: dependabot-metadata
+      - name: Extract update type
+        run: echo "SEMVER_UPDATE=$(echo "${{ steps.dependabot-metadata.outputs.update-type }}" | cut -d':' -f2)" >> "$GITHUB_OUTPUT"
+        id: dependabot-metadata-update-type
+      - name: Write changes to changeset
+        run: |
+          echo "deps(${{ steps.dependabot-metadata-update-type.outputs.SEMVER_UPDATE }}): bump ${{ steps.dependabot-metadata.outputs.dependency-names }}" >> ${{ steps.changeset-filename.outputs.FILENAME }}
+        shell: bash
+      - run: git add ${{ steps.changeset-filename.outputs.FILENAME }}
+      - run: git commit -m "Updated changeset" || echo "Changeset update not needed"
+      - run: git push

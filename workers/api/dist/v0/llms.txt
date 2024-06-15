@@ -1,0 +1,2174 @@
+# EaaS API
+
+- **OpenAPI Version:** `3.1.0`
+- **API Version:** `0.0.0`
+
+Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.
+
+## Servers
+
+- **URL:** `/v0`
+
+## Operations
+
+### POST /apikeys
+
+- **Method:** `POST`
+- **Path:** `/apikeys`
+- **Tags:** API Key Management
+
+Create a new API key.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {}
+}
+```
+
+#### Responses
+
+##### Status: 201 API key created successfully.
+
+###### Content-Type: application/json
+
+**All of:**
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+- **`token` (required)**
+
+  `string` — The generated API token
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z",
+  "token": ""
+}
+```
+
+##### Status: 400 Bad request - invalid keyrings.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 403 Insufficient permissions.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+### GET /apikeys
+
+- **Method:** `GET`
+- **Path:** `/apikeys`
+- **Tags:** API Key Management
+
+Get a list of Api Keys.
+
+#### Responses
+
+##### Status: 200 Depending on key permissions, list all api keys, or fallback to itself.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+**Example:**
+
+```
+[
+  {
+    "name": "",
+    "expires": "1970-01-01T00:00:00.000Z",
+    "keyringsPermission": "None",
+    "apikeysPermission": "None",
+    "keyrings": {},
+    "token_id": "",
+    "created": "1970-01-01T00:00:00.000Z",
+    "lastRotation": "1970-01-01T00:00:00.000Z",
+    "expired": true,
+    "lastModified": "1970-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### GET /apikeys/{token\_id}
+
+- **Method:** `GET`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** API Key Management
+
+Get a specific Api Key by its token ID.
+
+#### Responses
+
+##### Status: 200 Returns the specific API key if permissions allow access.
+
+###### Content-Type: application/json
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z"
+}
+```
+
+### DELETE /apikeys/{token\_id}
+
+- **Method:** `DELETE`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** API Key Management
+
+Delete a specific API Key by its token ID. Requires Admin permissions.
+
+#### Responses
+
+##### Status: 200 API Key successfully deleted.
+
+###### Content-Type: application/json
+
+- **`message` (required)**
+
+  `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "message": ""
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 404 API Key not found.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+### PUT /apikeys/{token\_id}
+
+- **Method:** `PUT`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** API Key Management
+
+Rotate an API key by generating a new secret and optionally updating expiration.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+**Example:**
+
+```
+{
+  "expires": "1970-01-01T00:00:00.000Z"
+}
+```
+
+#### Responses
+
+##### Status: 200 API key rotated successfully.
+
+###### Content-Type: application/json
+
+**All of:**
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+- **`token` (required)**
+
+  `string` — The generated API token
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z",
+  "token": ""
+}
+```
+
+##### Status: 403 Insufficient permissions.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 404 API key not found.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+### POST /keyrings
+
+- **Method:** `POST`
+- **Path:** `/keyrings`
+- **Tags:** Keyring Management
+
+Create a new keyring.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`key` (required)**
+
+  `object`
+
+- **`name` (required)**
+
+  `string`
+
+- **`rotation` (required)**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "key": {
+    "algorithm": "rsassa-pkcs1-v1_5",
+    "size": 256,
+    "hash": "md4"
+  },
+  "rotation": {
+    "time": {
+      "enabled": true,
+      "cron": [
+        "0 0 1 1 *"
+      ]
+    },
+    "count": {
+      "enabled": true,
+      "threshold": "4294967296"
+    }
+  }
+}
+```
+
+#### Responses
+
+##### Status: 200 The new keyring created.
+
+###### Content-Type: application/json
+
+**All of:**
+
+- **`key` (required)**
+
+  `object`
+
+- **`name` (required)**
+
+  `string`
+
+- **`rotation` (required)**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`rotation`**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`current` (required)**
+
+      `string`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`lastRotation` (required)**
+
+    `string`, format: `date-time`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`next` (required)**
+
+      `string | null`, format: `date-time`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "key": {
+    "algorithm": "rsassa-pkcs1-v1_5",
+    "size": 256,
+    "hash": "md4"
+  },
+  "rotation": {
+    "time": {
+      "enabled": true,
+      "cron": [
+        "0 0 1 1 *"
+      ],
+      "next": "1970-01-01T00:00:00.000Z"
+    },
+    "count": {
+      "enabled": true,
+      "threshold": "4294967296",
+      "current": "0"
+    },
+    "lastRotation": "1970-01-01T00:00:00.000Z"
+  },
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastModified": "1970-01-01T00:00:00.000Z"
+}
+```
+
+### GET /keyrings
+
+- **Method:** `GET`
+- **Path:** `/keyrings`
+- **Tags:** Keyring Management
+
+Get a list of keyrings.
+
+#### Responses
+
+##### Status: 200 Depending on key permissions, list all keyrings, or fallback to those the key has access to.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+**All of:**
+
+- **`key` (required)**
+
+  `object`
+
+- **`name` (required)**
+
+  `string`
+
+- **`rotation` (required)**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`rotation`**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`current` (required)**
+
+      `string`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`lastRotation` (required)**
+
+    `string`, format: `date-time`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`next` (required)**
+
+      `string | null`, format: `date-time`
+
+**Example:**
+
+```
+[
+  {
+    "name": "",
+    "key": {
+      "algorithm": "rsassa-pkcs1-v1_5",
+      "size": 256,
+      "hash": "md4"
+    },
+    "rotation": {
+      "time": {
+        "enabled": true,
+        "cron": [
+          "0 0 1 1 *"
+        ],
+        "next": "1970-01-01T00:00:00.000Z"
+      },
+      "count": {
+        "enabled": true,
+        "threshold": "4294967296",
+        "current": "0"
+      },
+      "lastRotation": "1970-01-01T00:00:00.000Z"
+    },
+    "created": "1970-01-01T00:00:00.000Z",
+    "lastModified": "1970-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### POST /encrypt
+
+- **Method:** `POST`
+- **Path:** `/encrypt`
+
+This endpoint returns the cryptographic hash of given data using the specified algorithm
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**Any of:**
+
+- **`batch_input` (required)**
+
+  `array`
+
+  **Items:**
+
+  **One of:**
+
+  - **`algorithm` (required)**
+
+    `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+  - **`bitStrength` (required)**
+
+    `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+  - **`input` (required)**
+
+    `string` — Specifies the utf8 encoded input data
+
+  - **`inputFormat` (required)**
+
+    `string`, possible values: `"utf8"` — Specifies the input encoding
+
+  - **`keyringName` (required)**
+
+    `string` — Specifies the name of the key ring to use, case insensitive
+
+  - **`outputFormat` (required)**
+
+    `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+  * **`algorithm` (required)**
+
+    `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+  * **`bitStrength` (required)**
+
+    `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+  * **`input` (required)**
+
+    `string` — Specifies the hex encoded input data
+
+  * **`inputFormat` (required)**
+
+    `string`, possible values: `"hex"` — Specifies the input encoding
+
+  * **`keyringName` (required)**
+
+    `string` — Specifies the name of the key ring to use, case insensitive
+
+  * **`outputFormat` (required)**
+
+    `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+  * **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+  - **`algorithm` (required)**
+
+    `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+  - **`bitStrength` (required)**
+
+    `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+  - **`input` (required)**
+
+    `object`
+
+  - **`inputFormat` (required)**
+
+    `string`, possible values: `"base64"` — Specifies the input encoding
+
+  - **`keyringName` (required)**
+
+    `string` — Specifies the name of the key ring to use, case insensitive
+
+  - **`outputFormat` (required)**
+
+    `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+* **`bitStrength` (required)**
+
+  `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+* **`input` (required)**
+
+  `string` — Specifies the utf8 encoded input data
+
+* **`inputFormat` (required)**
+
+  `string`, possible values: `"utf8"` — Specifies the input encoding
+
+* **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+- **`algorithm` (required)**
+
+  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+- **`bitStrength` (required)**
+
+  `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+- **`input` (required)**
+
+  `string` — Specifies the hex encoded input data
+
+- **`inputFormat` (required)**
+
+  `string`, possible values: `"hex"` — Specifies the input encoding
+
+- **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+- **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+- **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+* **`bitStrength` (required)**
+
+  `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+* **`input` (required)**
+
+  `object`
+
+* **`inputFormat` (required)**
+
+  `string`, possible values: `"base64"` — Specifies the input encoding
+
+* **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+**Example:**
+
+```
+{
+  "batch_input": [
+    {
+      "keyringName": "",
+      "algorithm": "aes-gcm",
+      "bitStrength": "256",
+      "outputFormat": "base64",
+      "input": "Hello world",
+      "inputFormat": "utf8",
+      "reference": ""
+    }
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the cryptographic hash
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "0.AAAAAAAAAAAAAAAAAAAAAA==.YWVzLWdjbQ==.MjU2.AAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    }
+  ]
+}
+```
+
+### POST /encrypt/{keyringName}/{algorithm}/{bitStrength}
+
+- **Method:** `POST`
+- **Path:** `/encrypt/{keyringName}/{algorithm}/{bitStrength}`
+
+This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm
+
+#### Request Body
+
+##### Content-Type: multipart/form-data
+
+- **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the cryptographic hash
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "0.AAAAAAAAAAAAAAAAAAAAAA==.YWVzLWdjbQ==.MjU2.AAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### POST /decrypt
+
+- **Method:** `POST`
+- **Path:** `/decrypt`
+
+This endpoint decrypts ciphertext produced by the encrypt endpoint, returning the original plaintext
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**Any of:**
+
+- **`batch_input` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`input` (required)**
+
+    `string` — Specifies the encrypted ciphertext data in the format output by cipherText0()
+
+  - **`keyringName` (required)**
+
+    `string` — Specifies the name of the key ring to use, case insensitive
+
+  - **`outputFormat` (required)**
+
+    `string`, possible values: `"base64", "base64url", "hex", "utf8"` — Specifies the output encoding
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`input` (required)**
+
+  `string` — Specifies the encrypted ciphertext data in the format output by cipherText0()
+
+* **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex", "utf8"` — Specifies the output encoding
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+**Example:**
+
+```
+{
+  "batch_input": [
+    {
+      "keyringName": "",
+      "outputFormat": "utf8",
+      "input": "0.MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA.QUVTLUdDTQ.MjU2.cmFuZG9tSVY.Y2lwaGVyZGF0YQ.c2lnbmF0dXJl",
+      "reference": ""
+    }
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the decrypted plaintext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "Hello world"
+    }
+  ]
+}
+```
+
+##### Status: 403 Access denied
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+### POST /decrypt/{keyringName}
+
+- **Method:** `POST`
+- **Path:** `/decrypt/{keyringName}`
+
+This endpoint decrypts uploaded files containing ciphertext produced by the encrypt endpoint
+
+#### Request Body
+
+##### Content-Type: multipart/form-data
+
+- **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the decrypted plaintext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "Hello world",
+      "filename": ""
+    }
+  ]
+}
+```
+
+##### Status: 403 Access denied
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+### POST /hash
+
+- **Method:** `POST`
+- **Path:** `/hash`
+- **Tags:** Free
+
+This endpoint returns the cryptographic hash of given data using the specified algorithm
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**Any of:**
+
+- **`batch_input` (required)**
+
+  `array`
+
+  **Items:**
+
+  **One of:**
+
+  - **`algorithm` (required)**
+
+    `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+  - **`format` (required)**
+
+    `string`, possible values: `"utf8"` — Specifies the input encoding
+
+  - **`input` (required)**
+
+    `string` — Specifies the utf8 encoded input data
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+  * **`algorithm` (required)**
+
+    `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+  * **`format` (required)**
+
+    `string`, possible values: `"hex"` — Specifies the input encoding
+
+  * **`input` (required)**
+
+    `string` — Specifies the hex encoded input data
+
+  * **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+  - **`algorithm` (required)**
+
+    `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+  - **`format` (required)**
+
+    `string`, possible values: `"base64"` — Specifies the input encoding
+
+  - **`input` (required)**
+
+    `object`
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+* **`format` (required)**
+
+  `string`, possible values: `"utf8"` — Specifies the input encoding
+
+* **`input` (required)**
+
+  `string` — Specifies the utf8 encoded input data
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+- **`algorithm` (required)**
+
+  `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+- **`format` (required)**
+
+  `string`, possible values: `"hex"` — Specifies the input encoding
+
+- **`input` (required)**
+
+  `string` — Specifies the hex encoded input data
+
+- **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+* **`format` (required)**
+
+  `string`, possible values: `"base64"` — Specifies the input encoding
+
+* **`input` (required)**
+
+  `object`
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+**Example:**
+
+```
+{
+  "batch_input": [
+    {
+      "algorithm": "sha256",
+      "input": "Hello world",
+      "format": "utf8",
+      "reference": ""
+    }
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the cryptographic hash
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
+      "reference": ""
+    }
+  ]
+}
+```
+
+### POST /hash/{algorithm}
+
+- **Method:** `POST`
+- **Path:** `/hash/{algorithm}`
+- **Tags:** Free
+
+This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm
+
+#### Request Body
+
+##### Content-Type: multipart/form-data
+
+- **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the cryptographic hash
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### POST /random
+
+- **Method:** `POST`
+- **Path:** `/random`
+- **Tags:** Free
+
+This endpoint returns high-quality random bytes of the specified length
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`bytes` (required)**
+
+  `integer` — Specifies the number of bytes to return
+
+- **`format` (required)**
+
+  `string`, possible values: `"hex", "base64", "base64url"` — Specifies the output encoding
+
+- **`source`**
+
+  `string`, possible values: `"lavarand", "platform", "all"`, default: `"lavarand"` — Specifies the source of the requested bytes. \`lavarand\`, the default, sources from Cloudflare's physical sources of entropy. \`platform\` sources bytes from the platform's entropy source. \`all\` mixes bytes from all available sources.
+
+**Example:**
+
+```
+{
+  "bytes": 32,
+  "format": "hex",
+  "source": "lavarand"
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns high-quality random bytes
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+## Schemas
+
+### ApikeyEditable
+
+- **Type:**`object`
+
+* **`name` (required)**
+
+  `string` — Name for the API key
+
+* **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+* **`keyrings`**
+
+  `object`, default: `{}`
+
+* **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {}
+}
+```
+
+### ApikeyOutput
+
+- **Type:**
+
+**Example:**
+
+### CreateApikeyOutput
+
+- **Type:**
+
+**Example:**
+
+### KeyringEditable
+
+- **Type:**`object`
+
+* **`key` (required)**
+
+  `object`
+
+* **`name` (required)**
+
+  `string`
+
+* **`rotation` (required)**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string`, default: `"4294967296"`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "key": {
+    "algorithm": "rsassa-pkcs1-v1_5",
+    "size": 256,
+    "hash": "md4"
+  },
+  "rotation": {
+    "time": {
+      "enabled": true,
+      "cron": [
+        "0 0 1 1 *"
+      ]
+    },
+    "count": {
+      "enabled": true,
+      "threshold": "4294967296"
+    }
+  }
+}
+```
+
+### KeyringOutput
+
+- **Type:**
+
+**Example:**
+
+### EncryptEmbedOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "0.AAAAAAAAAAAAAAAAAAAAAA==.YWVzLWdjbQ==.MjU2.AAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=="
+    }
+  ]
+}
+```
+
+### EncryptEmbedInput
+
+- **Type:**
+
+**Example:**
+
+### EncryptUploadOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "0.AAAAAAAAAAAAAAAAAAAAAA==.YWVzLWdjbQ==.MjU2.AAAAAAAAAAAAAAAA.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### EncryptUploadInput
+
+- **Type:**`object`
+
+* **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+### DecryptEmbedOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "Hello world"
+    }
+  ]
+}
+```
+
+### DecryptEmbedInput
+
+- **Type:**
+
+**Example:**
+
+### DecryptUploadOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "Hello world",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### DecryptUploadInput
+
+- **Type:**`object`
+
+* **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+### HashEmbedOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
+      "reference": ""
+    }
+  ]
+}
+```
+
+### HashEmbedInput
+
+- **Type:**
+
+**Example:**
+
+### HashUploadOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "64ec88ca00b268e5ba1a35678a1b5316d212f4f366b2477232534a8aeca37f3c",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### HashUploadInput
+
+- **Type:**`object`
+
+* **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+### RandomOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+### RandomInput
+
+- **Type:**`object`
+
+* **`bytes` (required)**
+
+  `integer` — Specifies the number of bytes to return
+
+* **`format` (required)**
+
+  `string`, possible values: `"hex", "base64", "base64url"` — Specifies the output encoding
+
+* **`source`**
+
+  `string`, possible values: `"lavarand", "platform", "all"`, default: `"lavarand"` — Specifies the source of the requested bytes. \`lavarand\`, the default, sources from Cloudflare's physical sources of entropy. \`platform\` sources bytes from the platform's entropy source. \`all\` mixes bytes from all available sources.
+
+**Example:**
+
+```
+{
+  "bytes": 32,
+  "format": "hex",
+  "source": "lavarand"
+}
+```

@@ -1,0 +1,86 @@
+name: Prettier
+
+on:
+  push:
+    paths:
+      - '**.*js*'
+      - '**.*ts*'
+      - '**.css'
+      - '**.less'
+      - '**.scss'
+      - '**.html'
+      - '**.hbs'
+      - '**.json'
+      - '**.gql'
+      - '**.graphql'
+      - '**.md*'
+      - '**.yaml'
+      - '**.yml'
+  pull_request_target:
+    paths:
+      - '**.*js*'
+      - '**.*ts*'
+      - '**.css'
+      - '**.less'
+      - '**.scss'
+      - '**.html'
+      - '**.hbs'
+      - '**.json'
+      - '**.gql'
+      - '**.graphql'
+      - '**.md*'
+      - '**.yaml'
+      - '**.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  prettier:
+    runs-on: ubuntu-latest
+    if: github.actor != 'autosec-prettier[bot]'
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@5ef0c079ce82195b2a36a210272d6b661572d83e # v2.14.2
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/create-github-app-token@29824e69f54612133e76f7eaac726eef6c875baf # v2.2.1
+        id: gh_prettier_token
+        with:
+          app-id: ${{ vars.GH_PRETTIER_CLIENT_ID }}
+          private-key: ${{ secrets.GH_PRETTIER_PRIVATE_KEY }}
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          token: ${{ steps.gh_prettier_token.outputs.token }}
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspaces
+      - run: npm run-script install --if-present --include-workspace-root --workspaces
+      - run: npm run fmt:fix
+      - name: Check for Changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Git Setup
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config user.name "${{ steps.gh_prettier_token.outputs.app-slug }}[bot]"
+          git config user.email "${{ vars.GH_PRETTIER_USER_ID }}+${{ steps.gh_prettier_token.outputs.app-slug }}[bot]@users.noreply.github.com"
+      - run: git commit -am "Ran formatter" || echo "No formatting done"
+        if: steps.changes.outputs.changes == 'true'
+      - run: git push
+        if: steps.changes.outputs.changes == 'true'

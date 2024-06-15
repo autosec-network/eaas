@@ -1,0 +1,18 @@
+{
+	"extends": "../../tsconfig.json",
+	"compilerOptions": {
+		"sourceMap": true,
+		"paths": {
+			"~/*": ["./src/*"],
+			"~db/*": ["../../db/*"],
+			"~container/*": ["./container/*"],
+			"~do/*": ["./do/*"],
+			"~shared/*": ["../../shared/*"],
+			"~pqc/*": ["./pqc/*"],
+			"~wf/*": ["./wf/*"]
+		},
+		"types": ["./worker-configuration.d.ts", "node"]
+	},
+	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs", "apiGateway.mts"],
+	"include": ["../../db", "./container", "./do", "./wf", "src"]
+}

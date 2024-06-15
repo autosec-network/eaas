@@ -1,0 +1,20 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"entries": [
+		{
+			"idx": 0,
+			"version": "6",
+			"when": 1734677679338,
+			"tag": "0000_windy_meteorite",
+			"breakpoints": true
+		},
+		{
+			"idx": 1,
+			"version": "6",
+			"when": 1741126697272,
+			"tag": "0001_slim_norrin_radd",
+			"breakpoints": true
+		}
+	]
+}
