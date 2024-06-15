@@ -1,0 +1,4 @@
+[dev]
+local_protocol = "https"
+ip = "localhost"
+port = 7016
