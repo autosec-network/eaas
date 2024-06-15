@@ -32,6 +32,8 @@
 	},
 	"engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
 	"dependencies": {
+		"@auth/core": "^0.32.0",
+		"@builder.io/qwik-auth": "^0.2.2",
 		"@qwikest/icons": "^0.0.13",
 		"@unpic/qwik": "^0.0.46",
 		"flowbite": "^2.3.0",
