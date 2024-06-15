@@ -58,7 +58,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      - run: git commit -am "Ran formatter"
+      - run: git commit -am "Ran svg cleaner"
         if: steps.changes.outputs.changes == 'true'
       - run: git push
         if: steps.changes.outputs.changes == 'true'
