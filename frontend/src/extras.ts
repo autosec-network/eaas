@@ -1,10 +1,12 @@
+import type { Request } from '@cloudflare/workers-types/experimental';
+
 export function isLocal(incoming: string | URL | Request): boolean {
 	let incomingUrl: URL;
 
-	if (incoming instanceof Request) {
-		incomingUrl = new URL(incoming.headers.get('origin') ?? incoming.url);
-	} else {
+	if (typeof incoming === 'string' || incoming instanceof URL) {
 		incomingUrl = new URL(incoming);
+	} else {
+		incomingUrl = new URL(incoming.headers.get('origin') ?? incoming.url);
 	}
 
 	if (incomingUrl.hostname === 'localhost' || incomingUrl.hostname === '127.0.0.1') {
