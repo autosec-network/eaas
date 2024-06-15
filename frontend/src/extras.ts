@@ -40,3 +40,32 @@ export function isLocal(incoming: string | URL | Request): boolean {
 export function runningLocally(incomingRequest: Request): boolean {
 	return isLocal(new URL(incomingRequest.headers.get('Origin') ?? `https://${incomingRequest.headers.get('Host')}`));
 }
+
+/**
+ * @link https://jsbm.dev/NHJHj31Zwm3OP
+ */
+export function bufferFromHex(hex: string) {
+	return new Uint8Array(hex.length / 2).map((_, index) => parseInt(hex.slice(index * 2, index * 2 + 2), 16)).buffer;
+}
+
+/**
+ * @link https://jsbm.dev/AoXo8dEke1GUg
+ */
+export function bufferToHex(buffer: ReturnType<typeof bufferFromHex>) {
+	return new Uint8Array(buffer).reduce((output, elem) => output + ('0' + elem.toString(16)).slice(-2), '');
+}
+
+export function getHash(algorithm: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512', input: string | ArrayBufferLike) {
+	return crypto.subtle.digest(algorithm, typeof input === 'string' ? new TextEncoder().encode(input) : input).then((hashBuffer) => bufferToHex(hashBuffer));
+}
+
+/**
+ * @returns Fully formatted (double quote encapsulated) `ETag` header value
+ * @link https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/ETag#etag_value
+ */
+export function generateETag(response: Response, algorithm: Parameters<typeof getHash>[0] = 'SHA-512') {
+	return response
+		.clone()
+		.arrayBuffer()
+		.then((buffer) => getHash(algorithm, buffer).then((hex) => `"${hex}"`));
+}
