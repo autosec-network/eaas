@@ -1,6 +1,8 @@
 # Encryption as a Service
 
-Inspired by Hashicorp's Vault's Transit secrets engine (pre license change - AUG 10 2023), powered by [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) and Cloudflare Workers.
+Inspired by [Hashicorp's Vault's Transit secrets engine](https://developer.hashicorp.com/vault/docs/v1.14.x/secrets/transit) (pre license change - AUG 10 2023), powered by [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/) and Cloudflare Workers.
+
+Currently under development, see progress under the [Projects](https://github.com/autosec-network/eaas/projects) tab.
 
 ## Sponsors
 
