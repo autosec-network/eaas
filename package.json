@@ -1,0 +1,56 @@
+{
+	"type": "module",
+	"scripts": {
+		"fmt": "prettier --check .",
+		"fmt:fix": "prettier --write .",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler ./**/*.tsbuildinfo",
+		"clean": "npm -w frontend -w api run clean",
+		"cli:pre": "tsx shared/db-preview/cli.mts",
+		"dev": "tsx --env-file-if-exists=devScripts/.dev.vars devScripts/cli.mts",
+		"generate:pre:root": "npm exec -- drizzle-kit generate --dialect=sqlite --driver d1-http --casing=snake_case --schema=\"shared/db-preview/schemas/root/index.ts\" --out=\"shared/db-preview/schemas/root\"",
+		"generate:pre:tenant": "npm exec -- drizzle-kit generate --dialect=sqlite --driver d1-http --casing=snake_case --schema=\"shared/db-preview/schemas/tenant/index.ts\" --out=\"shared/db-preview/schemas/tenant\""
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>",
+		"George Portillo <georgeportillodesign@gmail.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
+	"workspaces": [
+		"workers/*"
+	],
+	"dependencies": {
+		"drizzle-orm": "^0.44.5",
+		"jose": "^6.1.0",
+		"zod": "^4.1.11"
+	},
+	"devDependencies": {
+		"@auth/core": "^0.40.0",
+		"@changesets/changelog-github": "^0.5.1",
+		"@changesets/cli": "^2.29.7",
+		"@cloudflare/workers-types": "^4.20250923.0",
+		"@demosjarco/prettier-config": "^1.0.2",
+		"@eslint/js": "^9.36.0",
+		"@types/node": "^22.18.6",
+		"drizzle-kit": "^0.31.4",
+		"eslint": "^9.36.0",
+		"eslint-config-prettier": "^10.1.8",
+		"lerna": "^8.2.4",
+		"prettier": "^3.6.2",
+		"tsx": "^4.20.5",
+		"typescript": "^5.9.2",
+		"typescript-eslint": "^8.44.1",
+		"wrangler": "^4.38.0"
+	}
+}

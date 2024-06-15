@@ -1,0 +1,93 @@
+name: Publish API
+
+on:
+  push:
+    branches:
+      - production
+      - dev
+    paths:
+      - '.github/workflows/publish-api.yml'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'shared/**'
+      - 'workers/api/package*.json'
+      - 'workers/api/src/**'
+      - 'workers/api/dist/**'
+      - 'workers/api/tsconfig.json'
+      - 'workers/api/wrangler.jsonc'
+      - 'workers/api/staticApi.mts'
+      - 'wf/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose an environment to deploy to:'
+        required: true
+        type: environment
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment:
+      name: ${{ inputs.environment || github.ref_name }}
+      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.eaas.autosec.network
+    steps:
+      - uses: step-security/harden-runner@f4a75cfd619ee5ce8d5b864b0d183aff3c69b55a # v2.13.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+      - run: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      - run: sudo apt update
+      - uses: awalsh128/cache-apt-pkgs-action@2c09a5e66da6c8016428a2172bd76e5e4f14bb17 # v1.5.3
+        with:
+          packages: docker-ce
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace api
+      - run: npm run-script install --if-present
+      - run: npm -w api run build:types:cf
+      - run: npx prettier --write workers/api/worker-configuration.d.ts
+      - run: git commit -m "Generate cf types" workers/api/worker-configuration.d.ts || echo "No type generation done"
+      - run: git push
+      - run: npm -w api run build:pqc
+      - run: npm -w api run build:static
+      - run: git add workers/api/dist/**
+      - run: git commit -m "Generated static assets" || echo "static assets not touched"
+      - run: git push
+      - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
+        id: npm_wrangler_version
+      - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        id: wrangler
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          environment: ${{ (vars.ENVIRONMENT == 'production' && vars.ENVIRONMENT) || '' }}
+          workingDirectory: workers/api
+          vars: |
+            CF_ACCOUNT_ID
+            GIT_HASH
+          secrets: |
+            CF_API_TOKEN
+            US_BW_SM_ACCESS_TOKEN
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          GIT_HASH: ${{ github.sha }}
+          CF_API_TOKEN: ${{ secrets.API_CF_API_TOKEN }}
+          US_BW_SM_ACCESS_TOKEN: ${{ secrets.US_BW_SM_ACCESS_TOKEN}}

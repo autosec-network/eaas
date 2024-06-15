@@ -1,0 +1,124 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-api-preview",
+	"main": "src/index.ts",
+	"compatibility_date": "2025-09-17",
+	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough"],
+	"route": { "pattern": "preview.api.eaas.autosec.network", "custom_domain": true },
+	"workers_dev": false,
+	"preview_urls": false,
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	"observability": { "enabled": true },
+	"placement": { "mode": "smart" },
+	"assets": {
+		"directory": "./dist",
+		"run_worker_first": false
+	},
+	"containers": [
+		// {
+		// 	"image": "../Dockerfile",
+		// 	"class_name": "PqcContainerSidecar",
+		// 	"instance_type": "standard",
+		// 	"max_instances": 0,
+		// 	"name": "eaas-pqc-preview"
+		// }
+	],
+	"d1_databases": [
+		{
+			"binding": "EAAS_ROOT",
+			"database_name": "eaas_root_p",
+			"database_id": "74b7a7fd-18ea-422f-a888-47214742e4cf"
+		},
+		// VIP
+		{
+			"binding": "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED",
+			"database_id": "b55a31ba-b382-4f53-b204-2d730ee6c3aa"
+		},
+		{
+			"binding": "EA803ABD600308CBA6D90AC4D2853B1BFE87E90DFC7024BE15F5BD15C1A95396",
+			"database_id": "44fc8199-a069-40e2-bdde-f0f16ff12a81"
+		}
+	],
+	"durable_objects": {
+		"bindings": [{ "name": "PQC_CONTAINER_SIDECAR", "class_name": "PqcContainerSidecar" }]
+	},
+	"migrations": [{ "tag": "cc66f6b", "new_sqlite_classes": ["PqcContainerSidecar"] }],
+	"version_metadata": { "binding": "CF_VERSION_METADATA" },
+	"workflows": [
+		{
+			"name": "data-key-rotation-preview",
+			"binding": "DATA_KEY_ROTATION",
+			"class_name": "DataKeyRotation"
+		}
+	],
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development"
+	},
+	"env": {
+		"production": {
+			"name": "eaas-api",
+			"compatibility_date": "2025-09-17",
+			"compatibility_flags": ["nodejs_compat"],
+			"route": { "pattern": "api.eaas.autosec.network", "custom_domain": true },
+			"workers_dev": false,
+			"preview_urls": false,
+			"minify": true,
+			"upload_source_maps": false,
+			"observability": { "enabled": true },
+			"placement": { "mode": "smart" },
+			"assets": {
+				"directory": "./dist",
+				"run_worker_first": false
+			},
+			"containers": [
+				{
+					"image": "../../Dockerfile",
+					"class_name": "PqcContainerSidecar",
+					"instance_type": "dev",
+					"max_instances": 10,
+					"name": "eaas-pqc"
+				}
+			],
+			"d1_databases": [
+				{
+					"binding": "EAAS_ROOT",
+					"database_name": "eaas_root_p",
+					"database_id": "74b7a7fd-18ea-422f-a888-47214742e4cf"
+				},
+				// VIP
+				{
+					"binding": "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED",
+					"database_id": "b55a31ba-b382-4f53-b204-2d730ee6c3aa"
+				},
+				{
+					"binding": "EA803ABD600308CBA6D90AC4D2853B1BFE87E90DFC7024BE15F5BD15C1A95396",
+					"database_id": "44fc8199-a069-40e2-bdde-f0f16ff12a81"
+				}
+			],
+			"durable_objects": {
+				"bindings": [{ "name": "PQC_CONTAINER_SIDECAR", "class_name": "PqcContainerSidecar" }]
+			},
+			"migrations": [{ "tag": "cc66f6b", "new_sqlite_classes": ["PqcContainerSidecar"] }],
+			"version_metadata": { "binding": "CF_VERSION_METADATA" },
+			"workflows": [
+				{
+					"name": "data-key-rotation",
+					"binding": "DATA_KEY_ROTATION",
+					"class_name": "DataKeyRotation"
+				}
+			],
+			"vars": {
+				"ENVIRONMENT": "preview",
+				"NODE_ENV": "development"
+			}
+		}
+	},
+	"dev": {
+		"local_protocol": "http",
+		"ip": "localhost",
+		"enable_containers": false
+	}
+}
