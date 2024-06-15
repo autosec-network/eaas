@@ -7,4 +7,4 @@ Currently under development, see progress under the [Projects](https://github.co
 ## Sponsors
 
 [![Cloudflare](https://github.com/Cloudflare.png?size=75)](https://www.cloudflare.com/developer-expert-program/)
-[![ChainFuse](https://github.com/ChainFuse.png?size=75)](https://github.com/ChainFuse)
+[![ChainFuse](https://github.com/ChainFuse.png?size=75)](https://chainfuse.ai)
