@@ -1,0 +1,41 @@
+{
+	"type": "module",
+	"scripts": {
+		"fmt": "prettier --check .",
+		"fmt:fix": "prettier --write .",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler ./**/*.tsbuildinfo",
+		"clean": "npm -w frontend -w api run clean"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
+	"workspaces": [
+		"shared/*",
+		"workers/*"
+	],
+	"devDependencies": {
+		"@demosjarco/prettier-config": "^1.0.2",
+		"@eslint/js": "^10.0.1",
+		"@types/node": "^24.10.15",
+		"eslint": "^10.0.2",
+		"eslint-config-prettier": "^10.1.8",
+		"prettier": "^3.8.1",
+		"tsx": "^4.21.0",
+		"typescript": "^5.9.3",
+		"typescript-eslint": "^8.56.1",
+		"wrangler": "^4.68.1"
+	}
+}
