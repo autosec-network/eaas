@@ -1,0 +1,74 @@
+name: Optimize PNGs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/png-optim.yml'
+      - '**.png'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.8.0
+        with:
+          disable-sudo: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29 # v4.1.6
+      # https://github.com/actions/cache/blob/main/examples.md#rust---cargo
+      # https://github.com/rust-lang/cargo/issues/4725
+      # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+      - name: Rust Package Cache
+        uses: actions/cache@0c45773b623bea8c8e75f6c82b208c3cf94ea4f9 # v4.0.2
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # https://doc.rust-lang.org/cargo/guide/continuous-integration.html#github-actions
+      - run: rustup update stable && rustup default stable
+      - run: |
+          if ! command -v oxipng &> /dev/null
+          then
+            echo "oxipng is not installed. Installing now..."
+            cargo install oxipng
+            exit
+          fi
+
+          installed_version=$(oxipng --version)
+          latest_version=$(curl -s https://crates.io/api/v1/crates/oxipng | jq -r '.crate.max_version')
+
+          if [[ $installed_version != *$latest_version* ]]; then
+            echo "oxipng is out of date. Updating now..."
+            cargo install oxipng --force
+          else
+            echo "oxipng is up to date."
+          fi
+      - run: oxipng --opt max --recursive --preserve --strip safe --alpha --zopfli -t 4 ${{ github.workspace }}/frontend
+      - name: Check for Changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Git Setup
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git commit -am "Optimized PNGs"
+        if: steps.changes.outputs.changes == 'true'
+      - run: git push
+        if: steps.changes.outputs.changes == 'true'
