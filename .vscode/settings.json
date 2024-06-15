@@ -4,6 +4,7 @@
 		"source.fixAll": "explicit",
 		"source.organizeImports": "explicit"
 	},
+	"typescript.preferences.importModuleSpecifier": "relative",
 	"typescript.tsdk": "./node_modules/typescript/lib",
 	"github-actions.workflows.pinned.refresh.enabled": true,
 	"github-actions.workflows.pinned.workflows": [],
