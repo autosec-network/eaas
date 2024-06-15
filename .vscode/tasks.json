@@ -1,0 +1,75 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build",
+			"dependsOn": ["Lint", "Qwik Types", "Qwik Client", "Qwik Server"],
+			"isBackground": true,
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Lint",
+			"type": "npm",
+			"script": "lint:fix",
+			"problemMatcher": "$eslint-stylish",
+			"presentation": {
+				"group": "compile"
+			},
+			"icon": {
+				"id": "lightbulb-autofix",
+				"color": "terminal.ansiGreen"
+			}
+		},
+		{
+			"label": "Qwik Types",
+			"type": "typescript",
+			"tsconfig": "tsconfig.json",
+			"option": "watch",
+			"problemMatcher": ["$tsc-watch"],
+			"isBackground": true,
+			"presentation": {
+				"group": "compile"
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"icon": {
+				"id": "symbol-type-parameter",
+				"color": "terminal.ansiBlue"
+			}
+		},
+		{
+			"label": "Qwik Client",
+			"type": "npm",
+			"script": "build.client",
+			"presentation": {
+				"group": "compile"
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"icon": {
+				"id": "browser",
+				"color": "terminal.ansiYellow"
+			}
+		},
+		{
+			"label": "Qwik Server",
+			"dependsOn": ["Qwik Client"],
+			"type": "npm",
+			"script": "build.server",
+			"presentation": {
+				"group": "compile"
+			},
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"icon": {
+				"id": "server-process"
+			}
+		}
+	]
+}
