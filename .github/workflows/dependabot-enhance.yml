@@ -1,0 +1,32 @@
+name: Auto Dependabot
+
+on:
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    if: github.actor == 'dependabot[bot]'
+    permissions:
+      pull-requests: write
+      issues: write
+      repository-projects: write
+    steps:
+      - uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10 # v2.8.0
+        with:
+          disable-sudo: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: dependabot/fetch-metadata@5e5f99653a5b510e8555840e80cbf1514ad4af38 # v2.1.0
+        id: dependabot-metadata
+      - run: echo "SEMVER_UPDATE=$(echo "${{ steps.dependabot-metadata.outputs.update-type }}" | cut -d':' -f2)" >> "$GITHUB_OUTPUT"
+        id: dependabot-metadata-update-type
+      - run: gh pr edit "${{ github.event.pull_request.html_url }}" --add-label "${{ steps.dependabot-metadata-update-type.outputs.SEMVER_UPDATE }}"
+        env:
+          GH_TOKEN: ${{ github.token }}
