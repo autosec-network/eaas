@@ -26,7 +26,7 @@ const cloudflareNodeRuntimes: `node:${string}`[] = ['node:assert', 'node:async_h
  */
 const cloudflareRuntimes: `cloudflare:${string}`[] = ['cloudflare:email', 'cloudflare:workers', 'cloudflare:sockets'];
 
-export default defineConfig(({ command, mode }): UserConfig => {
+export default defineConfig((): UserConfig => {
 	return {
 		plugins: [
 			qwikCity(),
