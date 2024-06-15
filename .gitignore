@@ -128,3 +128,30 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Build
+/frontend/dist
+/frontend/lib
+/frontend/lib-types
+/frontend/server
+
+# Development
+*.local
+
+# Cache
+.mf
+.rollup.cache
+*.tsbuildinfo
+
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Cloudflare
+functions/**/*.js
+.wrangler
+.dev.vars
