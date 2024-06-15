@@ -7,6 +7,7 @@ import { qwikVite } from '@builder.io/qwik/optimizer';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import { defineConfig, type UserConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
+import type { EnvVars } from '~/types';
 
 /**
  * @link https://developers.cloudflare.com/workers/runtime-apis/nodejs
@@ -43,7 +44,7 @@ export default defineConfig((): UserConfig => {
 		},
 		build: {
 			target: 'esnext',
-			sourcemap: process.env.NODE_ENV ? process.env.NODE_ENV !== 'production' : true,
+			sourcemap: (process.env as EnvVars).NODE_ENV !== 'production',
 			emptyOutDir: true,
 			rollupOptions: {
 				external: [...cloudflareNodeRuntimes, ...cloudflareRuntimes],
