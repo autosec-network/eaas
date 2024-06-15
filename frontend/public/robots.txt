@@ -1,4 +1,0 @@
-User-agent: *
-Allow: /
- 
-Sitemap: https://autosec-eaas.pages.dev/sitemap.xml

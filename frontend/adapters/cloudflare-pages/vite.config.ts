@@ -11,14 +11,6 @@ export default extendConfig(baseConfig, () => {
 			ssrManifest: true,
 			ssr: true,
 		},
-		plugins: [
-			cloudflarePagesAdapter({
-				ssg: {
-					include: ['/*'],
-					origin: 'https://autosec-eaas.pages.dev',
-					sitemapOutFile: 'sitemap.xml',
-				},
-			}),
-		],
+		plugins: [cloudflarePagesAdapter()],
 	};
 });
