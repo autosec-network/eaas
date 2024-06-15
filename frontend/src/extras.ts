@@ -41,6 +41,21 @@ export function runningLocally(incomingRequest: Request): boolean {
 	return isLocal(new URL(incomingRequest.headers.get('Origin') ?? `https://${incomingRequest.headers.get('Host')}`));
 }
 
+const LOWER_CHAR_SET = 'abcdefghijklmnopqrstuvwxyz' as const;
+const NUMBER_CHAR_SET = '0123456789' as const;
+const CHAR_SET = `${LOWER_CHAR_SET.toUpperCase()}${LOWER_CHAR_SET}${NUMBER_CHAR_SET}` as const;
+export function randomText(length: number) {
+	const randomBytes = new Uint8Array(length);
+	crypto.getRandomValues(randomBytes);
+	let randomText = '';
+	for (const byte of randomBytes) {
+		// Map each byte to a character in the character set
+		const charIndex = byte % CHAR_SET.length;
+		randomText += CHAR_SET.charAt(charIndex);
+	}
+	return randomText;
+}
+
 /**
  * @link https://jsbm.dev/NHJHj31Zwm3OP
  */
