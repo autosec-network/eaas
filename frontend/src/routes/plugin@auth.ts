@@ -3,7 +3,7 @@ import GitHub from '@auth/core/providers/github';
 import { serverAuth$ } from '@builder.io/qwik-auth';
 
 export const { onRequest, useAuthSession, useAuthSignin, useAuthSignout } = serverAuth$(({ platform }) => ({
-	secret: platform.env['AUTH_SECRET'],
+	secret: platform.env.AUTH_SECRET,
 	trustHost: true,
 	providers: [
 		GitHub({
