@@ -1,0 +1,119 @@
+# To get started with Dependabot version updates, you'll need to specify which
+# package ecosystems to update and where the package manifests are located.
+# Please see the documentation for all configuration options:
+# https://docs.github.com/github/administering-a-repository/configuration-options-for-dependency-updates
+
+version: 2
+updates:
+  - package-ecosystem: 'devcontainers'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 999
+  - package-ecosystem: 'docker'
+    directories:
+      - '/.devcontainer'
+      - '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 999
+    ignore:
+      - dependency-name: 'node'
+        versions:
+          - '>=25'
+  - package-ecosystem: 'github-actions'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    open-pull-requests-limit: 999
+    groups:
+      artifacts:
+        patterns:
+          - 'actions/*-artifact'
+      caches:
+        patterns:
+          - 'actions/cache'
+          - 'actions/cache/*'
+          - 'awalsh128/cache-apt-pkgs-action'
+      ci-cd:
+        patterns:
+          - 'dependabot/*'
+          - 'actions/create-github-app-token'
+      sast:
+        patterns:
+          - 'github/codeql-*'
+          - 'actions/dependency-review-action'
+          - 'step-security/*'
+          - 'microsoft/security-devops-action'
+          - 'microsoft/DevSkim-Action'
+          - 'ossf/*'
+      setup:
+        patterns:
+          - 'actions/checkout'
+          - 'actions/setup-*'
+  - package-ecosystem: 'npm'
+    directory: '/'
+    schedule:
+      interval: 'weekly'
+    versioning-strategy: increase
+    open-pull-requests-limit: 999
+    ignore:
+      # Match lts/*
+      - dependency-name: '@types/node'
+        versions:
+          - '>=25.0.0'
+      # All tutorials use v9. Keep it on v9 until I get around to figuring out breaking upgrade
+      - dependency-name: '@simplewebauthn/*'
+        versions:
+          - '>=10.0.0'
+    groups:
+      auth:
+        patterns:
+          - '@auth/*'
+          - '@simplewebauthn/*'
+          - 'jose'
+      cloudflare:
+        patterns:
+          - 'cloudflare'
+          - '@cloudflare/*'
+          - 'wrangler'
+        exclude-patterns:
+          - '@cloudflare/workers-types'
+      ci-cd:
+        patterns:
+          - '@scalar/openapi-to-markdown'
+      code-management:
+        patterns:
+          - 'prettier'
+          - 'prettier-plugin-*'
+          - '@demosjarco/prettier-config'
+          - 'eslint'
+          - '@eslint/*'
+          - 'eslint-plugin-*'
+          - 'eslint-config-*'
+          - 'typescript-eslint'
+      db:
+        patterns:
+          - 'drizzle-*'
+      hono:
+        patterns:
+          - 'hono'
+          - '@hono/*'
+          - '@scalar/hono-api-reference'
+      internal:
+        patterns:
+          - '@autosec/*'
+      typescript-core:
+        patterns:
+          - 'typescript'
+          - 'tsx'
+      typescript-types:
+        patterns:
+          - '@types/*'
+          - '@cloudflare/workers-types'
+          - 'turnstile-types'
+          - 'zaraz-ts'
+      validation:
+        patterns:
+          - 'zod'
+          - 'validator'
