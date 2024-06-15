@@ -11,6 +11,7 @@
 		"dev": "vite --mode ssr",
 		"dev.debug": "node --inspect-brk ./node_modules/vite/bin/vite.js --mode ssr --force",
 		"preview": "qwik build preview && vite preview --open",
+		"clean": "npx -y rimraf@latest ./dist ./server ./tmp",
 		"start": "wrangler pages dev dist --live-reload true --persist-to ../.wrangler/state",
 		"qwik": "qwik"
 	},

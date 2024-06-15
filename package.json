@@ -3,7 +3,9 @@
 		"fmt": "prettier --check .",
 		"fmt:fix": "prettier --write .",
 		"lint": "eslint \"**/*.ts*\"",
-		"lint:fix": "npm run lint -- --fix"
+		"lint:fix": "npm run lint -- --fix",
+		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler",
+		"clean": "npm -w frontend run clean"
 	},
 	"repository": {
 		"type": "git",
