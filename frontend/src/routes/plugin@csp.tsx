@@ -248,7 +248,6 @@ class CSPGenerator {
 
 	private setupCSP() {
 		this.addDefault({ self: true });
-		this.addFont({ self: true, domains: ['https://fonts.gstatic.com'] });
 		this.addImage({ all: true, data: true, blob: true });
 		this.addScript({ self: true, unsafeInline: true, unsafeEval: true, domains: ['https://static.cloudflareinsights.com', 'https://challenges.cloudflare.com'] });
 		this.addStyle({ self: true, unsafeInline: true });
