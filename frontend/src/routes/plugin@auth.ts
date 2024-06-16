@@ -15,7 +15,6 @@ export const { onRequest, useAuthSession, useAuthSignin, useAuthSignout } = serv
 		warn: console.warn,
 		error: console.error,
 	},
-	basePath: '/auth',
 	secret: platform.env.AUTH_SECRET,
 	session: {
 		generateSessionToken: crypto.randomUUID,
