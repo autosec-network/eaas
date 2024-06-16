@@ -1,3 +1,22 @@
+name = "autosec-eaas"
+pages_build_output_dir = "dist"
+compatibility_date = "2024-05-13"
+compatibility_flags = ["nodejs_compat"]
+
+[vars]
+NODE_ENV = "development"
+TURNSTILE_SITE_KEY = "0x4AAAAAAAcoSOMhBinre5sK"
+
+
+[env.production]
+compatibility_date = "2024-05-13"
+compatibility_flags = ["nodejs_compat"]
+
+[env.production.vars]
+NODE_ENV = "production"
+TURNSTILE_SITE_KEY = "0x4AAAAAAAcoSOMhBinre5sK"
+
+
 [dev]
 local_protocol = "https"
 ip = "localhost"
