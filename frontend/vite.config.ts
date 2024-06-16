@@ -47,24 +47,24 @@ export default defineConfig((): UserConfig => {
 			sourcemap: (process.env as EnvVars).NODE_ENV !== 'production',
 			emptyOutDir: true,
 			rollupOptions: {
-				external: [...cloudflareNodeRuntimes, ...cloudflareRuntimes],
+				external: ['crypto', ...cloudflareNodeRuntimes, ...cloudflareRuntimes],
 			},
 			manifest: true,
 		},
 		worker: {
 			rollupOptions: {
-				external: [...cloudflareNodeRuntimes, ...cloudflareRuntimes],
+				external: ['crypto', ...cloudflareNodeRuntimes, ...cloudflareRuntimes],
 			},
 		},
 		ssr: {
-			external: [...cloudflareNodeRuntimes, ...cloudflareRuntimes],
+			external: ['crypto', ...cloudflareNodeRuntimes, ...cloudflareRuntimes],
 		},
 		// This tells Vite which dependencies to pre-build in dev mode.
 		optimizeDeps: {
 			include: ['@auth/core'],
 			// Put problematic deps that break bundling here, mostly those with binaries.
 			// For example ['better-sqlite3'] if you use that in server functions.
-			exclude: [...cloudflareNodeRuntimes, ...cloudflareRuntimes],
+			exclude: ['crypto', ...cloudflareNodeRuntimes, ...cloudflareRuntimes],
 		},
 	};
 });

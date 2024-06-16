@@ -9,7 +9,9 @@ interface Secrets {
 	TURNSTILE_SECRET_KEY?: string;
 }
 
-interface Bindings {}
+interface Bindings {
+	DB: D1Database;
+}
 
 interface PagesEnvironmentvariables {
 	CF_PAGES: '0' | '1';
