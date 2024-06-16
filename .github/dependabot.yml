@@ -39,6 +39,11 @@ updates:
         versions:
           - '>=9.0.0'
     groups:
+      auth:
+        patterns:
+          - '@builder.io/qwik-auth'
+          - '@auth/*'
+          - '@simplewebauthn/browser'
       cloudflare:
         patterns:
           - 'cloudflare'
@@ -68,6 +73,8 @@ updates:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
           - 'vite-*'
+        exclude-patterns:
+          - '@builder.io/qwik-auth'
       typescript-core:
         patterns:
           - 'typescript'
