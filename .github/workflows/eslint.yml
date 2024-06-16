@@ -41,7 +41,7 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
-      - run: npm install -D eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser
+      - run: npm install -D eslint @typescript-eslint/eslint-plugin @typescript-eslint/parser eslint-plugin-qwik
       - run: npm run lint:fix
         continue-on-error: true
       - name: Check for Changes
