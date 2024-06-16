@@ -43,7 +43,7 @@ updates:
         patterns:
           - '@builder.io/qwik-auth'
           - '@auth/*'
-          - '@simplewebauthn/browser'
+          - '@simplewebauthn/*'
       cloudflare:
         patterns:
           - 'cloudflare'
