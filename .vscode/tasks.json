@@ -15,9 +15,6 @@
 			"type": "npm",
 			"script": "lint:fix",
 			"problemMatcher": "$eslint-stylish",
-			"presentation": {
-				"group": "compile"
-			},
 			"icon": {
 				"id": "lightbulb-autofix",
 				"color": "terminal.ansiGreen"
@@ -31,7 +28,7 @@
 			"problemMatcher": ["$tsc-watch"],
 			"isBackground": true,
 			"presentation": {
-				"group": "compile"
+				"group": "frontend.compile"
 			},
 			"options": {
 				"cwd": "${workspaceFolder}/frontend"
@@ -46,7 +43,7 @@
 			"type": "npm",
 			"script": "build.client",
 			"presentation": {
-				"group": "compile"
+				"group": "frontend.compile"
 			},
 			"options": {
 				"cwd": "${workspaceFolder}/frontend"
@@ -62,7 +59,7 @@
 			"type": "npm",
 			"script": "build.server",
 			"presentation": {
-				"group": "compile"
+				"group": "frontend.compile"
 			},
 			"options": {
 				"cwd": "${workspaceFolder}/frontend"
