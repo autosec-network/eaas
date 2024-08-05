@@ -50,12 +50,12 @@
 		"@builder.io/qwik-city": "^1.5.7",
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"autoprefixer": "^10.4.19",
-		"eslint-plugin-qwik": "^1.5.7",
+		"eslint-plugin-qwik": "^1.7.3",
 		"less": "^4.2.0",
 		"postcss": "^8.4.38",
 		"postcss-import": "^16.1.0",
 		"postcss-nesting": "^12.1.5",
-		"prettier-plugin-tailwindcss": "^0.6.4",
+		"prettier-plugin-tailwindcss": "^0.6.5",
 		"turnstile-types": "^1.2.1",
 		"vite-tsconfig-paths": "^4.3.2"
 	}
