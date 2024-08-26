@@ -46,8 +46,8 @@
 		"tailwindcss": "^3.4.4"
 	},
 	"devDependencies": {
-		"@builder.io/qwik": "^1.5.7",
-		"@builder.io/qwik-city": "^1.5.7",
+		"@builder.io/qwik": "^1.8.0",
+		"@builder.io/qwik-city": "^1.8.0",
 		"@rollup/plugin-node-resolve": "^15.2.3",
 		"autoprefixer": "^10.4.19",
 		"eslint-plugin-qwik": "^1.5.7",
@@ -57,6 +57,6 @@
 		"postcss-nesting": "^12.1.5",
 		"prettier-plugin-tailwindcss": "^0.6.4",
 		"turnstile-types": "^1.2.1",
-		"vite-tsconfig-paths": "^4.3.2"
+		"vite-tsconfig-paths": "^5.0.1"
 	}
 }
