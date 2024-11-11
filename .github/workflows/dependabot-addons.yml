@@ -1,17 +1,12 @@
-name: Auto Dependabot
-
+name: Dependabot Addons
 on:
   pull_request:
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref }}
-  cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  enhance:
+  label:
     runs-on: ubuntu-latest
     if: github.actor == 'dependabot[bot]'
     permissions:
@@ -21,8 +16,8 @@ jobs:
     steps:
       - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
         with:
+          egress-policy: audit
           disable-sudo: true
-          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: dependabot/fetch-metadata@5e5f99653a5b510e8555840e80cbf1514ad4af38 # v2.1.0
         id: dependabot-metadata
       - run: echo "SEMVER_UPDATE=$(echo "${{ steps.dependabot-metadata.outputs.update-type }}" | cut -d':' -f2)" >> "$GITHUB_OUTPUT"
@@ -30,3 +25,16 @@ jobs:
       - run: gh pr edit "${{ github.event.pull_request.html_url }}" --add-label "${{ steps.dependabot-metadata-update-type.outputs.SEMVER_UPDATE }}"
         env:
           GH_TOKEN: ${{ github.token }}
+  review:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6 # v2.8.1
+        with:
+          disable-sudo: true
+          egress-policy: audit
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+      - uses: actions/dependency-review-action@72eb03d02c7872a771aacd928f3123ac62ad6d3a # v4.3.3
+        with:
+          comment-summary-in-pr: always
