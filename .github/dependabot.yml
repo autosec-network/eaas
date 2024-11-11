@@ -30,6 +30,9 @@ updates:
           - 'actions/cache/*'
       sast:
         patterns:
+          - 'github/codeql-*'
+          - 'actions/dependency-review-action'
+          - 'step-security/*'
           - 'microsoft/security-devops-action'
   - package-ecosystem: 'npm'
     directory: '/'
@@ -62,6 +65,7 @@ updates:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
           - 'vite-*'
+          - '@rollup/plugin-node-resolve'
       auth:
         patterns:
           - '@auth/*'
