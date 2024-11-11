@@ -1,0 +1,73 @@
+name: SuperAi Catalog
+
+on:
+  push:
+    paths:
+      - '.github/workflows/crypto-catalog.yml'
+      - 'sidecar/src/workers-crypto-catalog.ts'
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  regenerate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          disable-sudo: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm -w sidecar install -D miniflare
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            await import('miniflare').then(async ({ Miniflare }) => {
+                const mf = new Miniflare({
+                    modules: true,
+                    script: `export default {
+                        async fetch(request, env, ctx) {
+                            return new Response(
+                                JSON.stringify({
+                                    ciphers: getCiphers(),
+                                    curves: getCurves(),
+                                    hashes: getHashes(),
+                                }),
+                            );
+                        }
+                    }`,
+                });
+
+                await mf
+                    .dispatchFetch('http://localhost:8787/')
+                    .then((response) => Promise.all([import('node:fs'), response.json()]))
+                    .then(([{ createWriteStream }, json]) => {
+                        const writeStream = createWriteStream('sidecar/src/workers-crypto-catalog.ts', { encoding: 'utf8' });
+                        writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
+                        writeStream.end();
+                    })
+                    .finally(() => mf.dispose());
+            });
+      - run: npm install -D prettier @demosjarco/prettier-config
+      - run: npx prettier --write .
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git add sidecar/src/workers-crypto-catalog.ts
+      - run: git commit -m "Updated crypto catalog" || echo "crypto catalog not touched"
+      - run: git push
