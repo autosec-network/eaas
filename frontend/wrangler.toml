@@ -1,6 +1,6 @@
 name = "autosec-eaas"
 pages_build_output_dir = "dist"
-compatibility_date = "2024-05-13"
+compatibility_date = "2024-11-06"
 compatibility_flags = ["nodejs_compat_v2"]
 d1_databases = [
     { binding = "DB", database_name = "eaas", database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
@@ -13,7 +13,7 @@ TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
 
 [env.production]
-compatibility_date = "2024-05-13"
+compatibility_date = "2024-11-06"
 compatibility_flags = ["nodejs_compat_v2"]
 d1_databases = [
     { binding = "DB", database_name = "eaas", database_id = "4e4077c0-ef92-45db-b2ef-7401b87751a0", preview_database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
