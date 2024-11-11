@@ -43,7 +43,7 @@ jobs:
                 compatibilityFlags: ['nodejs_compat_v2'],
                 script: `export default {
                     async fetch(request, env, ctx) {
-                        import('node:crypto').then(
+                        return import('node:crypto').then(
                             ({ getCiphers, getCurves, getHashes }) =>
                                 new Response(
                                     JSON.stringify({
