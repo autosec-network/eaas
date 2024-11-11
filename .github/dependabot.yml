@@ -36,7 +36,7 @@ updates:
       # Match lts/*
       - dependency-name: '@types/node'
         versions:
-          - '>=21.0.0'
+          - '>=23.0.0'
       # Currently not supported by plugins
       - dependency-name: 'eslint'
         versions:
