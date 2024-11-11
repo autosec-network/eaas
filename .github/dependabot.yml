@@ -25,6 +25,9 @@ updates:
         patterns:
           - 'actions/cache'
           - 'actions/cache/*'
+      sast:
+        patterns:
+          - 'microsoft/security-devops-action'
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
@@ -39,9 +42,16 @@ updates:
         versions:
           - '>=9.0.0'
     groups:
+      internal:
+        patterns:
+          - '@autosec/*'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'vite-*'
       auth:
         patterns:
-          - '@builder.io/qwik-auth'
           - '@auth/*'
           - '@simplewebauthn/*'
       cloudflare:
@@ -68,13 +78,7 @@ updates:
           - 'autoprefixer'
           - 'flowbite'
           - '@qwikest/icons'
-      qwik:
-        patterns:
-          - '@builder.io/qwik'
-          - '@builder.io/qwik*'
-          - 'vite-*'
-        exclude-patterns:
-          - '@builder.io/qwik-auth'
+          - 'mermaid'
       typescript-core:
         patterns:
           - 'typescript'
@@ -85,3 +89,4 @@ updates:
           - '@types/*'
           - '@cloudflare/workers-types'
           - 'turnstile-types'
+          - 'zaraz-ts'
