@@ -40,7 +40,9 @@ jobs:
 
             const mf = new Miniflare({
                 modules: true,
-                script: `export default {
+                script: `import { getCiphers, getCurves, getHashes } from 'node:crypto';
+                
+                export default {
                     async fetch(request, env, ctx) {
                         return new Response(
                             JSON.stringify({
