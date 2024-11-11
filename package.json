@@ -27,7 +27,7 @@
 	],
 	"dependencies": {},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20240614.0",
+		"@cloudflare/workers-types": "^4.20241106.0",
 		"@demosjarco/prettier-config": "^1.0.1",
 		"@typescript-eslint/eslint-plugin": "^7.13.0",
 		"@typescript-eslint/parser": "^7.13.0",
