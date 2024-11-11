@@ -6,6 +6,8 @@ upload_source_maps = true
 d1_databases = [
     { binding = "DB", database_name = "eaas", database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
 ]
+services = [{ binding = "SIDECAR_WORKER", service = "eaas-sidecar-preview" }]
+
 
 [vars]
 SKIP_DEPENDENCY_INSTALL = "1"
@@ -20,6 +22,7 @@ upload_source_maps = false
 d1_databases = [
     { binding = "DB", database_name = "eaas", database_id = "4e4077c0-ef92-45db-b2ef-7401b87751a0", preview_database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
 ]
+services = [{ binding = "SIDECAR_WORKER", service = "eaas-sidecar" }]
 
 [env.production.vars]
 SKIP_DEPENDENCY_INSTALL = "1"

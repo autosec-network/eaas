@@ -23,7 +23,8 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
 	"workspaces": [
-		"frontend"
+		"frontend",
+		"sidecar"
 	],
 	"dependencies": {},
 	"devDependencies": {

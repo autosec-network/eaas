@@ -1,0 +1,62 @@
+name: Publish Sidecar
+
+on:
+  push:
+    branches:
+      - production
+      - dev
+    paths:
+      - '.github/workflows/publish-sidecar.yml'
+      - 'package*.json'
+      - 'sidecar/package*.json'
+      - 'sidecar/src/**'
+      - 'tsconfig.json'
+      - 'sidecar/tsconfig.json'
+      - 'sidecar/wrangler.toml'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose an environment to deploy to:'
+        required: true
+        type: environment
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment || github.ref_name }}
+    steps:
+      - uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7 # v2.10.1
+        with:
+          disable-sudo: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --include-workspace-root --workspace sidecar
+      - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
+        id: npm_wrangler_version
+      - uses: cloudflare/wrangler-action@05f17c4a695b4d94b57b59997562c6a4624c64e4 # v3.12.1
+        id: wrangler
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          environment: ${{ (vars.ENVIRONMENT == 'production' && vars.ENVIRONMENT) || '' }}
+          workingDirectory: sidecar
+          vars: |
+            CF_ACCOUNT_ID
+            GIT_HASH
+          secrets: |
+            CF_API_TOKEN
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          GIT_HASH: ${{ github.sha }}
+          CF_API_TOKEN: ${{ secrets.SIDECAR_CF_API_TOKEN }}

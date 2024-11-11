@@ -1,3 +1,5 @@
+import type SidecarWorker from '../../sidecar/src/index';
+
 export interface EnvVars extends Secrets, Bindings, Partial<PagesEnvironmentvariables>, Record<string, any> {
 	NODE_ENV: 'production' | 'development';
 
@@ -11,6 +13,7 @@ interface Secrets {
 
 interface Bindings {
 	DB: D1Database;
+	SIDECAR_WORKER: Service<SidecarWorker>;
 }
 
 interface PagesEnvironmentvariables {

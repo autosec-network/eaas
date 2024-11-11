@@ -2,7 +2,7 @@
 	"name": "frontend",
 	"scripts": {
 		"build": "qwik build",
-		"prebuild:pages": "npm ci --include-workspace-root --workspace frontend --include dev",
+		"prebuild:pages": "npm ci --include-workspace-root --workspace pages --workspace sidecar --include dev",
 		"build:pages": "npm run build.types && npm run build.client && npm run build.server",
 		"build.client": "vite build",
 		"build.preview": "vite build --ssr src/entry.cloudflare-pages.tsx",

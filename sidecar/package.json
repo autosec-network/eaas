@@ -1,0 +1,22 @@
+{
+	"name": "sidecar",
+	"type": "module",
+	"scripts": {
+		"start": "wrangler dev"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "ChainFuse",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>",
+		"George Portillo <georgeportillodesign@gmail.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/tree/production/sidecar#readme"
+}

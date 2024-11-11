@@ -1,0 +1,39 @@
+name = "eaas-sidecar-preview"
+main = "src/index.ts"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat_v2"]
+workers_dev = false
+minify = true
+upload_source_maps = true
+
+[vars]
+NODE_ENV = "development"
+
+[observability]
+enabled = true
+
+[placement]
+mode = "smart"
+
+
+[env.production]
+name = "eaas-sidecar"
+compatibility_date = "2024-10-22"
+compatibility_flags = ["nodejs_compat_v2"]
+workers_dev = false
+minify = true
+upload_source_maps = false
+
+[env.production.vars]
+NODE_ENV = "production"
+
+[env.production.observability]
+enabled = true
+
+[env.production.placement]
+mode = "smart"
+
+
+[dev]
+local_protocol = "http"
+ip = "localhost"
