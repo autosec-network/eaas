@@ -7,6 +7,7 @@ d1_databases = [
 ]
 
 [vars]
+SKIP_DEPENDENCY_INSTALL = "1"
 NODE_ENV = "development"
 TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
@@ -19,6 +20,7 @@ d1_databases = [
 ]
 
 [env.production.vars]
+SKIP_DEPENDENCY_INSTALL = "1"
 NODE_ENV = "production"
 TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 

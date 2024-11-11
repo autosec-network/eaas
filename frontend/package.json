@@ -3,7 +3,7 @@
 	"scripts": {
 		"build": "qwik build",
 		"prebuild:pages": "npm ci --include-workspace-root --workspace frontend --include dev",
-		"build:pages": "npm run build",
+		"build:pages": "npm run build.types && npm run build.client && npm run build.server",
 		"build.client": "vite build",
 		"build.preview": "vite build --ssr src/entry.preview.tsx",
 		"build.server": "vite build -c adapters/cloudflare-pages/vite.config.ts",
