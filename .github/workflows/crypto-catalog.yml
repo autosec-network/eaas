@@ -36,32 +36,32 @@ jobs:
       - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
         with:
           script: |
-            await import('miniflare').then(async ({ Miniflare }) => {
-                const mf = new Miniflare({
-                    modules: true,
-                    script: `export default {
-                        async fetch(request, env, ctx) {
-                            return new Response(
-                                JSON.stringify({
-                                    ciphers: getCiphers(),
-                                    curves: getCurves(),
-                                    hashes: getHashes(),
-                                }),
-                            );
-                        }
-                    }`,
-                });
+            const { Miniflare } = require('miniflare');
 
-                await mf
-                    .dispatchFetch('http://localhost:8787/')
-                    .then((response) => Promise.all([import('node:fs'), response.json()]))
-                    .then(([{ createWriteStream }, json]) => {
-                        const writeStream = createWriteStream('sidecar/src/workers-crypto-catalog.ts', { encoding: 'utf8' });
-                        writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
-                        writeStream.end();
-                    })
-                    .finally(() => mf.dispose());
+            const mf = new Miniflare({
+                modules: true,
+                script: `export default {
+                    async fetch(request, env, ctx) {
+                        return new Response(
+                            JSON.stringify({
+                                ciphers: getCiphers(),
+                                curves: getCurves(),
+                                hashes: getHashes(),
+                            }),
+                        );
+                    }
+                }`,
             });
+
+            await mf
+                .dispatchFetch('http://localhost:8787/')
+                .then((response) => Promise.all([import('node:fs'), response.json()]))
+                .then(([{ createWriteStream }, json]) => {
+                    const writeStream = createWriteStream('sidecar/src/workers-crypto-catalog.ts', { encoding: 'utf8' });
+                    writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
+                    writeStream.end();
+                })
+                .finally(() => mf.dispose());
       - run: npm install -D prettier @demosjarco/prettier-config
       - run: npx prettier --write .
       - name: Git Setup
