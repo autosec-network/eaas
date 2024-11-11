@@ -57,6 +57,7 @@ jobs:
                 .dispatchFetch('http://localhost:8787/')
                 .then((response) => Promise.all([import('node:fs'), response.json()]))
                 .then(([{ createWriteStream }, json]) => {
+                    console.log('json', json);
                     const writeStream = createWriteStream('sidecar/src/workers-crypto-catalog.ts', { encoding: 'utf8' });
                     writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
                     writeStream.end();
