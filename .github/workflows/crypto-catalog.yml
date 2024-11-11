@@ -40,6 +40,7 @@ jobs:
 
             const mf = new Miniflare({
                 modules: true,
+                compatibilityFlags: ['nodejs_compat_v2'],
                 script: `export default {
                     async fetch(request, env, ctx) {
                         import('node:crypto').then(
