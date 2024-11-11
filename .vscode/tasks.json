@@ -23,15 +23,12 @@
 		{
 			"label": "Qwik Types",
 			"type": "typescript",
-			"tsconfig": "tsconfig.json",
+			"tsconfig": "frontend/tsconfig.json",
 			"option": "watch",
 			"problemMatcher": ["$tsc-watch"],
 			"isBackground": true,
 			"presentation": {
 				"group": "frontend.compile"
-			},
-			"options": {
-				"cwd": "${workspaceFolder}/frontend"
 			},
 			"icon": {
 				"id": "symbol-type-parameter",
