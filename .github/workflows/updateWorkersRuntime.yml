@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  update-toml:
+  update-files:
     if: github.event_name == 'workflow_dispatch' || (startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/') && contains(github.event.pull_request.head.ref, '/cloudflare-') && github.actor == 'dependabot[bot]')
     runs-on: ubuntu-latest
     permissions:
@@ -51,4 +51,44 @@ jobs:
           git config user.email "dependabot[bot]@users.noreply.github.com"
       - run: find . -maxdepth 2 -name "wrangler.toml" -print0 | xargs -0 git add
       - run: git commit -m "Update \`compatibility_date\` in \`wrangler.toml\`" || echo "\`compatibility_date\` change not needed"
+      - run: git push
+      # crypto catalog
+      - run: npm -w sidecar install -D miniflare
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { Miniflare } = require('miniflare');
+
+            const mf = new Miniflare({
+                modules: true,
+                compatibilityFlags: ['nodejs_compat_v2'],
+                script: `export default {
+                    async fetch(request, env, ctx) {
+                        return import('node:crypto').then(
+                            ({ getCiphers, getCurves, getHashes }) =>
+                                new Response(
+                                    JSON.stringify({
+                                        ciphers: getCiphers(),
+                                        curves: getCurves(),
+                                        hashes: getHashes(),
+                                    }),
+                                ),
+                        );
+                    }
+                }`,
+            });
+
+            await mf
+                .dispatchFetch('http://localhost:8787/')
+                .then((response) => Promise.all([import('node:fs'), response.json()]))
+                .then(([{ createWriteStream }, json]) => {
+                    const writeStream = createWriteStream('sidecar/src/workers-crypto-catalog.ts', { encoding: 'utf8' });
+                    writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
+                    writeStream.end();
+                })
+                .finally(() => mf.dispose());
+      - run: npm install -D prettier @demosjarco/prettier-config
+      - run: npx prettier --no-config --write sidecar/src/workers-crypto-catalog.ts
+      - run: git add sidecar/src/workers-crypto-catalog.ts
+      - run: git commit -m "Updated crypto catalog" || echo "crypto catalog not touched"
       - run: git push
