@@ -8,7 +8,7 @@ d1_databases = [
 
 [vars]
 NODE_ENV = "development"
-TURNSTILE_SITE_KEY = "0x4AAAAAAAcoSOMhBinre5sK"
+TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
 
 [env.production]
@@ -20,7 +20,7 @@ d1_databases = [
 
 [env.production.vars]
 NODE_ENV = "production"
-TURNSTILE_SITE_KEY = "0x4AAAAAAAcoSOMhBinre5sK"
+TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
 
 [dev]
