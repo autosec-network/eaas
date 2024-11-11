@@ -3,12 +3,12 @@ name: Pin `node` `lts/*`
 on:
   push:
     paths:
-      - '.nvmrc'
+      - 'frontend/.nvmrc'
   pull_request:
     types:
       - opened
     paths:
-      - '.nvmrc'
+      - 'frontend/.nvmrc'
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * 0'
@@ -36,10 +36,10 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
-      - run: echo "${{ steps.sn.outputs.node-version }}" > .nvmrc
+      - run: echo "${{ steps.sn.outputs.node-version }}" > frontend/.nvmrc
       - name: Git Setup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-      - run: git commit .nvmrc -m "Fixed node version" || echo "nv change not needed"
+      - run: git commit frontend/.nvmrc -m "Fixed node version" || echo "nv change not needed"
       - run: git push
