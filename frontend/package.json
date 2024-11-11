@@ -5,7 +5,7 @@
 		"prebuild:pages": "npm ci --include-workspace-root --workspace frontend --include dev",
 		"build:pages": "npm run build.types && npm run build.client && npm run build.server",
 		"build.client": "vite build",
-		"build.preview": "vite build --ssr src/entry.preview.tsx",
+		"build.preview": "vite build --ssr src/entry.cloudflare-pages.tsx",
 		"build.server": "vite build -c adapters/cloudflare-pages/vite.config.ts",
 		"build.types": "tsc --incremental --noEmit",
 		"dev": "vite --mode ssr",
@@ -13,6 +13,7 @@
 		"lint": "eslint \"src/**/*.ts*\"",
 		"lint:fix": "npm run lint -- --fix",
 		"preview": "qwik build preview && vite preview --open",
+		"preview:lhci": "qwik build preview && vite preview --port 8080",
 		"clean": "npx -y rimraf@latest ./dist ./server ./tmp",
 		"start": "wrangler pages dev dist --live-reload true --persist-to ../.wrangler/state",
 		"qwik": "qwik"
