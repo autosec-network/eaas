@@ -4,5 +4,5 @@
 		"sourceMap": true
 	},
 	"files": ["./.eslintrc.cjs", "prettier.config.mjs"],
-	"include": ["src"]
+	"include": ["src", "../shared"]
 }
