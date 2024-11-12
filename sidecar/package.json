@@ -8,7 +8,7 @@
 		"type": "git",
 		"url": "git+https://github.com/autosec-network/eaas.git"
 	},
-	"author": "ChainFuse",
+	"author": "Autosec",
 	"contributors": [
 		"DemosJarco <1209494+demosjarco@users.noreply.github.com>",
 		"George Portillo <georgeportillodesign@gmail.com>"
