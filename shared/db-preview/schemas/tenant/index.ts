@@ -1,5 +1,5 @@
 import { sql, type SQL } from 'drizzle-orm';
-import { sqliteTable, unique, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
 import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenants/index.mjs';
 
