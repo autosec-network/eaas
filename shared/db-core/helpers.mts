@@ -1,4 +1,4 @@
-import { sql, type SQL } from 'drizzle-orm';
+import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 export type AnySQL = AnySQLiteColumn | SQL;
@@ -9,6 +9,10 @@ export type AnySQL = AnySQLiteColumn | SQL;
  */
 export function lower<T extends unknown = string>(x: AnySQL) {
 	return sql<T>`lower(${x})`;
+}
+
+export function increment(column: AnyColumn, value = 1) {
+	return sql<number>`${column} + ${value}`;
 }
 
 /**
