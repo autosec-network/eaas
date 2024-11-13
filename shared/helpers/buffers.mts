@@ -66,7 +66,7 @@ export class BufferHelpers {
 			const uuid = uuidv7({ random }) as UuidExport['utf8'];
 			const uuidHex = uuid.replaceAll('-', '');
 
-			return this.bufferFromHex(uuidHex).then((blob) => ({
+			return this.hexToBuffer(uuidHex).then((blob) => ({
 				utf8: uuid,
 				hex: uuidHex,
 				blob,
@@ -91,7 +91,7 @@ export class BufferHelpers {
 						hex = hex.split('_')[1]!;
 					}
 
-					return this.bufferFromHex(hex).then((blob) => ({
+					return this.hexToBuffer(hex).then((blob) => ({
 						utf8: input as UuidExport['utf8'],
 						hex,
 						blob,
@@ -99,7 +99,7 @@ export class BufferHelpers {
 				} else {
 					const hex: UuidExport['hex'] = input;
 
-					return this.bufferFromHex(hex).then((blob) => ({
+					return this.hexToBuffer(hex).then((blob) => ({
 						utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
 						hex,
 						blob,
