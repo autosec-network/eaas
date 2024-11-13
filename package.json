@@ -26,7 +26,6 @@
 		"frontend",
 		"sidecar"
 	],
-	"dependencies": {},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20241106.0",
 		"@demosjarco/prettier-config": "^1.0.1",
