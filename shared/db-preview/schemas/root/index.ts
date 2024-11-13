@@ -1,6 +1,6 @@
 import type { AdapterAccount } from '@auth/core/adapters';
 import { sql, type SQL } from 'drizzle-orm';
-import { primaryKey, sqliteTable, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { primaryKey, sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 import type { EmailAddress, ISODateString, UuidExport } from '../../../types/d1/index.mjs';
 
 // It fails if it's imported
@@ -58,30 +58,36 @@ export const tenants = sqliteTable('tenants', (t) => ({
 		.$type<UuidExport['utf8']>(),
 }));
 
-export const users_tenants = sqliteTable('users_tenants', (ut) => ({
-	u_id: ut
-		.blob({ mode: 'buffer' })
-		.notNull()
-		.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	u_id_utf8: ut
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.u_id}),1,8), substr(hex(${users_tenants.u_id}),9,4), substr(hex(${users_tenants.u_id}),13,4), substr(hex(${users_tenants.u_id}),17,4), substr(hex(${users_tenants.u_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	t_id: ut
-		.blob({ mode: 'buffer' })
-		.notNull()
-		.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	t_id_utf8: ut
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.t_id}),1,8), substr(hex(${users_tenants.t_id}),9,4), substr(hex(${users_tenants.t_id}),13,4), substr(hex(${users_tenants.t_id}),17,4), substr(hex(${users_tenants.t_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-}));
+export const users_tenants = sqliteTable(
+	'users_tenants',
+	(ut) => ({
+		u_id: ut
+			.blob({ mode: 'buffer' })
+			.notNull()
+			.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		u_id_utf8: ut
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.u_id}),1,8), substr(hex(${users_tenants.u_id}),9,4), substr(hex(${users_tenants.u_id}),13,4), substr(hex(${users_tenants.u_id}),17,4), substr(hex(${users_tenants.u_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		t_id: ut
+			.blob({ mode: 'buffer' })
+			.notNull()
+			.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		t_id_utf8: ut
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.t_id}),1,8), substr(hex(${users_tenants.t_id}),9,4), substr(hex(${users_tenants.t_id}),13,4), substr(hex(${users_tenants.t_id}),17,4), substr(hex(${users_tenants.t_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+	}),
+	(ut) => ({
+		unq: unique().on(ut.u_id, ut.t_id),
+	}),
+);
 
 export const users_accounts = sqliteTable(
 	'users_accounts',
