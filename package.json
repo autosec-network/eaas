@@ -5,7 +5,9 @@
 		"lint": "eslint \"**/*.ts*\"",
 		"lint:fix": "npm run lint -- --fix",
 		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler",
-		"clean": "npm -w frontend run clean"
+		"clean": "npm -w frontend run clean",
+		"generate:pre:root": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/root/index.ts\" --out=\"shared/db-preview/schemas/root\"",
+		"generate:pre:tenant": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/tenant/index.ts\" --out=\"shared/db-preview/schemas/tenant\""
 	},
 	"repository": {
 		"type": "git",
@@ -32,15 +34,22 @@
 		"uuid": "^11.0.3"
 	},
 	"devDependencies": {
+		"@auth/core": "^0.37.3",
 		"@cloudflare/workers-types": "^4.20241112.0",
 		"@demosjarco/prettier-config": "^1.0.1",
+		"@iarna/toml": "^2.2.5",
+		"@types/iarna__toml": "^2.0.5",
 		"@types/node": "^22.9.0",
+		"@types/yargs": "^17.0.33",
 		"@typescript-eslint/eslint-plugin": "^8.14.0",
 		"@typescript-eslint/parser": "^8.14.0",
 		"chalk": "^5.3.0",
+		"drizzle-kit": "^0.28.0",
 		"eslint": "^8.57.0",
+		"p-queue": "^8.0.1",
 		"prettier": "^3.3.3",
 		"typescript": "^5.6.3",
-		"wrangler": "^3.86.1"
+		"wrangler": "^3.86.1",
+		"yargs": "^17.7.2"
 	}
 }
