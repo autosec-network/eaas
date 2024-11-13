@@ -82,13 +82,13 @@ jobs:
                 .dispatchFetch('http://localhost:8787/')
                 .then((response) => Promise.all([import('node:fs'), response.json()]))
                 .then(([{ createWriteStream }, json]) => {
-                    const writeStream = createWriteStream('shared/types/crypto/workers-crypto-catalog.ts', { encoding: 'utf8' });
+                    const writeStream = createWriteStream('shared/types/crypto/workers-crypto-catalog.mts', { encoding: 'utf8' });
                     writeStream.write(`export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`);
                     writeStream.end();
                 })
                 .finally(() => mf.dispose());
       - run: npm install -D prettier @demosjarco/prettier-config
-      - run: npx prettier --no-config --write shared/types/crypto/workers-crypto-catalog.ts
-      - run: git add shared/types/crypto/workers-crypto-catalog.ts
+      - run: npx prettier --no-config --write shared/types/crypto/workers-crypto-catalog.mts
+      - run: git add shared/types/crypto/workers-crypto-catalog.mts
       - run: git commit -m "Updated crypto catalog" || echo "crypto catalog not touched"
       - run: git push
