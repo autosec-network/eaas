@@ -22,6 +22,8 @@ export enum Permissions {
 	Admin = 3,
 }
 
+export type EmailAddress = `${string}@${string}.${string}`;
+
 /**
  * Represents a cron expression string (in UTC time).
  * Supports any format supported by `cron-parser` library @link https://www.npmjs.com/package/cron-parser#supported-format
