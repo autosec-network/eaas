@@ -21,7 +21,7 @@ export const users = sqliteTable(
 		 */
 		u_id_utf8: u
 			.text({ mode: 'text' })
-			.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.u_id}),1,8), substr(hex(${users.u_id}),9,4), substr(hex(${users.u_id}),13,4), substr(hex(${users.u_id}),17,4), substr(hex(${users.u_id}),21)))`, { mode: 'virtual' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.u_id}),1,8), substr(hex(${users.u_id}),9,4), substr(hex(${users.u_id}),13,4), substr(hex(${users.u_id}),17,4), substr(hex(${users.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		d1_id: u.blob({ mode: 'buffer' }).unique().notNull(),
 		/**
@@ -29,7 +29,7 @@ export const users = sqliteTable(
 		 */
 		d1_id_utf8: u
 			.text({ mode: 'text' })
-			.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.d1_id}),1,8), substr(hex(${users.d1_id}),9,4), substr(hex(${users.d1_id}),13,4), substr(hex(${users.d1_id}),17,4), substr(hex(${users.d1_id}),21)))`, { mode: 'virtual' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.d1_id}),1,8), substr(hex(${users.d1_id}),9,4), substr(hex(${users.d1_id}),13,4), substr(hex(${users.d1_id}),17,4), substr(hex(${users.d1_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		email: u.text({ mode: 'text' }).notNull().$type<EmailAddress>(),
 		partial_user: u.integer({ mode: 'boolean' }).notNull().default(false),
@@ -46,7 +46,7 @@ export const tenants = sqliteTable('tenants', (t) => ({
 	 */
 	t_id_utf8: t
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${tenants.t_id}),1,8), substr(hex(${tenants.t_id}),9,4), substr(hex(${tenants.t_id}),13,4), substr(hex(${tenants.t_id}),17,4), substr(hex(${tenants.t_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${tenants.t_id}),1,8), substr(hex(${tenants.t_id}),9,4), substr(hex(${tenants.t_id}),13,4), substr(hex(${tenants.t_id}),17,4), substr(hex(${tenants.t_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	d1_id: t.blob({ mode: 'buffer' }).unique().notNull(),
 	/**
@@ -54,7 +54,7 @@ export const tenants = sqliteTable('tenants', (t) => ({
 	 */
 	d1_id_utf8: t
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${tenants.d1_id}),1,8), substr(hex(${tenants.d1_id}),9,4), substr(hex(${tenants.d1_id}),13,4), substr(hex(${tenants.d1_id}),17,4), substr(hex(${tenants.d1_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${tenants.d1_id}),1,8), substr(hex(${tenants.d1_id}),9,4), substr(hex(${tenants.d1_id}),13,4), substr(hex(${tenants.d1_id}),17,4), substr(hex(${tenants.d1_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 }));
 
@@ -68,7 +68,7 @@ export const users_tenants = sqliteTable('users_tenants', (ut) => ({
 	 */
 	u_id_utf8: ut
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.u_id}),1,8), substr(hex(${users_tenants.u_id}),9,4), substr(hex(${users_tenants.u_id}),13,4), substr(hex(${users_tenants.u_id}),17,4), substr(hex(${users_tenants.u_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.u_id}),1,8), substr(hex(${users_tenants.u_id}),9,4), substr(hex(${users_tenants.u_id}),13,4), substr(hex(${users_tenants.u_id}),17,4), substr(hex(${users_tenants.u_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	t_id: ut
 		.blob({ mode: 'buffer' })
@@ -79,7 +79,7 @@ export const users_tenants = sqliteTable('users_tenants', (ut) => ({
 	 */
 	t_id_utf8: ut
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.t_id}),1,8), substr(hex(${users_tenants.t_id}),9,4), substr(hex(${users_tenants.t_id}),13,4), substr(hex(${users_tenants.t_id}),17,4), substr(hex(${users_tenants.t_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.t_id}),1,8), substr(hex(${users_tenants.t_id}),9,4), substr(hex(${users_tenants.t_id}),13,4), substr(hex(${users_tenants.t_id}),17,4), substr(hex(${users_tenants.t_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 }));
 
@@ -95,7 +95,7 @@ export const users_accounts = sqliteTable(
 		 */
 		u_id_utf8: ua
 			.text({ mode: 'text' })
-			.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_accounts.u_id}),1,8), substr(hex(${users_accounts.u_id}),9,4), substr(hex(${users_accounts.u_id}),13,4), substr(hex(${users_accounts.u_id}),17,4), substr(hex(${users_accounts.u_id}),21)))`, { mode: 'virtual' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_accounts.u_id}),1,8), substr(hex(${users_accounts.u_id}),9,4), substr(hex(${users_accounts.u_id}),13,4), substr(hex(${users_accounts.u_id}),17,4), substr(hex(${users_accounts.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		provider: ua.text({ mode: 'text' }).notNull().$type<AdapterAccount['provider']>(),
 		provider_account_id: ua.text({ mode: 'text' }).notNull().$type<AdapterAccount['providerAccountId']>(),
@@ -115,7 +115,7 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 	 */
 	u_id_utf8: us
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.u_id}),1,8), substr(hex(${users_sessions.u_id}),9,4), substr(hex(${users_sessions.u_id}),13,4), substr(hex(${users_sessions.u_id}),17,4), substr(hex(${users_sessions.u_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.u_id}),1,8), substr(hex(${users_sessions.u_id}),9,4), substr(hex(${users_sessions.u_id}),13,4), substr(hex(${users_sessions.u_id}),17,4), substr(hex(${users_sessions.u_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	session_token: us.blob({ mode: 'buffer' }).primaryKey().notNull(),
 	/**
@@ -123,7 +123,7 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 	 */
 	session_token_utf8: us
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.session_token}),1,8), substr(hex(${users_sessions.session_token}),9,4), substr(hex(${users_sessions.session_token}),13,4), substr(hex(${users_sessions.session_token}),17,4), substr(hex(${users_sessions.session_token}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.session_token}),1,8), substr(hex(${users_sessions.session_token}),9,4), substr(hex(${users_sessions.session_token}),13,4), substr(hex(${users_sessions.session_token}),17,4), substr(hex(${users_sessions.session_token}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	expires: us.text({ mode: 'text' }).notNull().$type<ISODateString>(),
 }));
