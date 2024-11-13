@@ -8,6 +8,7 @@ on:
     paths:
       - '.github/workflows/publish-sidecar.yml'
       - 'package*.json'
+      - 'shared/**'
       - 'sidecar/package*.json'
       - 'sidecar/src/**'
       - 'tsconfig.json'
