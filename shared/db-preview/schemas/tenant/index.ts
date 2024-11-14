@@ -203,7 +203,7 @@ export const keyrings = sqliteTable('keyrings', (k) => ({
 	 */
 	key_size: k.integer({ mode: 'number' }),
 	hash_size: k.integer({ mode: 'number' }),
-	encryption_type: k.text({ mode: 'text' }).notNull(),
+	encryption_type: k.text({ mode: 'text' }),
 	encryption_size: k.integer({ mode: 'number' }),
 	/**
 	 * Actual cron is stored in scheduler DO, not here. This is just flag to enable/disable DO
