@@ -123,13 +123,13 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 		.text({ mode: 'text' })
 		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.u_id}),1,8), substr(hex(${users_sessions.u_id}),9,4), substr(hex(${users_sessions.u_id}),13,4), substr(hex(${users_sessions.u_id}),17,4), substr(hex(${users_sessions.u_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
-	session_token: us.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
-	session_token_utf8: us
+	s_id_utf8: us
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.session_token}),1,8), substr(hex(${users_sessions.session_token}),9,4), substr(hex(${users_sessions.session_token}),13,4), substr(hex(${users_sessions.session_token}),17,4), substr(hex(${users_sessions.session_token}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.s_id}),1,8), substr(hex(${users_sessions.s_id}),9,4), substr(hex(${users_sessions.s_id}),13,4), substr(hex(${users_sessions.s_id}),17,4), substr(hex(${users_sessions.s_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	expires: us.text({ mode: 'text' }).notNull().$type<ISODateString>(),
 }));
