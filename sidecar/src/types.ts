@@ -9,4 +9,5 @@ interface Secrets {
 }
 
 interface Bindings {}
+
 export type UUID = ReturnType<typeof crypto.randomUUID>;
