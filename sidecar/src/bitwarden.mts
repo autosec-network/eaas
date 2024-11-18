@@ -9,6 +9,11 @@ interface ParsedJwt extends JWTPayload {
 	organization: UUID;
 }
 
+interface SecretsProject {
+	id: UUID;
+	name: string;
+}
+
 export class BitwardenHelper {
 	public static identity(accessToken: string) {
 		const [, uuid, extra] = accessToken.split('.');
@@ -41,6 +46,35 @@ export class BitwardenHelper {
 					}));
 			} else {
 				throw new Error('Failed to get token', { cause: await response.text() });
+			}
+		});
+	}
+
+	public static secretsAndProjects(jwt: string, orgId: UUID = (decodeJwt(jwt) as ParsedJwt)['organization']) {
+		return fetch(new URL(['organizations', orgId, 'secrets'].join('/'), 'https://api.bitwarden.com'), {
+			headers: {
+				Authorization: `Bearer ${jwt}`,
+			},
+		}).then(async (response) => {
+			if (response.ok) {
+				return response
+					.json<{
+						object: string;
+						projects: SecretsProject[];
+						secrets: {
+							creationDate: string;
+							id: UUID;
+							key: string;
+							organizationId: UUID;
+							projects: SecretsProject[];
+							read: boolean;
+							revisionDate: string;
+							write: boolean;
+						}[];
+					}>()
+					.then(({ projects, secrets }) => ({ projects, secrets }));
+			} else {
+				throw new Error('Failed to get secrets and projects', { cause: await response.text() });
 			}
 		});
 	}
