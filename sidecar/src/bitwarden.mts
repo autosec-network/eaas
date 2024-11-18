@@ -15,6 +15,12 @@ interface SecretsProject {
 }
 
 export class BitwardenHelper {
+	private readonly jwt: string;
+
+	constructor(jwt: string) {
+		this.jwt = jwt;
+	}
+
 	public static identity(accessToken: string) {
 		const [, uuid, extra] = accessToken.split('.');
 		const [secret] = extra!.split(':');
@@ -50,10 +56,10 @@ export class BitwardenHelper {
 		});
 	}
 
-	public static secretsAndProjects(jwt: string, orgId: UUID = (decodeJwt(jwt) as ParsedJwt)['organization']) {
+	public secretsAndProjects(orgId: UUID = (decodeJwt(this.jwt) as ParsedJwt)['organization']) {
 		return fetch(new URL(['organizations', orgId, 'secrets'].join('/'), 'https://api.bitwarden.com'), {
 			headers: {
-				Authorization: `Bearer ${jwt}`,
+				Authorization: `Bearer ${this.jwt}`,
 			},
 		}).then(async (response) => {
 			if (response.ok) {
