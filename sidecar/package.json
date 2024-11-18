@@ -18,5 +18,8 @@
 	"bugs": {
 		"url": "https://github.com/autosec-network/eaas/issues"
 	},
-	"homepage": "https://github.com/autosec-network/eaas/tree/production/sidecar#readme"
+	"homepage": "https://github.com/autosec-network/eaas/tree/production/sidecar#readme",
+	"dependencies": {
+		"jose": "^5.9.6"
+	}
 }
