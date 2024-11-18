@@ -40,9 +40,7 @@ export class BitwardenHelper {
 						payload: decodeJwt(json.access_token) as ParsedJwt,
 					}));
 			} else {
-				throw new Error('Failed to get token', {
-					cause: await response.text(),
-				});
+				throw new Error('Failed to get token', { cause: await response.text() });
 			}
 		});
 	}
