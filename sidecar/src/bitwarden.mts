@@ -1,11 +1,12 @@
 import { decodeJwt, type JWTPayload } from 'jose';
+import type { UUID } from './types';
 
 interface ParsedJwt extends JWTPayload {
 	scope: ['api.secrets'];
-	client_id: ReturnType<typeof crypto.randomUUID>;
-	sub: ReturnType<typeof crypto.randomUUID>;
+	client_id: UUID;
+	sub: UUID;
 	type: 'ServiceAccount';
-	organization: ReturnType<typeof crypto.randomUUID>;
+	organization: UUID;
 }
 
 export class BitwardenHelper {
