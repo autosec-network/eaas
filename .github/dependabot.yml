@@ -77,6 +77,9 @@ updates:
           - 'wrangler'
         exclude-patterns:
           - '@cloudflare/workers-types'
+      db:
+        patterns:
+          - 'drizzle-*'
       code-management:
         patterns:
           - 'prettier'
