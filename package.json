@@ -34,7 +34,7 @@
 		"uuid": "^11.0.3"
 	},
 	"devDependencies": {
-		"@auth/core": "^0.37.3",
+		"@auth/core": "^0.37.4",
 		"@cloudflare/workers-types": "^4.20241112.0",
 		"@demosjarco/prettier-config": "^1.0.1",
 		"@iarna/toml": "^2.2.5",
