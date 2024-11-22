@@ -59,7 +59,7 @@
 		"postcss": "^8.4.49",
 		"postcss-import": "^16.1.0",
 		"postcss-nesting": "^13.0.1",
-		"prettier-plugin-tailwindcss": "^0.6.8",
+		"prettier-plugin-tailwindcss": "^0.6.9",
 		"turnstile-types": "^1.2.3",
 		"vite-tsconfig-paths": "^4.3.2"
 	}
