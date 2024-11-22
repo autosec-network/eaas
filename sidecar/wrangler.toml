@@ -1,6 +1,6 @@
 name = "eaas-sidecar-preview"
 main = "src/index.ts"
-compatibility_date = "2024-10-22"
+compatibility_date = "2024-11-06"
 compatibility_flags = ["nodejs_compat_v2"]
 workers_dev = false
 minify = true
@@ -18,7 +18,7 @@ mode = "smart"
 
 [env.production]
 name = "eaas-sidecar"
-compatibility_date = "2024-10-22"
+compatibility_date = "2024-11-06"
 compatibility_flags = ["nodejs_compat_v2"]
 workers_dev = false
 minify = true
