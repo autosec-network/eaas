@@ -23,7 +23,7 @@ export class BitwardenHelper {
 
 	public static identity(accessToken: string) {
 		const [, uuid, extra] = accessToken.split('.');
-		const [secret] = extra!.split(':');
+		const [secret, encryptionKey] = extra!.split(':');
 
 		return fetch(new URL('connect/token', 'https://identity.bitwarden.com'), {
 			method: 'POST',
@@ -47,7 +47,8 @@ export class BitwardenHelper {
 						token_type: 'Bearer';
 					}>()
 					.then((json) => ({
-						access_token: json.access_token,
+						...json,
+						encryptionKey,
 						payload: decodeJwt(json.access_token) as ParsedJwt,
 					}));
 			} else {
