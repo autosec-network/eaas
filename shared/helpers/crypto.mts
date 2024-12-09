@@ -3,7 +3,10 @@ import { BufferHelpers } from './buffers.mjs';
 export class CryptoHelpers {
 	public static secretBytes(byteSize: number) {
 		return import('node:crypto')
-			.then(({ randomBytes }) => randomBytes(byteSize))
+			.then(({ randomBytes }) => {
+				const mainBuffer = randomBytes(byteSize);
+				return new Uint8Array(mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength));
+			})
 			.catch(() => {
 				const randomBytes = new Uint8Array(byteSize);
 				crypto.getRandomValues(randomBytes);
@@ -15,7 +18,7 @@ export class CryptoHelpers {
 	 * @yields secret length = (`byteSize` * Math.log2(16)) / 8
 	 */
 	public static base16secret(byteSize: number) {
-		return this.secretBytes(byteSize).then((bytes) => BufferHelpers.bufferToHex(bytes));
+		return this.secretBytes(byteSize).then((bytes) => BufferHelpers.bufferToHex(bytes.buffer));
 	}
 
 	/**
@@ -41,19 +44,22 @@ export class CryptoHelpers {
 	}
 
 	public static getHash(algorithm: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512', input: string | ArrayBufferLike) {
-		return import('node:crypto')
-			.then(async ({ createHash }) => {
-				const hash = createHash(algorithm.replace('-', '').toLowerCase());
+		return (
+			import('node:crypto')
+				.then(async ({ createHash }) => {
+					const hash = createHash(algorithm.replace('-', '').toLowerCase());
 
-				if (typeof input === 'string') {
-					hash.update(input);
-				} else {
-					await import('node:buffer').then(({ Buffer }) => hash.update(Buffer.from(input)));
-				}
+					if (typeof input === 'string') {
+						hash.update(input);
+					} else {
+						await import('node:buffer').then(({ Buffer }) => hash.update(Buffer.from(input)));
+					}
 
-				return hash.digest('hex');
-			})
-			.catch(() => crypto.subtle.digest(algorithm, typeof input === 'string' ? new TextEncoder().encode(input) : input).then((hashBuffer) => BufferHelpers.bufferToHex(hashBuffer)));
+					return hash.digest('hex');
+				})
+				// @ts-expect-error `ArrayBufferLike` is actually accepted and fine
+				.catch(() => crypto.subtle.digest(algorithm, typeof input === 'string' ? new TextEncoder().encode(input) : input).then((hashBuffer) => BufferHelpers.bufferToHex(hashBuffer)))
+		);
 	}
 
 	/**
