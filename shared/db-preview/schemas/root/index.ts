@@ -1,7 +1,7 @@
 import type { AdapterAccount } from '@auth/core/adapters';
 import { sql, type SQL } from 'drizzle-orm';
 import { primaryKey, sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { EmailAddress, ISODateString, UuidExport } from '../../../types/d1/index.mjs';
+import type { D1Blob, EmailAddress, ISODateString, UuidExport } from '../../../types/d1/index.mjs';
 
 // It fails if it's imported
 /**
@@ -15,7 +15,7 @@ function lower<T extends unknown = string>(x: AnySQLiteColumn) {
 export const users = sqliteTable(
 	'users',
 	(u) => ({
-		u_id: u.blob({ mode: 'buffer' }).primaryKey().notNull(),
+		u_id: u.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 		 */
@@ -23,7 +23,7 @@ export const users = sqliteTable(
 			.text({ mode: 'text' })
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.u_id}),1,8), substr(hex(${users.u_id}),9,4), substr(hex(${users.u_id}),13,4), substr(hex(${users.u_id}),17,4), substr(hex(${users.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
-		d1_id: u.blob({ mode: 'buffer' }).unique().notNull(),
+		d1_id: u.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 		 */
@@ -40,7 +40,7 @@ export const users = sqliteTable(
 );
 
 export const tenants = sqliteTable('tenants', (t) => ({
-	t_id: t.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	t_id: t.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -48,7 +48,7 @@ export const tenants = sqliteTable('tenants', (t) => ({
 		.text({ mode: 'text' })
 		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${tenants.t_id}),1,8), substr(hex(${tenants.t_id}),9,4), substr(hex(${tenants.t_id}),13,4), substr(hex(${tenants.t_id}),17,4), substr(hex(${tenants.t_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
-	d1_id: t.blob({ mode: 'buffer' }).unique().notNull(),
+	d1_id: t.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -64,6 +64,7 @@ export const users_tenants = sqliteTable(
 		u_id: ut
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -75,6 +76,7 @@ export const users_tenants = sqliteTable(
 		t_id: ut
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -95,6 +97,7 @@ export const users_accounts = sqliteTable(
 		u_id: ua
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -115,6 +118,7 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 	u_id: us
 		.blob({ mode: 'buffer' })
 		.notNull()
+		.$type<D1Blob>()
 		.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -123,7 +127,7 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 		.text({ mode: 'text' })
 		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_sessions.u_id}),1,8), substr(hex(${users_sessions.u_id}),9,4), substr(hex(${users_sessions.u_id}),13,4), substr(hex(${users_sessions.u_id}),17,4), substr(hex(${users_sessions.u_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
-	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */

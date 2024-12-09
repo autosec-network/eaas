@@ -1,6 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
+import type { D1Blob, EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
 import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenants/index.mjs';
 
 // It fails if it's imported
@@ -13,7 +13,7 @@ function lower<T extends unknown = string>(x: AnySQLiteColumn) {
 }
 
 export const properties = sqliteTable('properties', (p) => ({
-	t_id: p.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	t_id: p.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -21,7 +21,7 @@ export const properties = sqliteTable('properties', (p) => ({
 		.text({ mode: 'text' })
 		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${properties.t_id}),1,8), substr(hex(${properties.t_id}),9,4), substr(hex(${properties.t_id}),13,4), substr(hex(${properties.t_id}),17,4), substr(hex(${properties.t_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
-	d1_id: p.blob({ mode: 'buffer' }).unique().notNull(),
+	d1_id: p.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -54,7 +54,7 @@ export const properties = sqliteTable('properties', (p) => ({
 export const users = sqliteTable(
 	'users',
 	(u) => ({
-		u_id: u.blob({ mode: 'buffer' }).primaryKey().notNull(),
+		u_id: u.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 		 */
@@ -62,7 +62,7 @@ export const users = sqliteTable(
 			.text({ mode: 'text' })
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.u_id}),1,8), substr(hex(${users.u_id}),9,4), substr(hex(${users.u_id}),13,4), substr(hex(${users.u_id}),17,4), substr(hex(${users.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
-		d1_id: u.blob({ mode: 'buffer' }).unique().notNull(),
+		d1_id: u.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 		 */
@@ -124,7 +124,7 @@ export const users = sqliteTable(
 );
 
 export const user_sessions = sqliteTable('auth_sessions', (us) => ({
-	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -135,6 +135,7 @@ export const user_sessions = sqliteTable('auth_sessions', (us) => ({
 	u_id: us
 		.blob({ mode: 'buffer' })
 		.notNull()
+		.$type<D1Blob>()
 		.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -154,6 +155,7 @@ export const users_webauthn = sqliteTable(
 		u_id: uw
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -163,7 +165,7 @@ export const users_webauthn = sqliteTable(
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.u_id}),1,8), substr(hex(${user_sessions.u_id}),9,4), substr(hex(${user_sessions.u_id}),13,4), substr(hex(${user_sessions.u_id}),17,4), substr(hex(${user_sessions.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		name: uw.text({ mode: 'text' }),
-		credential_public_key: uw.blob({ mode: 'buffer' }).notNull(),
+		credential_public_key: uw.blob({ mode: 'buffer' }).notNull().$type<D1Blob>(),
 		counter: uw.integer({ mode: 'number' }).notNull(),
 		credential_device_type: uw.text().notNull(),
 		credential_backed_up: uw.integer({ mode: 'boolean' }).notNull(),
@@ -187,7 +189,7 @@ export const users_webauthn = sqliteTable(
 );
 
 export const keyrings = sqliteTable('keyrings', (k) => ({
-	kr_id: k.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	kr_id: k.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -243,7 +245,7 @@ export const keyrings = sqliteTable('keyrings', (k) => ({
 }));
 
 export const datakeys = sqliteTable('datakeys', (d) => ({
-	dk_id: d.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	dk_id: d.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -254,6 +256,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	kr_id: d
 		.blob({ mode: 'buffer' })
 		.notNull()
+		.$type<D1Blob>()
 		.references(() => keyrings.kr_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -278,7 +281,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 }));
 
 export const api_keys = sqliteTable('api_keys', (ak) => ({
-	ak_id: ak.blob({ mode: 'buffer' }).primaryKey().notNull(),
+	ak_id: ak.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
@@ -290,7 +293,7 @@ export const api_keys = sqliteTable('api_keys', (ak) => ({
 	/**
 	 * Hashed value of api key
 	 */
-	hash: ak.blob({ mode: 'buffer' }).unique().notNull(),
+	hash: ak.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 	expires: ak.text({ mode: 'text' }).notNull().$type<ISODateString>(),
 	/**
 	 * last time key was used
@@ -328,6 +331,7 @@ export const keyrings_api_keys = sqliteTable(
 		kr_id: kak
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => keyrings.kr_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
@@ -339,6 +343,7 @@ export const keyrings_api_keys = sqliteTable(
 		ak_id: kak
 			.blob({ mode: 'buffer' })
 			.notNull()
+			.$type<D1Blob>()
 			.references(() => api_keys.ak_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		/**
 		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
