@@ -1,4 +1,4 @@
-import type { D1Database, SqlStorage } from '@cloudflare/workers-types/experimental';
+import type { D1Database, DurableObjectStorage } from '@cloudflare/workers-types/experimental';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
 import { drizzle as drizzleDO } from 'drizzle-orm/durable-sqlite';
@@ -157,7 +157,7 @@ export class DBManager {
 		}
 	}
 
-	public static getDoDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: SqlStorage, logger: CustomLoging = false) {
+	public static getDoDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: DurableObjectStorage, logger: CustomLoging = false) {
 		return drizzleDO<TSchema>(dbRef, {
 			logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
 			casing: 'snake_case',
