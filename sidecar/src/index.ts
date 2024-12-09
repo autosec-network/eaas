@@ -14,7 +14,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			const encString = EncString.fromString(encryptedText);
 
 			// Step 2: Create the SymmetricCryptoKey
-			const symmetricKey = await SymmetricCryptoKey.fromBase64Key(jwt.orgEncryptionKey, encString.encType);
+			const symmetricKey = await SymmetricCryptoKey.fromBase64Key(jwt.orgEncryptionKey, encString.encType as 0 | 1 | 2);
 
 			const decryptedData = await encString.decryptWithKey(symmetricKey);
 
