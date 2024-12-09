@@ -47,7 +47,7 @@ export class DBManager {
 			return drizzleRest<TSchema>(
 				async (sql, params, method) => {
 					try {
-						const responses = await NetHelpers.cfApi(dbRef.apiToken, undefined, true).d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params });
+						const responses = await NetHelpers.cfApi(dbRef.apiToken).d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params });
 						if (responses[0]?.success) {
 							const results = (responses[0].results ?? []) as Record<string, any>[];
 
