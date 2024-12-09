@@ -1,0 +1,6 @@
+[https://developer.hashicorp.com/vault/docs/v1.14.x/secrets/transit](https://developer.hashicorp.com/vault/docs/v1.14.x/secrets/transit)
+[https://developer.hashicorp.com/vault/api-docs/v1.14.x/secret/transit](https://developer.hashicorp.com/vault/api-docs/v1.14.x/secret/transit)
+[https://developer.hashicorp.com/vault/tutorials/encryption-as-a-service/eaas-transit](https://developer.hashicorp.com/vault/tutorials/encryption-as-a-service/eaas-transit)
+[https://developers.cloudflare.com/workers/runtime-apis/web-crypto/](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/)
+[https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/](https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/)
+[https://bitwarden.com/help/secrets-manager-sdk/](https://bitwarden.com/help/secrets-manager-sdk/)
