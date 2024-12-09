@@ -18,7 +18,7 @@ export declare class DrizzleCommonDatabase<TSchema extends Record<string, unknow
 }
 
 export interface CliArgs {
-	type: ('dataspace' | 'root' | 'tenant' | 'user')[];
+	type: ('root' | 'tenant')[];
 }
 
 export type CliWorkerData = CliWorkerDataGenerate | CliWorkerDataMigrate;
