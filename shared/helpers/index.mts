@@ -1,3 +1,5 @@
+import type { Chalk } from 'chalk';
+
 export class Helpers {
 	/**
 	 * Generates a unique RGB color based unique to the provided string ID. The RGB values are clamped to a range that ensures the resulting color is legible
