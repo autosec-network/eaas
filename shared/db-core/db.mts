@@ -1,4 +1,4 @@
-import type { D1Database } from '@cloudflare/workers-types/experimental';
+import type { D1Database, SqlStorage } from '@cloudflare/workers-types/experimental';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
 import { drizzle as drizzleDO } from 'drizzle-orm/durable-sqlite';
