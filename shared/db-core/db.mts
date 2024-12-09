@@ -1,14 +1,21 @@
-import type { D1Database, SqlStorage } from '@cloudflare/workers-types/experimental';
+import type { D1Database } from '@cloudflare/workers-types/experimental';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
+import { drizzle as drizzleDO } from 'drizzle-orm/durable-sqlite';
 import { drizzle as drizzleRest } from 'drizzle-orm/sqlite-proxy';
 import { NetHelpers } from '../helpers/net.mjs';
 import type { CustomLogCallback, CustomLoging } from '../types/index.mjs';
 import type { ApiDbRef, DrizzleCommonDatabase, FlexibleDbRef } from './types.mjs';
 
 class DebugLogWriter implements LogWriter {
+	private connectionType: 'BINDING' | 'REST';
+
+	constructor(connectionType: typeof this.connectionType) {
+		this.connectionType = connectionType;
+	}
+
 	write(...args: Parameters<CustomLogCallback>) {
-		console.debug(...args);
+		console.debug('D1', this.connectionType.toLocaleUpperCase(), '|', ...args);
 	}
 }
 
@@ -33,15 +40,7 @@ export class DBManager {
 		return 'batch' in ref && typeof ref.batch === 'function';
 	}
 
-	protected static isSqlStorage(ref: FlexibleDbRef): ref is SqlStorage {
-		/**
-		 * @todo Is `typeof` on a getter return `function` because its a function, or return the type of the return value?
-		 */
-		return 'databaseSize' in ref && typeof ref.databaseSize === 'function';
-	}
-
 	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: D1Database, logger?: CustomLoging): DrizzleCommonDatabase<TSchema>;
-	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: SqlStorage, logger?: CustomLoging): DrizzleCommonDatabase<TSchema>;
 	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: ApiDbRef, logger?: CustomLoging): DrizzleCommonDatabase<TSchema>;
 	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: FlexibleDbRef, logger: CustomLoging = false) {
 		if (this.isApiDbRef(dbRef)) {
@@ -146,40 +145,22 @@ export class DBManager {
 					}
 				},
 				{
-					logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter() }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
+					logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('REST') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
 					casing: 'snake_case',
 				},
 			) as DrizzleCommonDatabase<TSchema>;
-		} else if (this.isD1Database(dbRef)) {
+		} else {
 			return drizzleD1<TSchema>(dbRef, {
-				logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter() }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
+				logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
 				casing: 'snake_case',
 			}) as DrizzleCommonDatabase<TSchema>;
-		} else {
-			return drizzleRest<TSchema>(
-				async (sql, params, method) => {
-					try {
-						const results = dbRef.exec(sql, ...params).toArray();
-
-						/**
-						 * Drizzle always waits for {rows: string[][]} or {rows: string[]} for the return value.
-						 * @link https://orm.drizzle.team/docs/get-started-sqlite#http-proxy
-						 */
-						if (method === 'get') {
-							return { rows: Object.values(results[0] ?? {}) };
-						} else {
-							return { rows: results.map((result) => Object.values(result)) };
-						}
-					} catch (error) {
-						console.error('DO SQL Error', error);
-						return { rows: [] };
-					}
-				},
-				{
-					logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter() }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
-					casing: 'snake_case',
-				},
-			) as DrizzleCommonDatabase<TSchema>;
 		}
+	}
+
+	public static getDoDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: SqlStorage, logger: CustomLoging = false) {
+		return drizzleDO<TSchema>(dbRef, {
+			logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
+			casing: 'snake_case',
+		});
 	}
 }

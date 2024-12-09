@@ -1,11 +1,11 @@
-import type { D1Database, D1Result, SqlStorage } from '@cloudflare/workers-types/experimental';
+import type { D1Database, D1Result } from '@cloudflare/workers-types/experimental';
 import type { BatchItem, BatchResponse } from 'drizzle-orm/batch';
 import type { entityKind } from 'drizzle-orm/entity';
 import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import type { SqliteRemoteResult } from 'drizzle-orm/sqlite-proxy';
 import type { UuidExport } from '../types/d1/index.mjs';
 
-export type FlexibleDbRef = D1Database | SqlStorage | ApiDbRef;
+export type FlexibleDbRef = D1Database | ApiDbRef;
 export interface ApiDbRef {
 	accountId: string;
 	apiToken: string;
