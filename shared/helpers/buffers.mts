@@ -1,4 +1,4 @@
-import type { PrefixedUuid, UuidExport } from '../types/d1/index.mjs';
+import type { D1Blob, PrefixedUuid, UuidExport } from '../types/d1/index.mjs';
 import type { UndefinedProperties } from '../types/index.mjs';
 import { CryptoHelpers } from './crypto.mjs';
 
