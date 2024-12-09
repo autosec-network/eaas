@@ -249,16 +249,16 @@ export class EncString {
 		const encType = Number(encTypeStr);
 
 		if (encType === 0 && parts.length === 2) {
-			const iv = b64decode(parts[0]);
-			const data = b64decode(parts[1]);
+			const iv = b64decode(parts[0]!);
+			const data = b64decode(parts[1]!);
 			if (iv.length !== 16) {
 				throw new Error('Invalid IV length for variant 0');
 			}
 			return new EncString(encType, iv, data);
 		} else if ((encType === 1 || encType === 2) && parts.length === 3) {
-			const iv = b64decode(parts[0]);
-			const data = b64decode(parts[1]);
-			const mac = b64decode(parts[2]);
+			const iv = b64decode(parts[0]!);
+			const data = b64decode(parts[1]!);
+			const mac = b64decode(parts[2]!);
 			if (iv.length !== 16) {
 				throw new Error('Invalid IV length for variant 1/2');
 			}
