@@ -184,60 +184,64 @@ export const users_webauthn = sqliteTable(
 	(uw) => [unique().on(uw.u_id, uw.name)],
 );
 
-export const keyrings = sqliteTable('keyrings', (k) => ({
-	kr_id: k.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	kr_id_utf8: k
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings.kr_id}),1,8), substr(hex(${keyrings.kr_id}),9,4), substr(hex(${keyrings.kr_id}),13,4), substr(hex(${keyrings.kr_id}),17,4), substr(hex(${keyrings.kr_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	name: k.text({ mode: 'text' }).unique().notNull(),
-	exportable: k.integer({ mode: 'boolean' }).notNull().default(false),
-	key_type: k.text({ mode: 'text' }).notNull(),
-	/**
-	 * Not used for every key type
-	 */
-	key_size: k.integer({ mode: 'number' }),
-	hash_size: k.integer({ mode: 'number' }),
-	/**
-	 * Actual cron is stored in scheduler DO, not here. This is just flag to enable/disable DO
-	 * @default true and DO is created with cron of 1 year
-	 * @link https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final
-	 */
-	time_rotation: k.integer({ mode: 'boolean' }).notNull().default(true),
-	/**
-	 * Number of encryptions before triggering key rotation
-	 * @default 2^32
-	 * @link https://csrc.nist.gov/pubs/sp/800/38/d/final
-	 */
-	count_rotation: k.blob({ mode: 'bigint' }).default(BigInt(2) ** BigInt(32)),
-	/**
-	 * keyring was created time
-	 */
-	b_time: k
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-	/**
-	 * keyring settings were changed time
-	 */
-	c_time: k
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-	/**
-	 * keyring was rotated
-	 */
-	m_time: k
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-}));
+export const keyrings = sqliteTable(
+	'keyrings',
+	(k) => ({
+		kr_id: k.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		kr_id_utf8: k
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings.kr_id}),1,8), substr(hex(${keyrings.kr_id}),9,4), substr(hex(${keyrings.kr_id}),13,4), substr(hex(${keyrings.kr_id}),17,4), substr(hex(${keyrings.kr_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		name: k.text({ mode: 'text' }).notNull(),
+		exportable: k.integer({ mode: 'boolean' }).notNull().default(false),
+		key_type: k.text({ mode: 'text' }).notNull(),
+		/**
+		 * Not used for every key type
+		 */
+		key_size: k.integer({ mode: 'number' }),
+		hash_size: k.integer({ mode: 'number' }),
+		/**
+		 * Actual cron is stored in scheduler DO, not here. This is just flag to enable/disable DO
+		 * @default true and DO is created with cron of 1 year
+		 * @link https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final
+		 */
+		time_rotation: k.integer({ mode: 'boolean' }).notNull().default(true),
+		/**
+		 * Number of encryptions before triggering key rotation
+		 * @default 2^32
+		 * @link https://csrc.nist.gov/pubs/sp/800/38/d/final
+		 */
+		count_rotation: k.blob({ mode: 'bigint' }).default(BigInt(2) ** BigInt(32)),
+		/**
+		 * keyring was created time
+		 */
+		b_time: k
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+		/**
+		 * keyring settings were changed time
+		 */
+		c_time: k
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+		/**
+		 * keyring was rotated
+		 */
+		m_time: k
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+	}),
+	(k) => [uniqueIndex('case_insensitive_name').on(lower(k.name))],
+);
 
 export const datakeys = sqliteTable('datakeys', (d) => ({
 	dk_id: d.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
