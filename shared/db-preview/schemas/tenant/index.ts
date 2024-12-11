@@ -290,50 +290,54 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	encryption_count: d.blob({ mode: 'bigint' }).notNull().default(BigInt(0)),
 }));
 
-export const api_keys = sqliteTable('api_keys', (ak) => ({
-	ak_id: ak.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	ak_id_utf8: ak
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys.ak_id}),1,8), substr(hex(${api_keys.ak_id}),9,4), substr(hex(${api_keys.ak_id}),13,4), substr(hex(${api_keys.ak_id}),17,4), substr(hex(${api_keys.ak_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	name: ak.text({ mode: 'text' }).unique().notNull(),
-	/**
-	 * Hashed value of api key
-	 */
-	hash: ak.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
-	expires: ak.text({ mode: 'text' }).notNull().$type<ISODateString>(),
-	/**
-	 * last time key was used
-	 */
-	a_time: ak.text({ mode: 'text', length: 24 }).$type<ISODateString>(),
-	/**
-	 * api key was created time
-	 */
-	b_time: ak
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-	/**
-	 * api key permissions changed time
-	 */
-	c_time: ak
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-	/**
-	 * api key rotated changed time
-	 */
-	m_time: ak
-		.text({ mode: 'text', length: 24 })
-		.notNull()
-		.$type<ISODateString>()
-		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-}));
+export const api_keys = sqliteTable(
+	'api_keys',
+	(ak) => ({
+		ak_id: ak.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		ak_id_utf8: ak
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys.ak_id}),1,8), substr(hex(${api_keys.ak_id}),9,4), substr(hex(${api_keys.ak_id}),13,4), substr(hex(${api_keys.ak_id}),17,4), substr(hex(${api_keys.ak_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		name: ak.text({ mode: 'text' }).notNull(),
+		/**
+		 * Hashed value of api key
+		 */
+		hash: ak.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
+		expires: ak.text({ mode: 'text' }).notNull().$type<ISODateString>(),
+		/**
+		 * last time key was used
+		 */
+		a_time: ak.text({ mode: 'text', length: 24 }).$type<ISODateString>(),
+		/**
+		 * api key was created time
+		 */
+		b_time: ak
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+		/**
+		 * api key permissions changed time
+		 */
+		c_time: ak
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+		/**
+		 * api key rotated changed time
+		 */
+		m_time: ak
+			.text({ mode: 'text', length: 24 })
+			.notNull()
+			.$type<ISODateString>()
+			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+	}),
+	(ak) => [uniqueIndex('case_insensitive_name').on(lower(ak.name))],
+);
 
 export const keyrings_api_keys = sqliteTable(
 	'keyrings_api_keys',
