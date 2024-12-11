@@ -151,7 +151,7 @@ export const user_sessions = sqliteTable('auth_sessions', (us) => ({
 export const users_webauthn = sqliteTable(
 	'auth_webauthn',
 	(uw) => ({
-		credential_id: uw.blob({ mode: 'buffer' }).primaryKey().notNull(),
+		credential_id: uw.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
 		u_id: uw
 			.blob({ mode: 'buffer' })
 			.notNull()
