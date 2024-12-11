@@ -213,6 +213,7 @@ export const keyrings = sqliteTable('keyrings', (k) => ({
 	time_rotation: k.integer({ mode: 'boolean' }).notNull().default(true),
 	/**
 	 * Number of encryptions before triggering key rotation
+	 * @default 2^32
 	 * @link https://csrc.nist.gov/pubs/sp/800/38/d/final
 	 */
 	count_rotation: k.blob({ mode: 'bigint' }).default(BigInt(2) ** BigInt(32)),
