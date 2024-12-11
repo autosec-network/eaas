@@ -1,6 +1,4 @@
 #!/usr/bin/env node
-import { copyFile, readdir } from 'node:fs/promises';
-import { extname } from 'node:path';
 import { Worker } from 'node:worker_threads';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
@@ -130,26 +128,5 @@ yargs(hideBin(process.argv))
 					.once('error', console.error);
 			}
 		},
-	)
-	.command<CliArgs>(
-		'build-copy',
-		'Copy files TS forgets',
-		(yargs) =>
-			yargs
-				.option('type', {
-					alias: 't',
-					choices: ['root', 'tenant'],
-				})
-				.demandOption('type'),
-		(args) =>
-			Promise.allSettled(
-				args.type.map((type) =>
-					readdir(`src/schemas/${type}`).then((files) => {
-						const sqlFiles = files.filter((file) => extname(file).toLowerCase() === '.sql');
-
-						return Promise.allSettled(sqlFiles.map((sqlFile) => copyFile(`src/schemas/${type}/${sqlFile}`, `dist/schemas/${type}/${sqlFile}`)));
-					}),
-				),
-			).then(() => {}),
 	)
 	.parse();
