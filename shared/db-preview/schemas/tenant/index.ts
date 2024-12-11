@@ -118,9 +118,7 @@ export const users = sqliteTable(
 		 */
 		r_datakey: u.integer({ mode: 'number' }).notNull().$type<Permissions>().default(1),
 	}),
-	(u) => ({
-		case_insensitive_email: uniqueIndex('case_insensitive_email').on(lower(u.email)),
-	}),
+	(u) => [uniqueIndex('case_insensitive_email').on(lower(u.email))],
 );
 
 export const user_sessions = sqliteTable('auth_sessions', (us) => ({
@@ -183,9 +181,7 @@ export const users_webauthn = sqliteTable(
 			.$type<ISODateString>()
 			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
 	}),
-	(uw) => ({
-		unq: unique().on(uw.u_id, uw.name),
-	}),
+	(uw) => [unique().on(uw.u_id, uw.name)],
 );
 
 export const keyrings = sqliteTable('keyrings', (k) => ({
@@ -395,7 +391,5 @@ export const keyrings_api_keys = sqliteTable(
 		 */
 		r_hash: kak.integer({ mode: 'boolean' }).notNull().default(true),
 	}),
-	(kak) => ({
-		unq: unique().on(kak.kr_id, kak.ak_id),
-	}),
+	(kak) => [unique().on(kak.kr_id, kak.ak_id)],
 );
