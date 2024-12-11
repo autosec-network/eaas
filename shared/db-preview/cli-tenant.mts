@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S npx tsx
 import { stringify } from '@iarna/toml';
 import { copyFile, readdir, unlink, writeFile } from 'node:fs/promises';
 import { extname } from 'node:path';

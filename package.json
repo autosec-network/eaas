@@ -48,6 +48,7 @@
 		"eslint": "^8.57.0",
 		"p-queue": "^8.0.1",
 		"prettier": "^3.4.2",
+		"tsx": "^4.19.2",
 		"typescript": "^5.7.2",
 		"wrangler": "^3.93.0",
 		"yargs": "^17.7.2"

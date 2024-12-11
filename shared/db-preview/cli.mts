@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S npx tsx
 import { Worker } from 'node:worker_threads';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';

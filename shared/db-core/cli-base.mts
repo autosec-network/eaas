@@ -1,4 +1,4 @@
-#!/usr/bin/env node
+#!/usr/bin/env -S npx tsx
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { workerData } from 'node:worker_threads';

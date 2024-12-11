@@ -101,8 +101,7 @@ updates:
       typescript-core:
         patterns:
           - 'typescript'
-          - 'ts-node'
-          - '@swc/*'
+          - 'tsx'
       typescript-types:
         patterns:
           - '@types/*'
