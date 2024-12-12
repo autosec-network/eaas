@@ -27,8 +27,6 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		const { publicKey, secretKey } = ml_kem1024.keygen();
 		const { cipherText, sharedSecret } = ml_kem1024.encapsulate(publicKey);
 
-		const mitmAttempt = ml_kem1024.keygen();
-
 		return new Response(
 			JSON.stringify({
 				jwt,
