@@ -27,9 +27,18 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		const { publicKey, secretKey } = ml_kem1024.keygen();
 		const { cipherText, sharedSecret } = ml_kem1024.encapsulate(publicKey);
 
+		function redact(str: string, visibleChars: number = 5) {
+			const redactedLength = str.length - 2 * visibleChars;
+			const redactedPart = '.'.repeat(redactedLength);
+			return [str.slice(0, visibleChars), redactedPart, str.slice(-visibleChars)].join('');
+		}
+
 		return new Response(
 			JSON.stringify({
-				jwt,
+				jwt: {
+					access_token: jwt.access_token,
+					orgEncryptionKey: redact(jwt.orgEncryptionKey),
+				},
 				secrets: await Promise.all(
 					secrets.map(async (secret) => ({
 						id: secret.id,
