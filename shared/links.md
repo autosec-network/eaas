@@ -3,5 +3,7 @@
 [https://developer.hashicorp.com/vault/tutorials/encryption-as-a-service/eaas-transit](https://developer.hashicorp.com/vault/tutorials/encryption-as-a-service/eaas-transit)
 [https://developers.cloudflare.com/workers/runtime-apis/web-crypto/](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/)
 [https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/](https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/)
+[https://medium.com/@tony.infisical/guide-to-nodes-crypto-module-for-encryption-decryption-65c077176980](https://medium.com/@tony.infisical/guide-to-nodes-crypto-module-for-encryption-decryption-65c077176980)
 [https://bitwarden.com/help/secrets-manager-sdk/](https://bitwarden.com/help/secrets-manager-sdk/)
 [https://www.npmjs.com/package/@noble/post-quantum](https://www.npmjs.com/package/@noble/post-quantum)
+[https://gist.github.com/angeal185/df1c3fde9dc73f6ae7776584d2f68b3d](https://gist.github.com/angeal185/df1c3fde9dc73f6ae7776584d2f68b3d)
