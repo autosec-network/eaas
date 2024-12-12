@@ -4,3 +4,4 @@
 [https://developers.cloudflare.com/workers/runtime-apis/web-crypto/](https://developers.cloudflare.com/workers/runtime-apis/web-crypto/)
 [https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/](https://developers.cloudflare.com/workers/runtime-apis/nodejs/crypto/)
 [https://bitwarden.com/help/secrets-manager-sdk/](https://bitwarden.com/help/secrets-manager-sdk/)
+[https://www.npmjs.com/package/@noble/post-quantum](https://www.npmjs.com/package/@noble/post-quantum)

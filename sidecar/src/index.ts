@@ -1,3 +1,4 @@
+import { ml_kem1024 } from '@noble/post-quantum/ml-kem';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { BitwardenHelper, EncString, SymmetricCryptoKey } from './bitwarden.mjs';
 import type { EnvVars } from './types';
@@ -23,6 +24,11 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			return decryptedString;
 		};
 
+		const { publicKey, secretKey } = ml_kem1024.keygen();
+		const { cipherText, sharedSecret } = ml_kem1024.encapsulate(publicKey);
+
+		const mitmAttempt = ml_kem1024.keygen();
+
 		return new Response(
 			JSON.stringify({
 				jwt,
@@ -41,6 +47,17 @@ export default class extends WorkerEntrypoint<EnvVars> {
 						revisionDate: secret.revisionDate,
 					})),
 				),
+				pqc: {
+					keyPair: {
+						publicKey: Buffer.from(publicKey).toString('base64'),
+						secretKey: Buffer.from(secretKey).toString('base64'),
+					},
+					encryptedValue: {
+						cipherText: Buffer.from(cipherText).toString('base64'),
+						sharedSecret: Buffer.from(sharedSecret).toString('base64'),
+					},
+					decryptedValue: Buffer.from(ml_kem1024.decapsulate(cipherText, secretKey)).toString('base64'),
+				},
 			}),
 			{ headers: { 'Content-Type': 'application/json' } },
 		);
