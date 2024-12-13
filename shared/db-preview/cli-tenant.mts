@@ -1,10 +1,9 @@
 #!/usr/bin/env -S npx tsx
 import { stringify } from '@iarna/toml';
-import { copyFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { unlink, writeFile } from 'node:fs/promises';
 import { BaseMigrator } from '../db-core/cli-base.mjs';
 import { DBManager } from '../db-core/db.mjs';
-import type { CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
+import type { CliWorkerData, CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
 import { BufferHelpers } from '../helpers/buffers.mjs';
 import { CryptoHelpers } from '../helpers/crypto.mjs';
 import type { UuidExport } from '../types/d1/index.mjs';
@@ -12,19 +11,15 @@ import { tenants as rootTenants } from './schemas/root/index.js';
 
 const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN, EAAS_ROOT_P } = process.env;
 
-class TenantMigrator extends BaseMigrator {
-	constructor() {
-		super('Tenant');
+export class TenantMigrator extends BaseMigrator {
+	constructor(workerData: CliWorkerData) {
+		super(workerData, 'Tenant');
 	}
 	public override generate() {
-		return this.execPromise(['drizzle-kit', 'generate', '--dialect=sqlite', '--casing=snake_case', '--schema="src/schemas/tenant/index.ts"', '--out="src/schemas/tenant"'].join(' '))
-			.then(({ stdout, stderr }) => {
-				console.info('execPromise', 'then');
-
-				console.log(stdout);
-				console.error(stderr);
-			})
-			.then(() => readdir('src/schemas/tenant').then((files) => Promise.allSettled(files.filter((file) => extname(file).toLowerCase() === '.sql').map((sqlFile) => copyFile(`src/schemas/tenant/${sqlFile}`, `dist/schemas/tenant/${sqlFile}`)))));
+		return this.execPromise(['drizzle-kit', 'generate', '--dialect=sqlite', '--casing=snake_case', '--schema="shared/db-preview/schemas/tenant/index.ts"', '--out="shared/db-preview/schemas/tenant"'].join(' ')).then(({ stdout, stderr }) => {
+			console.log(stdout);
+			console.error(stderr);
+		});
 	}
 	public override migrate() {
 		const workerData = this.workerData as CliWorkerDataMigrate;
@@ -66,7 +61,7 @@ class TenantMigrator extends BaseMigrator {
 									binding: `t_${tenant.t_id.hex}_p`.toUpperCase(),
 									database_name: `t_${tenant.t_id.utf8}_p`,
 									database_id: tenant.t_d1_id.utf8,
-									migrations_dir: 'src/schemas/tenant',
+									migrations_dir: 'shared/db-preview/schemas/tenant',
 								},
 							],
 						};
@@ -96,8 +91,7 @@ class TenantMigrator extends BaseMigrator {
 						);
 					}),
 				);
-			});
+			})
+			.then(() => {});
 	}
 }
-
-await new TenantMigrator()[TenantMigrator.workerData.type]();

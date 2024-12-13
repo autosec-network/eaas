@@ -25,7 +25,7 @@ export class RootMigrator extends BaseMigrator {
 					binding: database_name.replace('_p', ''),
 					database_name,
 					database_id: EAAS_ROOT_P!,
-					migrations_dir: 'src/schemas/root',
+					migrations_dir: 'shared/db-preview/schemas/root',
 				},
 			],
 		};
