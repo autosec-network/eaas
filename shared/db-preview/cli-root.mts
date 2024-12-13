@@ -1,7 +1,6 @@
 #!/usr/bin/env -S npx tsx
 import { stringify } from '@iarna/toml';
-import { copyFile, readdir, unlink, writeFile } from 'node:fs/promises';
-import { extname } from 'node:path';
+import { unlink, writeFile } from 'node:fs/promises';
 import { BaseMigrator } from '../db-core/cli-base.mjs';
 import type { CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
 import { CryptoHelpers } from '../helpers/crypto.mjs';
@@ -10,12 +9,10 @@ const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN, EAAS_ROOT_P } = process.env;
 
 export class RootMigrator extends BaseMigrator {
 	public override generate() {
-		return this.execPromise(['drizzle-kit', 'generate', '--dialect=sqlite', '--casing=snake_case', '--schema="src/schemas/root/index.ts"', '--out="src/schemas/root"'].join(' '))
-			.then(({ stdout, stderr }) => {
-				console.log(stdout);
-				console.error(stderr);
-			})
-			.then(() => readdir('src/schemas/root').then((files) => Promise.allSettled(files.filter((file) => extname(file).toLowerCase() === '.sql').map((sqlFile) => copyFile(`src/schemas/root/${sqlFile}`, `dist/schemas/root/${sqlFile}`))).then(() => {})));
+		return this.execPromise(['drizzle-kit', 'generate', '--dialect=sqlite', '--casing=snake_case', '--schema="shared/db-preview/schemas/root/index.ts"', '--out="shared/db-preview/schemas/root"'].join(' ')).then(({ stdout, stderr }) => {
+			console.log(stdout);
+			console.error(stderr);
+		});
 	}
 
 	public override migrate() {
