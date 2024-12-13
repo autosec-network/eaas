@@ -27,7 +27,7 @@ class TenantMigrator extends BaseMigrator {
 			.then(() => readdir('src/schemas/tenant').then((files) => Promise.allSettled(files.filter((file) => extname(file).toLowerCase() === '.sql').map((sqlFile) => copyFile(`src/schemas/tenant/${sqlFile}`, `dist/schemas/tenant/${sqlFile}`)))));
 	}
 	public override migrate() {
-		const workerData = TenantMigrator.workerData as CliWorkerDataMigrate;
+		const workerData = this.workerData as CliWorkerDataMigrate;
 
 		return DBManager.getDrizzle({
 			accountId: CF_ACCOUNT_ID!,

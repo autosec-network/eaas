@@ -3,6 +3,7 @@ import { Worker } from 'node:worker_threads';
 import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import type { CliArgs, CliWorkerData } from '../db-core/types.mjs';
+import { RootMigrator } from './cli-root.mjs';
 
 function workerCreate(path: string): { path: URL; name: string } {
 	const finalPath = new URL(path, import.meta.url);
@@ -31,26 +32,9 @@ yargs(hideBin(process.argv))
 				})
 				.demandOption('type'),
 		(args) => {
-			if (args.type.includes('root')) {
-				const workerFile = workerCreate('./cli-root.mjs');
-				new Worker(workerFile.path, {
-					name: workerFile.name,
-					workerData: { type: 'generate' } satisfies CliWorkerData,
-				})
-					.on('message', console.log)
-					.once('exit', (exitCode) => {
-						console.info('generate', 'root', 'exit', exitCode);
+			const promises: Promise<any>[] = [];
 
-						// Exit code 13 comes from `wrangler` that it can't find a regular named `wrangler.toml`
-						if (!ignoreExitCodes.includes(exitCode)) {
-							console.error(workerFile.name, 'crashed with exit code', exitCode);
-						}
-
-						const numberAttempt = Number(ignoreExitCodes.includes(exitCode) ? 0 : process.exitCode);
-						process.exitCode = Math.max(isNaN(numberAttempt) ? 0 : numberAttempt, exitCode);
-					})
-					.once('error', console.error);
-			}
+			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'generate' })['generate']());
 
 			if (args.type.includes('tenant')) {
 				const workerFile = workerCreate('./cli-tenant.mjs');
@@ -72,6 +56,8 @@ yargs(hideBin(process.argv))
 					})
 					.once('error', console.error);
 			}
+
+			return Promise.allSettled(promises).then(() => {});
 		},
 	)
 	.command<CliMigrateArgs>(

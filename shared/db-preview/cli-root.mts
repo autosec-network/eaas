@@ -8,18 +8,18 @@ import { CryptoHelpers } from '../helpers/crypto.mjs';
 
 const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN, EAAS_ROOT_P } = process.env;
 
-class RootMigrator extends BaseMigrator {
+export class RootMigrator extends BaseMigrator {
 	public override generate() {
 		return this.execPromise(['drizzle-kit', 'generate', '--dialect=sqlite', '--casing=snake_case', '--schema="src/schemas/root/index.ts"', '--out="src/schemas/root"'].join(' '))
 			.then(({ stdout, stderr }) => {
 				console.log(stdout);
 				console.error(stderr);
 			})
-			.then(() => readdir('src/schemas/root').then((files) => Promise.allSettled(files.filter((file) => extname(file).toLowerCase() === '.sql').map((sqlFile) => copyFile(`src/schemas/root/${sqlFile}`, `dist/schemas/root/${sqlFile}`)))));
+			.then(() => readdir('src/schemas/root').then((files) => Promise.allSettled(files.filter((file) => extname(file).toLowerCase() === '.sql').map((sqlFile) => copyFile(`src/schemas/root/${sqlFile}`, `dist/schemas/root/${sqlFile}`))).then(() => {})));
 	}
 
 	public override migrate() {
-		const workerData = RootMigrator.workerData as CliWorkerDataMigrate;
+		const workerData = this.workerData as CliWorkerDataMigrate;
 		const database_name = 'eaas_root_p';
 		const wranglerConfig: CliWranglerConfig = {
 			account_id: CF_ACCOUNT_ID,
@@ -55,5 +55,3 @@ class RootMigrator extends BaseMigrator {
 		);
 	}
 }
-
-await new RootMigrator()[RootMigrator.workerData.type]();

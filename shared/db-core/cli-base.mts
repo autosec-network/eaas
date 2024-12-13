@@ -1,11 +1,11 @@
 #!/usr/bin/env -S npx tsx
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { workerData } from 'node:worker_threads';
 import PQueue from 'p-queue';
 import type { CliWorkerData } from './types.mjs';
 
 export abstract class BaseMigrator {
+	protected _workerData: CliWorkerData;
 	protected processingStatus: Record<string, boolean | null> = {};
 	protected processingStarted = false;
 	protected queue: PQueue = new PQueue({
@@ -22,8 +22,8 @@ export abstract class BaseMigrator {
 		interval: 5 * 60 * 1000,
 	});
 
-	public static get workerData(): CliWorkerData {
-		return workerData;
+	public get workerData() {
+		return Object.freeze(this._workerData);
 	}
 
 	protected get execPromise() {
@@ -33,7 +33,9 @@ export abstract class BaseMigrator {
 	public abstract generate(): Promise<any>;
 	public abstract migrate(): Promise<any>;
 
-	constructor(type?: string) {
+	constructor(workerData: CliWorkerData, type?: string) {
+		this._workerData = workerData;
+
 		const formatStatus = () => {
 			return Object.fromEntries(Object.entries(this.processingStatus).map(([key, value]) => [key, value === true ? '✅' : value === false ? '❌' : '⏳']));
 		};
