@@ -32,7 +32,7 @@ yargs(hideBin(process.argv))
 				})
 				.demandOption('type'),
 		(args) => {
-			const promises: Promise<any>[] = [];
+			const promises: Promise<void>[] = [];
 
 			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'generate' })['generate']());
 
