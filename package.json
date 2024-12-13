@@ -50,7 +50,7 @@
 		"prettier": "^3.4.2",
 		"tsx": "^4.19.2",
 		"typescript": "^5.7.2",
-		"wrangler": "^3.93.0",
+		"wrangler": "^3.95.0",
 		"yargs": "^17.7.2"
 	}
 }
