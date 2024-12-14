@@ -13,6 +13,8 @@ interface Secrets {
 	BW_SM_ACCESS_TOKEN: string;
 }
 
-interface Bindings {}
+interface Bindings {
+	EAAS_ROOT: D1Database;
+}
 
 export interface ContextVariables extends TimingVariables, RequestIdVariables {}
