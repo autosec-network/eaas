@@ -10,7 +10,7 @@ const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>(
 });
 
 // Before auth or api routes
-app.doc31('/openapi', {
+app.doc31('/openapi', (c) => ({
 	openapi: '3.1.0',
 	info: {
 		title: 'EaaS API',
@@ -21,7 +21,7 @@ app.doc31('/openapi', {
 			bearerAuth: [],
 		},
 	],
-});
+}));
 
 app.reg;
 
