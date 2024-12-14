@@ -96,6 +96,10 @@ updates:
       internal:
         patterns:
           - '@autosec/*'
+      monorepo-management:
+        patterns:
+          - 'lerna'
+          - '@changesets/*'
       qwik:
         patterns:
           - '@builder.io/qwik'

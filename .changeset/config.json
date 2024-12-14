@@ -1,0 +1,12 @@
+{
+	"$schema": "https://unpkg.com/@changesets/config@3.0.4/schema.json",
+	"changelog": ["@changesets/changelog-github", { "repo": "ChainFuse/packages" }],
+	"commit": false,
+	"fixed": [],
+	"linked": [],
+	"access": "public",
+	"baseBranch": "production",
+	"updateInternalDependencies": "patch",
+	"ignore": [],
+	"privatePackages": { "version": true, "tag": true }
+}
