@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import packageJson from '~/../package.json';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import hash from '~/v0/hash.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>({
 	defaultHook: (result, c) => {
@@ -43,5 +44,6 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	scheme: 'bearer',
 });
 
+app.route('/hash', hash);
 
 export default app;
