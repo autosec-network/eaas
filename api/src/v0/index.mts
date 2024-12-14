@@ -14,7 +14,7 @@ app.doc31('/openapi', (c) => ({
 	openapi: '3.1.0',
 	info: {
 		title: 'EaaS API',
-		version: '1.0.0',
+		version: '0.0.0',
 	},
 	security: [
 		{
@@ -23,5 +23,7 @@ app.doc31('/openapi', (c) => ({
 	],
 	// servers: [{ url: new URL(c.req.url).origin }],
 }));
+
+// https://github.com/honojs/middleware/tree/main/packages/zod-openapi
 
 export default app;

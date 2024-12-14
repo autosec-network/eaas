@@ -71,7 +71,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 						.string()
 						.min(2)
 						.regex(/^v\d+$/)
-						.refine((version) => z.coerce.number().int().positive().finite().safe().safeParse(version.slice(1)).success),
+						.refine((version) => z.coerce.number().int().nonnegative().finite().safe().safeParse(version.slice(1)).success),
 				}),
 				// @ts-expect-error we don't want to always return to all passthrough
 				(result, c) => {

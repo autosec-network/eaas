@@ -6,7 +6,7 @@ import { prettyJSON } from 'hono/pretty-json';
 import type { TimingVariables } from 'hono/timing';
 import { createHash } from 'node:crypto';
 import type { EnvVars } from '~/types.mjs';
-import api1 from '~/v1/index.mjs';
+import api1 from '~/v0/index.mjs';
 
 const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
 
@@ -47,6 +47,6 @@ app.use('*', contextStorage());
 app.use('*', prettyJSON());
 
 // All api versions go here
-app.route('/v1', api1);
+app.route('/v0', api1);
 
 export default app;
