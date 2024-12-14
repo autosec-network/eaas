@@ -57,15 +57,6 @@ updates:
         versions:
           - '>=10.0.0'
     groups:
-      internal:
-        patterns:
-          - '@autosec/*'
-      qwik:
-        patterns:
-          - '@builder.io/qwik'
-          - '@builder.io/qwik*'
-          - 'vite-*'
-          - '@rollup/plugin-node-resolve'
       auth:
         patterns:
           - '@auth/*'
@@ -77,9 +68,6 @@ updates:
           - 'wrangler'
         exclude-patterns:
           - '@cloudflare/workers-types'
-      db:
-        patterns:
-          - 'drizzle-*'
       code-management:
         patterns:
           - 'prettier'
@@ -98,6 +86,18 @@ updates:
           - 'flowbite'
           - '@qwikest/icons'
           - 'mermaid'
+      db:
+        patterns:
+          - 'drizzle-*'
+      internal:
+        patterns:
+          - '@autosec/*'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'vite-*'
+          - '@rollup/plugin-node-resolve'
       typescript-core:
         patterns:
           - 'typescript'
