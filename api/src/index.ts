@@ -5,6 +5,7 @@ import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { etag } from 'hono/etag';
+import { logger } from 'hono/logger';
 import { timing, type TimingVariables } from 'hono/timing';
 import { z } from 'zod';
 import docs from '~/docs.mjs';
@@ -52,6 +53,11 @@ export default class extends WorkerEntrypoint<EnvVars> {
 
 		// Debug
 		app.use('*', timing());
+		app.use('*', async (c, next) => {
+			if (c.env.NODE_ENV === 'development') {
+				return logger()(c, next);
+			}
+		});
 
 		app.use(
 			'/:version/*',
