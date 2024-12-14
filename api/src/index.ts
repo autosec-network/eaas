@@ -8,9 +8,9 @@ import { etag } from 'hono/etag';
 import { logger } from 'hono/logger';
 import { timing, type TimingVariables } from 'hono/timing';
 import { z } from 'zod';
+import baseApp from '~/base.mjs';
 import docs from '~/docs.mjs';
 import type { EnvVars } from '~/types.mjs';
-import api1 from '~/v1/index.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
@@ -83,7 +83,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		);
 
 		app.route('/:version/docs', docs);
-		app.route('/v1', api1);
+		app.route('/', baseApp);
 
 		return app.fetch(request, this.env, this.ctx);
 	}

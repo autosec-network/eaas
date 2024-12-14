@@ -1,4 +1,3 @@
-import type { RequestIdVariables } from 'hono/request-id';
 import type { TimingVariables } from 'hono/timing';
 
 export interface EnvVars extends Secrets, Bindings, Record<string, any> {
@@ -17,4 +16,4 @@ interface Bindings {
 	EAAS_ROOT: D1Database;
 }
 
-export interface ContextVariables extends TimingVariables, RequestIdVariables {}
+export interface ContextVariables extends TimingVariables {}
