@@ -5,9 +5,7 @@ import { contextStorage } from 'hono/context-storage';
 import { prettyJSON } from 'hono/pretty-json';
 import { requestId } from 'hono/request-id';
 import { createHash, randomUUID } from 'node:crypto';
-import type { ContextVariables } from '~/routes/types.mjs';
-import type { EnvVars } from '~/types.mjs';
-import docs from '~/v1/docs/index.mjs';
+import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
@@ -19,7 +17,7 @@ app.use('*', async (c, next) => {
 });
 
 // Before auth or api routes
-app.route('/docs', docs);
+
 app.doc('/openapi', {
 	openapi: '3.0.0',
 	info: {

@@ -1,3 +1,6 @@
+import type { RequestIdVariables } from 'hono/request-id';
+import type { TimingVariables } from 'hono/timing';
+
 export interface EnvVars extends Secrets, Bindings, Record<string, any> {
 	CF_ACCOUNT_ID: string;
 	GIT_HASH: string;
@@ -11,3 +14,5 @@ interface Secrets {
 }
 
 interface Bindings {}
+
+export interface ContextVariables extends TimingVariables, RequestIdVariables {}
