@@ -89,6 +89,10 @@ updates:
       db:
         patterns:
           - 'drizzle-*'
+      hono:
+        patterns:
+          - 'hono'
+          - '@hono/*'
       internal:
         patterns:
           - '@autosec/*'
