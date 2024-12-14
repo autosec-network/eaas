@@ -24,6 +24,7 @@ app.get('/', (c, next) => {
 	const pathSegments = c.req.path.split('/');
 	return swaggerUI({
 		url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi'].join('/'),
+		deepLinking: true,
 		displayRequestDuration: true,
 		filter: true,
 		tryItOutEnabled: true,
