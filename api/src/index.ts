@@ -48,7 +48,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			'*',
 			bodyLimit({
 				maxSize: 100 * 1024,
-				onError: (c) => c.json({ errors: [{ message: 'Content overflow', extensions: { code: 413 } }] }, 413),
+				onError: (c) => c.json({ success: false, errors: [{ message: 'Content overflow', extensions: { code: 413 } }] }, 413),
 			}),
 		);
 
@@ -76,7 +76,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 				// @ts-expect-error we don't want to always return to all passthrough
 				(result, c) => {
 					if (!result.success) {
-						return c.json({ errors: [{ message: "API version doesn't exist", extensions: { code: 404 } }] }, 404);
+						return c.json({ success: false, errors: [{ message: "API version doesn't exist", extensions: { code: 404 } }] }, 404);
 					}
 				},
 			),
