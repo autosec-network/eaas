@@ -18,8 +18,8 @@ app.use('*', async (c, next) => {
 	}
 });
 
-app.route('/docs', docs);
 // Before auth or api routes
+app.route('/docs', docs);
 app.doc('/openapi', {
 	openapi: '3.0.0',
 	info: {
