@@ -17,11 +17,6 @@ app.doc31('/openapi', (c) => ({
 		title: 'EaaS API',
 		version: packageJson.version,
 	},
-	security: [
-		{
-			bearerAuth: [],
-		},
-	],
 	servers: [
 		{
 			url: c.req.path
@@ -30,7 +25,17 @@ app.doc31('/openapi', (c) => ({
 				.join('/'),
 		},
 	],
+	security: [
+		{
+			ApiToken: [],
+		},
+	],
 }));
+
+app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
+	type: 'http',
+	scheme: 'bearer',
+});
 
 // https://github.com/honojs/middleware/tree/main/packages/zod-openapi
 
