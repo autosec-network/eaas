@@ -1,6 +1,7 @@
 export interface EnvVars extends Secrets, Bindings, Record<string, any> {
 	CF_ACCOUNT_ID: string;
 	GIT_HASH: string;
+	ENVIRONMENT: 'production' | 'preview';
 	NODE_ENV: 'production' | 'development';
 }
 
@@ -10,5 +11,3 @@ interface Secrets {
 }
 
 interface Bindings {}
-
-export type UUID = ReturnType<typeof crypto.randomUUID>;

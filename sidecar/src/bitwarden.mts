@@ -1,6 +1,6 @@
 import { decodeJwt, type JWTPayload } from 'jose';
 import { Buffer } from 'node:buffer';
-import type { UUID } from './types';
+import type { UUID } from 'node:crypto';
 
 interface ParsedJwt extends JWTPayload {
 	scope: ['api.secrets'];

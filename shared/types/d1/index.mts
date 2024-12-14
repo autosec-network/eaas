@@ -1,9 +1,10 @@
 import type { Buffer } from 'node:buffer';
+import type { UUID } from 'node:crypto';
 
 export type PrefixedUuid = `${'t_'}${UuidExport['utf8']}${'' | '_p'}`;
 export type D1Blob = [number, ...number[]];
 export interface UuidExport {
-	utf8: ReturnType<typeof crypto.randomUUID>;
+	utf8: UUID;
 	hex: string;
 	// eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
 	blob: (typeof Uint8Array)['prototype']['buffer'] | Buffer['buffer'];
