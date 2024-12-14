@@ -21,6 +21,7 @@ app.doc31('/openapi', (c) => ({
 			bearerAuth: [],
 		},
 	],
+	// servers: [{ url: new URL(c.req.url).origin }],
 }));
 
 app.reg;
