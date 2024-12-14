@@ -37,6 +37,5 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	scheme: 'bearer',
 });
 
-// https://github.com/honojs/middleware/tree/main/packages/zod-openapi
 
 export default app;

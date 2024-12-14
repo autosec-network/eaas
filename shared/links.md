@@ -7,3 +7,4 @@
 [https://bitwarden.com/help/secrets-manager-sdk/](https://bitwarden.com/help/secrets-manager-sdk/)
 [https://www.npmjs.com/package/@noble/post-quantum](https://www.npmjs.com/package/@noble/post-quantum)
 [https://gist.github.com/angeal185/df1c3fde9dc73f6ae7776584d2f68b3d](https://gist.github.com/angeal185/df1c3fde9dc73f6ae7776584d2f68b3d)
+[https://github.com/honojs/middleware/tree/main/packages/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi)
