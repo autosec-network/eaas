@@ -22,7 +22,14 @@ app.doc31('/openapi', (c) => ({
 			bearerAuth: [],
 		},
 	],
-	// servers: [{ url: new URL(c.req.url).origin }],
+	servers: [
+		{
+			url: c.req.path
+				.split('/')
+				.splice(0, c.req.path.split('/').length - 1)
+				.join('/'),
+		},
+	],
 }));
 
 // https://github.com/honojs/middleware/tree/main/packages/zod-openapi
