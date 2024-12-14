@@ -24,6 +24,4 @@ app.doc31('/openapi', (c) => ({
 	// servers: [{ url: new URL(c.req.url).origin }],
 }));
 
-app.reg;
-
 export default app;
