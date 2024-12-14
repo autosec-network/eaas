@@ -213,8 +213,15 @@ export const keyrings = sqliteTable(
 		 * Number of encryptions before triggering key rotation
 		 * @default 2^32
 		 * @link https://csrc.nist.gov/pubs/sp/800/38/d/final
+		 *
+		 * Native drizzle bigint is broken so we do blob <-> hex <-> bigint
+		 * @link https://github.com/drizzle-team/drizzle-orm/issues/2902
+		 * @link https://github.com/drizzle-team/drizzle-orm/issues/3609
 		 */
-		count_rotation: k.blob({ mode: 'bigint' }).default(BigInt(2) ** BigInt(32)),
+		count_rotation: k
+			.blob({ mode: 'buffer' })
+			.default(sql`unhex(${(BigInt(2) ** BigInt(32)).toString(16)})`)
+			.$type<D1Blob>(),
 		/**
 		 * keyring was created time
 		 */

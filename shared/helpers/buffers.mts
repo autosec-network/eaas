@@ -3,6 +3,14 @@ import type { UndefinedProperties } from '../types/index.mjs';
 import { CryptoHelpers } from './crypto.mjs';
 
 export class BufferHelpers {
+	public static bigintToBuffer(number: bigint): Promise<UuidExport['blob']> {
+		return this.hexToBuffer(number.toString(16));
+	}
+
+	public static bufferToBigint(buffer: UuidExport['blob'] | D1Blob) {
+		return this.bufferToHex(buffer).then((hex) => BigInt(`0x${hex}`));
+	}
+
 	public static hexToBuffer(hex: UuidExport['hex']): Promise<UuidExport['blob']> {
 		return (
 			import('node:buffer')
