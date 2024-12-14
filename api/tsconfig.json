@@ -3,7 +3,8 @@
 	"compilerOptions": {
 		"sourceMap": true,
 		"paths": {
-			"~/*": ["./src/*"]
+			"~/*": ["./src/*"],
+			"~shared/*": ["../shared/*"]
 		}
 	},
 	"files": ["./.eslintrc.cjs", "prettier.config.mjs"],
