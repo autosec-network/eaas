@@ -7,6 +7,7 @@ import { requestId } from 'hono/request-id';
 import { createHash, randomUUID } from 'node:crypto';
 import type { ContextVariables } from '~/routes/types.mjs';
 import type { EnvVars } from '~/types.mjs';
+import docs from '~/v1/docs/index.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
@@ -15,6 +16,21 @@ app.use('*', async (c, next) => {
 	if (c.env.NODE_ENV === 'development') {
 		return next();
 	}
+});
+
+app.route('/docs', docs);
+// Before auth or api routes
+app.doc('/openapi', {
+	openapi: '3.0.0',
+	info: {
+		title: 'EaaS API',
+		version: '1.0.0',
+	},
+	security: [
+		{
+			bearerAuth: [],
+		},
+	],
 });
 
 // Security

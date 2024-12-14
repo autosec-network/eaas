@@ -20,6 +20,6 @@ app.use(
 	}),
 );
 
-app.get('/', swaggerUI({ url: '/openapi' }));
+app.get('/', swaggerUI({ url: '/v1/openapi' }));
 
 export default app;

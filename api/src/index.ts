@@ -5,9 +5,8 @@ import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { etag } from 'hono/etag';
 import { timing, type TimingVariables } from 'hono/timing';
-import docs from '~/routes/docs/index.mjs';
-import api from '~/routes/index.mjs';
 import type { EnvVars } from '~/types.mjs';
+import api from '~/v1/index.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
@@ -51,8 +50,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		// Debug
 		app.use('*', timing());
 
-		app.route('/docs', docs);
-		app.route('/', api);
+		app.route('/v1', api);
 
 		return app.fetch(request, this.env, this.ctx);
 	}
