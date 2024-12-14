@@ -1,0 +1,8 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"sourceMap": true
+	},
+	"files": ["./.eslintrc.cjs", "prettier.config.mjs"],
+	"include": ["src", "../shared"]
+}

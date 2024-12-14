@@ -1,0 +1,47 @@
+name = "eaas-api-preview"
+main = "src/index.ts"
+compatibility_date = "2024-12-05"
+compatibility_flags = ["nodejs_compat_v2"]
+workers_dev = false
+minify = true
+upload_source_maps = true
+d1_databases = [
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "a1570eae-ba56-49ae-b7be-4341282945f4" },
+]
+
+[vars]
+ENVIRONMENT = "preview"
+NODE_ENV = "development"
+
+[observability]
+enabled = true
+
+[placement]
+mode = "smart"
+
+
+[env.production]
+name = "eaas-api"
+compatibility_date = "2024-12-05"
+compatibility_flags = ["nodejs_compat_v2"]
+workers_dev = false
+minify = true
+upload_source_maps = false
+d1_databases = [
+    { binding = "EAAS_ROOT", database_name = "eaas_root", database_id = "c576d6cf-f202-4845-a971-f95d0e00e95a" },
+]
+
+[env.production.vars]
+ENVIRONMENT = "production"
+NODE_ENV = "production"
+
+[env.production.observability]
+enabled = true
+
+[env.production.placement]
+mode = "smart"
+
+
+[dev]
+local_protocol = "http"
+ip = "localhost"
