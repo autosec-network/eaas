@@ -3,7 +3,8 @@ import { bearerAuth } from 'hono/bearer-auth';
 import { bodyLimit } from 'hono/body-limit';
 import { contextStorage } from 'hono/context-storage';
 import { prettyJSON } from 'hono/pretty-json';
-import { createHash } from 'node:crypto';
+import { requestId } from 'hono/request-id';
+import { createHash, randomUUID } from 'node:crypto';
 import type { ContextVariables } from '~/routes/types.mjs';
 import type { EnvVars } from '~/types.mjs';
 
@@ -47,6 +48,12 @@ app.use(
 app.use('*', contextStorage());
 
 // Debug
+app.use(
+	'*',
+	requestId({
+		generator: (c) => c.req.header('CF-Ray')?.split('-')[0] ?? randomUUID(),
+	}),
+);
 app.use('*', prettyJSON());
 
 export default app;
