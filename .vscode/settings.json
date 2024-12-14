@@ -7,7 +7,7 @@
 	"typescript.preferences.importModuleSpecifier": "non-relative",
 	"typescript.tsdk": "./node_modules/typescript/lib",
 	"github-actions.workflows.pinned.refresh.enabled": true,
-	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-sidecar.yml", ".github/workflows/updateWorkersRuntime.yml", ".github/workflows/db-migrate-preview.yml"],
+	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-api.yml", ".github/workflows/publish-sidecar.yml", ".github/workflows/updateWorkersRuntime.yml", ".github/workflows/db-migrate-preview.yml"],
 	"material-icon-theme.activeIconPack": "qwik",
 	"editor.quickSuggestions": {
 		"strings": "on"
