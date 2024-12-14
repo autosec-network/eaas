@@ -2,14 +2,13 @@
 import { stringify } from '@iarna/toml';
 import { unlink, writeFile } from 'node:fs/promises';
 import { BaseMigrator } from '../db-core/cli-base.mjs';
-import { DBManager } from '../db-core/db.mjs';
+import { DBManager, StaticDatabase } from '../db-core/db.mjs';
 import type { CliWorkerData, CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
 import { BufferHelpers } from '../helpers/buffers.mjs';
 import { CryptoHelpers } from '../helpers/crypto.mjs';
-import type { UuidExport } from '../types/d1/index.mjs';
 import { tenants as rootTenants } from './schemas/root/index.js';
 
-const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN, EAAS_ROOT_P } = process.env;
+const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN } = process.env;
 
 export class TenantMigrator extends BaseMigrator {
 	constructor(workerData: CliWorkerData) {
@@ -27,7 +26,7 @@ export class TenantMigrator extends BaseMigrator {
 		return DBManager.getDrizzle({
 			accountId: CF_ACCOUNT_ID!,
 			apiToken: CICD_CF_API_TOKEN!,
-			databaseId: EAAS_ROOT_P as UuidExport['utf8'],
+			databaseId: StaticDatabase.Root.eaas_root_p,
 		})
 			.select({
 				t_id: rootTenants.t_id,

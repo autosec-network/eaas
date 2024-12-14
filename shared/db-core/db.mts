@@ -7,6 +7,16 @@ import { NetHelpers } from '../helpers/net.mjs';
 import type { CustomLogCallback, CustomLoging } from '../types/index.mjs';
 import type { ApiDbRef, DrizzleCommonDatabase, FlexibleDbRef } from './types.mjs';
 
+export namespace StaticDatabase {
+	export enum Root {
+		eaas_root = 'c576d6cf-f202-4845-a971-f95d0e00e95a',
+		eaas_root_p = 'a1570eae-ba56-49ae-b7be-4341282945f4',
+	}
+
+	// t_00000000-0000-0000-0000-000000000001
+	export enum Tenant {}
+}
+
 class DebugLogWriter implements LogWriter {
 	private connectionType: 'BINDING' | 'REST';
 

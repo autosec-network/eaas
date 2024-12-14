@@ -2,10 +2,11 @@
 import { stringify } from '@iarna/toml';
 import { unlink, writeFile } from 'node:fs/promises';
 import { BaseMigrator } from '../db-core/cli-base.mjs';
+import { StaticDatabase } from '../db-core/db.mjs';
 import type { CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
 import { CryptoHelpers } from '../helpers/crypto.mjs';
 
-const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN, EAAS_ROOT_P } = process.env;
+const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN } = process.env;
 
 export class RootMigrator extends BaseMigrator {
 	public override generate() {
@@ -24,7 +25,7 @@ export class RootMigrator extends BaseMigrator {
 				{
 					binding: database_name.replace('_p', ''),
 					database_name,
-					database_id: EAAS_ROOT_P!,
+					database_id: StaticDatabase.Root.eaas_root_p,
 					migrations_dir: 'shared/db-preview/schemas/root',
 				},
 			],

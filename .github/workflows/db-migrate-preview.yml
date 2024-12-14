@@ -56,4 +56,3 @@ jobs:
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           CICD_CF_API_TOKEN: ${{ secrets.CICD_CF_API_TOKEN }}
-          EAAS_ROOT_P: ${{ secrets.EAAS_ROOT_P }}
