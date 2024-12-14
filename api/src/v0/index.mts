@@ -15,6 +15,12 @@ app.doc31('/openapi', (c) => ({
 	openapi: '3.1.0',
 	info: {
 		title: 'EaaS API',
+		// description: 'Description',
+		// termsOfService: 'https://example.com',
+		contact: {
+			name: 'Issues',
+			url: 'https://github.com/autosec-network/eaas/issues',
+		},
 		version: packageJson.version,
 	},
 	servers: [
