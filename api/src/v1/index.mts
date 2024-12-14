@@ -10,8 +10,8 @@ const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>(
 });
 
 // Before auth or api routes
-app.doc('/openapi', {
-	openapi: '3.0.0',
+app.doc31('/openapi', {
+	openapi: '3.1.0',
 	info: {
 		title: 'EaaS API',
 		version: '1.0.0',
@@ -22,5 +22,7 @@ app.doc('/openapi', {
 		},
 	],
 });
+
+app.reg;
 
 export default app;
