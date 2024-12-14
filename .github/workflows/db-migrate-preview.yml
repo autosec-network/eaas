@@ -42,3 +42,18 @@ jobs:
           check-latest: true
           cache: npm
       - run: npm ci --include-workspace-root
+      - run: npm run cli:pre -- generate ${{ github.event_name == 'workflow_dispatch' && (inputs.root && '--type root' || '') || '--type root' }} ${{ github.event_name == 'workflow_dispatch' && (inputs.tenant && '--type tenant' || '') || '--type tenant' }}
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git add shared/db-preview/schemas/*/*.sql
+      - run: git add shared/db-preview/schemas/*/meta/*.json
+      - run: git commit -m "Generated migrations" || echo "migration files not touched"
+      - run: git push
+      - run: npm run cli:pre -- migrate --remote ${{ inputs.remote }} ${{ inputs.root && '--type root' || '' }} ${{ inputs.tenant && '--type tenant' || '' }}
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CICD_CF_API_TOKEN: ${{ secrets.CICD_CF_API_TOKEN }}
+          EAAS_ROOT_P: ${{ secrets.EAAS_ROOT_P }}
