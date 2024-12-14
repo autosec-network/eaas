@@ -58,6 +58,8 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			if (c.env.NODE_ENV === 'development') {
 				return logger()(c, next);
 			}
+
+			return next();
 		});
 
 		app.use(
