@@ -17,7 +17,6 @@ app.use('*', async (c, next) => {
 });
 
 // Before auth or api routes
-
 app.doc('/openapi', {
 	openapi: '3.0.0',
 	info: {
