@@ -1,7 +1,7 @@
 import { ml_kem1024 } from '@noble/post-quantum/ml-kem';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { BitwardenHelper, EncString, SymmetricCryptoKey } from './bitwarden.mjs';
-import type { EnvVars } from './types';
+import type { EnvVars } from './types.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch() {
