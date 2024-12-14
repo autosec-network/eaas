@@ -28,14 +28,15 @@ compatibility_flags = ["nodejs_compat_v2"]
 workers_dev = false
 route = { pattern = "api.eaas.autosec.network", custom_domain = true }
 minify = true
-upload_source_maps = false
+upload_source_maps = true
 d1_databases = [
-    { binding = "EAAS_ROOT", database_name = "eaas_root", database_id = "c576d6cf-f202-4845-a971-f95d0e00e95a" },
+    # { binding = "EAAS_ROOT", database_name = "eaas_root", database_id = "c576d6cf-f202-4845-a971-f95d0e00e95a" },
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "a1570eae-ba56-49ae-b7be-4341282945f4" },
 ]
 
 [env.production.vars]
 ENVIRONMENT = "production"
-NODE_ENV = "production"
+NODE_ENV = "development"
 
 [env.production.observability]
 enabled = true
