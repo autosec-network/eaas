@@ -9,13 +9,6 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-// Dev debug injection point
-app.use('*', async (c, next) => {
-	if (c.env.NODE_ENV === 'development') {
-		return next();
-	}
-});
-
 // Before auth or api routes
 app.doc('/openapi', {
 	openapi: '3.0.0',
