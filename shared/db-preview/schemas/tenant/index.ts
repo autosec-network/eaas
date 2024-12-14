@@ -220,7 +220,7 @@ export const keyrings = sqliteTable(
 		 */
 		count_rotation: k
 			.blob({ mode: 'buffer' })
-			.default(sql`unhex(${(BigInt(2) ** BigInt(32)).toString(16)})`)
+			.default(sql.raw(`(unhex(${(BigInt(2) ** BigInt(32)).toString(16)}))`))
 			.$type<D1Blob>(),
 		/**
 		 * keyring was created time
@@ -305,7 +305,16 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 		.notNull()
 		.$type<ISODateString>()
 		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
-	encryption_count: d.blob({ mode: 'bigint' }).notNull().default(BigInt(0)),
+	/**
+	 * Native drizzle bigint is broken so we do blob <-> hex <-> bigint
+	 * @link https://github.com/drizzle-team/drizzle-orm/issues/2902
+	 * @link https://github.com/drizzle-team/drizzle-orm/issues/3609
+	 */
+	encryption_count: d
+		.blob({ mode: 'buffer' })
+		.notNull()
+		.default(sql.raw(`(unhex(${BigInt(0).toString(16)}))`))
+		.$type<D1Blob>(),
 }));
 
 export const api_keys = sqliteTable(
