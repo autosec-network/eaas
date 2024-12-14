@@ -38,7 +38,7 @@
 	"portsAttributes": {
 		"7016": {
 			"elevateIfNeeded": true,
-			"label": "Frontend",
+			"label": "frontend",
 			"onAutoForward": "notify",
 			"protocol": "https"
 		}
