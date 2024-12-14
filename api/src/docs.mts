@@ -22,7 +22,12 @@ app.use(
 
 app.get('/', (c, next) => {
 	const pathSegments = c.req.path.split('/');
-	return swaggerUI({ url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi'].join('/') })(c, next);
+	return swaggerUI({
+		url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi'].join('/'),
+		displayRequestDuration: true,
+		filter: true,
+		tryItOutEnabled: true,
+	})(c, next);
 });
 
 export default app;
