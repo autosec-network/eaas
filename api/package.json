@@ -2,7 +2,7 @@
 	"name": "api",
 	"type": "module",
 	"scripts": {
-		"start": "wrangler dev --persist-to ../.wrangler/state"
+		"start": "wrangler dev --live-reload --persist-to ../.wrangler/state"
 	},
 	"repository": {
 		"type": "git",
@@ -21,6 +21,7 @@
 	"dependencies": {
 		"@hono/swagger-ui": "^0.5.0",
 		"@hono/zod-openapi": "^0.18.3",
+		"@hono/zod-validator": "^0.4.2",
 		"hono": "^4.6.13",
 		"zod": "^3.24.1"
 	}
