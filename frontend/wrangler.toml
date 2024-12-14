@@ -31,6 +31,6 @@ TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
 
 [dev]
-local_protocol = "https"
+local_protocol = "http"
 ip = "localhost"
 port = 7016

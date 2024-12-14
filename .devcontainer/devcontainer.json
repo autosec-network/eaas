@@ -40,7 +40,7 @@
 			"elevateIfNeeded": true,
 			"label": "frontend",
 			"onAutoForward": "notify",
-			"protocol": "https"
+			"protocol": "http"
 		}
 	},
 
