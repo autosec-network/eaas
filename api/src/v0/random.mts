@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { endTime, startTime } from 'hono/timing';
 import { randomBytes } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
@@ -60,26 +61,45 @@ app.openapi(route, (c) => {
 	const { bytes: byteSize, format, source } = c.req.valid('json');
 
 	if (source === 'lavarand') {
-		return c.json({
-			success: true,
-			result: Buffer.from(crypto.getRandomValues(new Uint8Array(byteSize))).toString(format),
-		});
-	} else if (source === 'platform') {
-		const tempBuffer = randomBytes(byteSize);
+		startTime(c, 'random-lavarand-generate');
+		const lavarand = crypto.getRandomValues(new Uint8Array(byteSize));
+		endTime(c, 'random-lavarand-generate');
+		startTime(c, 'random-lavarand-encode');
+		const result = Buffer.from(lavarand).toString(format);
+		endTime(c, 'random-lavarand-encode');
 
 		return c.json({
 			success: true,
-			result: Buffer.from(new Uint8Array(tempBuffer.buffer.slice(tempBuffer.byteOffset, tempBuffer.byteOffset + tempBuffer.byteLength))).toString(format),
+			result,
+		});
+	} else if (source === 'platform') {
+		startTime(c, 'random-platform-generate');
+		const platform = randomBytes(byteSize);
+		endTime(c, 'random-platform-generate');
+		startTime(c, 'random-platform-encode');
+		const result = Buffer.from(new Uint8Array(platform.buffer.slice(platform.byteOffset, platform.byteOffset + platform.byteLength))).toString(format);
+		endTime(c, 'random-platform-encode');
+
+		return c.json({
+			success: true,
+			result,
 		});
 	} else {
 		const randoms: Uint8Array[] = [];
 		// Cloudflare LavaRand
+		startTime(c, 'random-lavarand-generate');
 		randoms.push(crypto.getRandomValues(new Uint8Array(byteSize)));
+		endTime(c, 'random-lavarand-generate');
 
 		// Node.JS platform
+		startTime(c, 'random-platform-encode');
 		const tempBuffer = randomBytes(byteSize);
+		endTime(c, 'random-platform-generate');
+		startTime(c, 'random-platform-encode');
 		randoms.push(new Uint8Array(tempBuffer.buffer.slice(tempBuffer.byteOffset, tempBuffer.byteOffset + tempBuffer.byteLength)));
+		endTime(c, 'random-platform-encode');
 
+		startTime(c, 'random-combine');
 		/**
 		 * Concatenate them
 		 * temporary byte arary is length of all of them combined
@@ -87,8 +107,14 @@ app.openapi(route, (c) => {
 		 */
 		const combined = new Uint8Array(randoms.reduce((sum, str) => sum + str.byteLength, 0));
 		// Insert each one into combined
-		randoms.forEach((random, index) => combined.set(random, index * byteSize));
+		randoms.forEach((random, index) => {
+			startTime(c, `random-combine-${index}`);
+			combined.set(random, index * byteSize);
+			endTime(c, `random-combine-${index}`);
+		});
+		endTime(c, 'random-combine');
 
+		startTime(c, 'random-hkdf');
 		// Use HKDF to derive down to the requested number of bytes
 		return crypto.subtle
 			.importKey('raw', combined, { name: 'HKDF' }, false, ['deriveBits'])
@@ -115,12 +141,17 @@ app.openapi(route, (c) => {
 					)
 					.then((derivedBits) => new Uint8Array(derivedBits)),
 			)
-			.then((combinedRandom) =>
-				c.json({
+			.then((combinedRandom) => {
+				endTime(c, 'random-hkdf');
+				startTime(c, 'random-platform-encode');
+				const result = Buffer.from(combinedRandom).toString(format);
+				endTime(c, 'random-platform-encode');
+
+				return c.json({
 					success: true,
-					result: Buffer.from(combinedRandom).toString(format),
-				}),
-			);
+					result,
+				});
+			});
 	}
 });
 
