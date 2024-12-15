@@ -55,4 +55,8 @@ export class Helpers {
 	public static getFulfilledResults<T extends unknown>(promises: PromiseLike<T>[]) {
 		return Promise.allSettled(promises).then((results) => results.filter((result): result is PromiseFulfilledResult<Awaited<T>> => result.status === 'fulfilled').map((result) => result.value));
 	}
+
+	public static isLocal(metadata: WorkerVersionMetadata) {
+		return 'timestamp' in metadata;
+	}
 }

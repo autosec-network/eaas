@@ -13,6 +13,7 @@ interface Secrets {
 }
 
 interface Bindings {
+	CF_VERSION_METADATA: WorkerVersionMetadata;
 	EAAS_ROOT: D1Database;
 }
 
