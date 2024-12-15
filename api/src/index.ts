@@ -47,7 +47,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		app.use(
 			'*',
 			bodyLimit({
-				maxSize: 100 * 1024,
+				maxSize: 0,
 				onError: (c) => c.json({ success: false, errors: [{ message: 'Content overflow', extensions: { code: 413 } }] }, 413),
 			}),
 		);
