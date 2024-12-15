@@ -39,6 +39,32 @@ app.doc31('/openapi', (c) => ({
 		},
 	],
 }));
+app.doc('/openapi3', (c) => ({
+	openapi: '3.0.0',
+	info: {
+		title: 'EaaS API',
+		// description: 'Description',
+		// termsOfService: 'https://example.com',
+		contact: {
+			name: 'Issues',
+			url: 'https://github.com/autosec-network/eaas/issues',
+		},
+		version: packageJson.version,
+	},
+	servers: [
+		{
+			url: c.req.path
+				.split('/')
+				.splice(0, c.req.path.split('/').length - 1)
+				.join('/'),
+		},
+	],
+	security: [
+		{
+			ApiToken: [],
+		},
+	],
+}));
 
 app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	type: 'http',
