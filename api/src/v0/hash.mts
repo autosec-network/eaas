@@ -79,7 +79,7 @@ export const route = createRoute({
 					schema: z
 						.object({
 							success: z.boolean(),
-							result: z.union([output, z.array(output)]),
+							result: z.union([z.array(output), output]),
 						})
 						.openapi('HashOutput'),
 				},
