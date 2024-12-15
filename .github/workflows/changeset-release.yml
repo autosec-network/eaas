@@ -37,7 +37,8 @@ jobs:
       - run: git config set --type=bool push.autoSetupRemote true
       - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
         with:
-          node-version: lts/*
+          # Changesets currently broken on 22
+          node-version: lts/iron
           check-latest: true
           cache: 'npm'
       - run: npm ci --include-workspace-root
