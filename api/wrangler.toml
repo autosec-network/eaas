@@ -36,7 +36,7 @@ d1_databases = [
 
 [env.production.vars]
 ENVIRONMENT = "preview"
-NODE_ENV = "production"
+NODE_ENV = "development"
 
 [env.production.observability]
 enabled = true
