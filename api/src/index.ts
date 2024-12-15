@@ -1,7 +1,6 @@
 import { zValidator } from '@hono/zod-validator';
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import { Hono } from 'hono';
-import { bodyLimit } from 'hono/body-limit';
 import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { etag } from 'hono/etag';
@@ -39,18 +38,6 @@ export default class extends WorkerEntrypoint<EnvVars> {
 
 		// Performance
 		app.use('*', etag());
-		/**
-		 * Measured in kb
-		 * Set to just worker memory limit
-		 * @link https://developers.cloudflare.com/workers/platform/limits/#worker-limits
-		 */
-		app.use(
-			'*',
-			bodyLimit({
-				maxSize: 0,
-				onError: (c) => c.json({ success: false, errors: [{ message: 'Content overflow', extensions: { code: 413 } }] }, 413),
-			}),
-		);
 
 		// Debug
 		app.use('*', timing());
