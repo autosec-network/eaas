@@ -28,6 +28,7 @@ app.get('/', (c, next) => {
 		displayRequestDuration: true,
 		filter: true,
 		tryItOutEnabled: true,
+		requestSnippetsEnabled: true,
 	})(c, next);
 });
 
