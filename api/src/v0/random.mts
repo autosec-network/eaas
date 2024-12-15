@@ -6,7 +6,6 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 const example = new Uint8Array(32);
-// crypto.getRandomValues(example);
 
 export const route = createRoute({
 	method: 'post',
