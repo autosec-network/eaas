@@ -19,7 +19,6 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		// Dev debug injection point
 		app.use('*', async (c, next) => {
 			if (c.env.NODE_ENV === 'development') {
-				return c.json(Object.keys(c.env));
 			}
 
 			return next();
