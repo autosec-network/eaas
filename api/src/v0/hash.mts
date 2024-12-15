@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
@@ -98,23 +99,35 @@ app.openapi(route, (c) => {
 		return c.json(
 			{
 				success: true,
-				result: json.batch_input.map(({ input, format, reference }) => ({
-					value: createHash(c.req.param('algorithm'))
+				result: json.batch_input.map((item) => {
+					const { input, format, reference } = item;
+
+					startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+					const value = createHash(c.req.param('algorithm'))
 						.update(Buffer.from(input, format === 'base64' ? (base64TypeCheck.test(input) ? 'base64url' : 'base64') : format))
-						.digest('hex'),
-					reference,
-				})),
+						.digest('hex');
+					endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+
+					return {
+						value,
+						reference,
+					};
+				}),
 			},
 			200,
 		);
 	} else {
+		startTime(c, 'hashItem');
+		const value = createHash(c.req.param('algorithm'))
+			.update(Buffer.from(json.input, json.format === 'base64' ? (base64TypeCheck.test(json.input) ? 'base64url' : 'base64') : json.format))
+			.digest('hex');
+		endTime(c, 'hashItem');
+
 		return c.json(
 			{
 				success: true,
 				result: {
-					value: createHash(c.req.param('algorithm'))
-						.update(Buffer.from(json.input, json.format === 'base64' ? (base64TypeCheck.test(json.input) ? 'base64url' : 'base64') : json.format))
-						.digest('hex'),
+					value,
 					reference: json.reference,
 				},
 			},
