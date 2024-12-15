@@ -44,3 +44,5 @@ jobs:
       - uses: changesets/action@c8bada60c408975afd1a20b3db81d6eee6789308 # v1.4.9
         with:
           createGithubReleases: true
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
