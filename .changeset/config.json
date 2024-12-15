@@ -3,6 +3,5 @@
 	"changelog": ["@changesets/changelog-github", { "repo": "ChainFuse/packages" }],
 	"commit": false,
 	"baseBranch": "production",
-	"updateInternalDependencies": "patch",
-	"privatePackages": { "version": true, "tag": true }
+	"updateInternalDependencies": "patch"
 }
