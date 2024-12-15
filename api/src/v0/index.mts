@@ -53,10 +53,15 @@ app.doc('/openapi3', (c) => ({
 	},
 	servers: [
 		{
-			url: c.req.path
-				.split('/')
-				.splice(0, c.req.path.split('/').length - 1)
-				.join('/'),
+			url: new URL('v0', 'https://api.eaas.autosec.network').toString(),
+		},
+		{
+			url: new URL('v0', 'https://{hostvar1}.api.eaas.autosec.network').toString(),
+			variables: {
+				hostvar1: {
+					default: 'preview',
+				},
+			},
 		},
 	],
 	security: [
