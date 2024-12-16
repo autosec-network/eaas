@@ -294,24 +294,13 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	/**
 	 * Bitwarden secrets manager secret id for the assymetric key
 	 */
-	bw_pub_id: d.blob({ mode: 'buffer' }).unique().$type<D1Blob>(),
+	bw_id: d.blob({ mode: 'buffer' }).unique().$type<D1Blob>(),
 	/**
 	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
 	 */
-	bw_pub_id_utf8: d
+	bw_id_utf8: d
 		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${datakeys.bw_pub_id}),1,8), substr(hex(${datakeys.bw_pub_id}),9,4), substr(hex(${datakeys.bw_pub_id}),13,4), substr(hex(${datakeys.bw_pub_id}),17,4), substr(hex(${datakeys.bw_pub_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	/**
-	 * Bitwarden secrets manager secret id for the private/symmetric key
-	 */
-	bw_pri_id: d.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	bw_pri_id_utf8: d
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${datakeys.bw_pri_id}),1,8), substr(hex(${datakeys.bw_pri_id}),9,4), substr(hex(${datakeys.bw_pri_id}),13,4), substr(hex(${datakeys.bw_pri_id}),17,4), substr(hex(${datakeys.bw_pri_id}),21)))`, { mode: 'virtual' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${datakeys.bw_id}),1,8), substr(hex(${datakeys.bw_id}),9,4), substr(hex(${datakeys.bw_id}),13,4), substr(hex(${datakeys.bw_id}),17,4), substr(hex(${datakeys.bw_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	/**
 	 * last time key was used
