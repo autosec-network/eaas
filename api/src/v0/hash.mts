@@ -93,7 +93,7 @@ app.openapi(route, (c) => {
 	/**
 	 * @link https://base64.guru/standards/base64url
 	 */
-	const base64TypeCheck = new RegExp(/^[a-z0-9_-]+$/i);
+	const base64TypeCheck = new RegExp(/^[a-z\d_-]+$/i);
 
 	if ('batch_input' in json) {
 		return c.json(
