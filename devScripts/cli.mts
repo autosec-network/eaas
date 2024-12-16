@@ -81,56 +81,56 @@ yargs(hideBin(process.argv))
 											.catch(console.error),
 									)
 									.finally(() => unlink(`${tenantWranglerHashPrefix}.wrangler.toml`)),
-								// BufferHelpers.uuidConvert(d1CreateResponse.uuid as UuidExport['utf8']).then((converted_d1_id) =>
-								// 	DBManager.getDrizzle(
-								// 		{
-								// 			accountId: CF_ACCOUNT_ID!,
-								// 			apiToken: CICD_CF_API_TOKEN!,
-								// 			databaseId: StaticDatabase.Root.eaas_root_p,
-								// 		},
-								// 		true,
-								// 	)
-								// 		.insert(tenants)
-								// 		.values({
-								// 			t_id: sql`unhex(${t_id.hex})`,
-								// 			d1_id: sql`unhex(${converted_d1_id.hex})`,
-								// 		})
-								// 		.then(() => converted_d1_id),
-								// ),
-							]);
-							// .then(([, converted_d1_id]) => {
-							// 	if (converted_d1_id.status === 'fulfilled') {
-							// 		return DBManager.getDrizzle(
-							// 			{
-							// 				accountId: CF_ACCOUNT_ID!,
-							// 				apiToken: CICD_CF_API_TOKEN!,
-							// 				databaseId: converted_d1_id.value.utf8,
-							// 			},
-							// 			true,
-							// 		)
-							// 			.insert(properties)
-							// 			.values({
-							// 				t_id: sql`unhex(${t_id.hex})`,
-							// 				d1_id: sql`unhex(${converted_d1_id.value.hex})`,
-							// 				name: args.name,
-							// 			});
-							// 	} else {
-							// 		return;
-							// 	}
-							// })
-							// .then(() => console.log(d1CreateResponse))
-							// .catch((reason) =>
-							// 	NetHelpers.cfApi(CICD_CF_API_TOKEN!)
-							// 		.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! })
-							// 		.catch((d1DeleteReason) => {
-							// 			const message = `Failed to setup, also failed to roll back orphaned D1 ${name} (${d1CreateResponse.uuid})`;
-							// 			console.error(new Error(message, { cause: d1DeleteReason }));
-							// 		})
-							// 		.then(() => {
-							// 			const message = 'Failed to setup, successfully rolled back orphaned D1 creation';
-							// 			console.warn(new Error(message, { cause: reason }));
-							// 		}),
-							// );
+								BufferHelpers.uuidConvert(d1CreateResponse.uuid as UuidExport['utf8']).then((converted_d1_id) =>
+									DBManager.getDrizzle(
+										{
+											accountId: CF_ACCOUNT_ID!,
+											apiToken: CICD_CF_API_TOKEN!,
+											databaseId: StaticDatabase.Root.eaas_root_p,
+										},
+										true,
+									)
+										.insert(tenants)
+										.values({
+											t_id: sql`unhex(${t_id.hex})`,
+											d1_id: sql`unhex(${converted_d1_id.hex})`,
+										})
+										.then(() => converted_d1_id),
+								),
+							])
+								.then(([, converted_d1_id]) => {
+									if (converted_d1_id.status === 'fulfilled') {
+										return DBManager.getDrizzle(
+											{
+												accountId: CF_ACCOUNT_ID!,
+												apiToken: CICD_CF_API_TOKEN!,
+												databaseId: converted_d1_id.value.utf8,
+											},
+											true,
+										)
+											.insert(properties)
+											.values({
+												t_id: sql`unhex(${t_id.hex})`,
+												d1_id: sql`unhex(${converted_d1_id.value.hex})`,
+												name: args.name,
+											});
+									} else {
+										return;
+									}
+								})
+								.then(() => console.log(d1CreateResponse))
+								.catch((reason) =>
+									NetHelpers.cfApi(CICD_CF_API_TOKEN!)
+										.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! })
+										.catch((d1DeleteReason) => {
+											const message = `Failed to setup, also failed to roll back orphaned D1 ${name} (${d1CreateResponse.uuid})`;
+											console.error(new Error(message, { cause: d1DeleteReason }));
+										})
+										.then(() => {
+											const message = 'Failed to setup, successfully rolled back orphaned D1 creation';
+											console.warn(new Error(message, { cause: reason }));
+										}),
+								);
 						});
 					}),
 			),
