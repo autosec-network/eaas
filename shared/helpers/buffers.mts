@@ -94,8 +94,9 @@ export class BufferHelpers {
 	public static uuidConvert(input: UuidExport['hex']): Promise<UuidExport>;
 	public static uuidConvert(input: UuidExport['blob']): Promise<UuidExport>;
 	public static uuidConvert(input: D1Blob): Promise<UuidExport>;
+	public static uuidConvert(input: UuidExport['base64']): Promise<UuidExport>;
 	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-	public static uuidConvert(input?: PrefixedUuid | UuidExport['utf8'] | UuidExport['hex'] | UuidExport['blob'] | D1Blob): Promise<UuidExport | UndefinedProperties<UuidExport>> {
+	public static uuidConvert(input?: PrefixedUuid | UuidExport['utf8'] | UuidExport['hex'] | UuidExport['blob'] | D1Blob | UuidExport['base64']): Promise<UuidExport | UndefinedProperties<UuidExport>> {
 		if (input) {
 			if (typeof input === 'string') {
 				if (input.includes('-')) {
@@ -106,26 +107,44 @@ export class BufferHelpers {
 						hex = hex.split('_')[1]!;
 					}
 
-					return this.hexToBuffer(hex).then((blob) => ({
-						utf8: input as UuidExport['utf8'],
-						hex,
-						blob,
-					}));
+					return this.hexToBuffer(hex).then((blob) =>
+						this.bufferToBase64(blob, false).then((base64) => ({
+							utf8: input as UuidExport['utf8'],
+							hex,
+							blob,
+							base64,
+						})),
+					);
+				} else if (new RegExp(/^[a-z\d+/]+={0,2}$/i).test(input)) {
+					const base64: UuidExport['base64'] = input;
+
+					return this.base64ToBuffer(base64, base64.includes('_')).then((blob) =>
+						this.bufferToHex(blob).then((hex) => ({
+							utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
+							hex,
+							blob,
+							base64,
+						})),
+					);
 				} else {
 					const hex: UuidExport['hex'] = input;
 
-					return this.hexToBuffer(hex).then((blob) => ({
-						utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
-						hex,
-						blob,
-					}));
+					return this.hexToBuffer(hex).then((blob) =>
+						this.bufferToBase64(blob, false).then((base64) => ({
+							utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
+							hex,
+							blob,
+							base64,
+						})),
+					);
 				}
 			} else {
-				return this.bufferToHex(input).then((hex) => ({
+				return Promise.all([this.bufferToHex(input), this.bufferToBase64(input, false)]).then(([hex, base64]) => ({
 					utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
 					hex,
 					// @ts-expect-error `ArrayBufferLike` or D1Blob is actually accepted and fine
 					blob: new Uint8Array(input).buffer,
+					base64,
 				}));
 			}
 		} else {
@@ -134,6 +153,7 @@ export class BufferHelpers {
 				utf8: undefined,
 				hex: undefined,
 				blob: undefined,
+				base64: undefined,
 			}))();
 		}
 	}

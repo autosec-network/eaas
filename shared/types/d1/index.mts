@@ -8,6 +8,7 @@ export interface UuidExport {
 	hex: string;
 	// eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
 	blob: (typeof Uint8Array)['prototype']['buffer'] | Buffer['buffer'];
+	base64: string;
 }
 
 // Filter to check and return only enum types, excluding specified properties
