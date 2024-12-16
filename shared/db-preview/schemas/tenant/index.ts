@@ -8,6 +8,7 @@ import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenan
  * @returns a copy of string `x` with all ASCII characters converted to lower case
  * @link https://sqlite.org/lang_corefunc.html#lower
  */
+// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-constraint
 function lower<T extends unknown = string>(x: AnySQLiteColumn) {
 	return sql<T>`lower(${x})`;
 }
