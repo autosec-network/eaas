@@ -270,6 +270,22 @@ export const keyrings = sqliteTable(
 			.default(sql.raw(`(unhex(${(BigInt(2) ** BigInt(32)).toString(16).length % 2 === 0 ? (BigInt(2) ** BigInt(32)).toString(16) : `0${(BigInt(2) ** BigInt(32)).toString(16)}`}))`))
 			.$type<D1Blob>(),
 		/**
+		 * Number of in use (1+ generation ops count) to allow for generation operations. The number is counted from the latest key.
+		 * For example, `0` means that only the latest key can be used for generation operations.
+		 * For example, `2` means that the latest 3 keys can be used for generation operations.
+		 * Keys beyond `max(generation_versions, retreival_versions)` limit are auto-pruned
+		 * @default 0
+		 */
+		generation_versions: k.integer({ mode: 'number' }).notNull().default(0),
+		/**
+		 * Number of in use (1+ generation ops count) to allow for retreival operations. The number is counted from the latest key.
+		 * For example, `0` means that only the latest key can be used for retreival operations.
+		 * For example, `2` means that the latest 3 keys can be used for retreival operations.
+		 * Keys beyond `max(generation_versions, retreival_versions)` limit are auto-pruned
+		 * @default 2
+		 */
+		retreival_versions: k.integer({ mode: 'number' }).notNull().default(2),
+		/**
 		 * keyring was created time
 		 */
 		b_time: k
