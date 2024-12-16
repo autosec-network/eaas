@@ -3,6 +3,15 @@ import type { UndefinedProperties } from '../types/index.mjs';
 import { CryptoHelpers } from './crypto.mjs';
 
 export class BufferHelpers {
+	/**
+	 * @link https://base64.guru/learn/base64-characters
+	 */
+	private static readonly base64Regex = new RegExp(/^[a-z\d+/]+={0,2}$/i);
+	/**
+	 * @link https://base64.guru/standards/base64url
+	 */
+	private static readonly base64urlRegex = new RegExp(/^[a-z\d_-]+$/i);
+
 	public static bigintToBuffer(number: bigint): Promise<UuidExport['blob']> {
 		const hexString = number.toString(16);
 		return this.hexToBuffer(hexString.length % 2 === 0 ? hexString : `0${hexString}`);
@@ -39,24 +48,34 @@ export class BufferHelpers {
 		);
 	}
 
-	public static base64ToBuffer(rawBase64: string, urlSafe: boolean): Promise<UuidExport['blob']> {
-		return import('node:buffer')
-			.then(({ Buffer }) => {
-				const mainBuffer = Buffer.from(rawBase64, urlSafe ? 'base64url' : 'base64');
-				return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
-			})
-			.catch(() => {
-				let base64 = rawBase64;
-				if (urlSafe) {
-					base64 = rawBase64.replaceAll('-', '+').replaceAll('_', '/');
+	public static base64ToBuffer(rawBase64: string): Promise<UuidExport['blob']> {
+		if (this.base64Regex.test(rawBase64)) {
+			return import('node:buffer')
+				.then(({ Buffer }) => {
+					const mainBuffer = Buffer.from(rawBase64, 'base64');
+					return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
+				})
+				.catch(() => {
+					return new TextEncoder().encode(atob(rawBase64)).buffer;
+				});
+		} else if (this.base64urlRegex.test(rawBase64)) {
+			return import('node:buffer')
+				.then(({ Buffer }) => {
+					const mainBuffer = Buffer.from(rawBase64, 'base64url');
+					return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
+				})
+				.catch(() => {
+					let base64 = rawBase64.replaceAll('-', '+').replaceAll('_', '/');
 					// Add padding back to make length a multiple of 4
 					while (base64.length % 4 !== 0) {
 						base64 += '=';
 					}
-				}
 
-				return new TextEncoder().encode(atob(base64)).buffer;
-			});
+					return new TextEncoder().encode(atob(base64)).buffer;
+				});
+		} else {
+			throw new Error('Invalid base64 or base64url string');
+		}
 	}
 
 	public static bufferToBase64(buffer: UuidExport['blob'] | D1Blob, urlSafe: boolean): Promise<string> {
@@ -119,13 +138,10 @@ export class BufferHelpers {
 							base64,
 						})),
 					);
-					/**
-					 * @link https://base64.guru/standards/base64url
-					 */
-				} else if (new RegExp(/^[a-z\d_-]+$/i).test(input)) {
+				} else if (this.base64Regex.test(input) || this.base64urlRegex.test(input)) {
 					const base64: UuidExport['base64'] = input;
 
-					return this.base64ToBuffer(base64, base64.includes('_')).then((blob) =>
+					return this.base64ToBuffer(base64).then((blob) =>
 						this.bufferToHex(blob).then((hex) => ({
 							utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
 							hex,
