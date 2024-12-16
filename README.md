@@ -32,9 +32,11 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - randomness
 - Retreival operations
     - decryption
-    - key rewraps
+    - rewraps\*
     - verify
     - hash
+
+> \* counted as a generative operation for key usage reasons (key auto-rotate, in-use datakeys, etc) but as a retreival operation for billing purposes (always free)
 
 ### Pricing
 
