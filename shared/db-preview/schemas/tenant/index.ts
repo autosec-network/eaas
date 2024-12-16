@@ -294,7 +294,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${datakeys.kr_id}),1,8), substr(hex(${datakeys.kr_id}),9,4), substr(hex(${datakeys.kr_id}),13,4), substr(hex(${datakeys.kr_id}),17,4), substr(hex(${datakeys.kr_id}),21)))`, { mode: 'virtual' })
 		.$type<UuidExport['utf8']>(),
 	/**
-	 * Bitwarden secrets manager secret id for the assymetric key
+	 * Bitwarden secrets manager secret id for the key(s)
 	 */
 	bw_id: d.blob({ mode: 'buffer' }).unique().$type<D1Blob>(),
 	/**
