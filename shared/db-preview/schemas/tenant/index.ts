@@ -96,7 +96,7 @@ export const users = sqliteTable(
 			.text({ mode: 'text' })
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users.d1_id}),1,8), substr(hex(${users.d1_id}),9,4), substr(hex(${users.d1_id}),13,4), substr(hex(${users.d1_id}),17,4), substr(hex(${users.d1_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
-		email: u.text({ mode: 'text' }).notNull().$type<EmailAddress>(),
+		email: u.text({ mode: 'text' }).unique().notNull().$type<EmailAddress>(),
 		flags: u.text({ mode: 'json' }).notNull().$type<UserFlagsObject>().default({}),
 		/**
 		 * user last signed in time
@@ -147,30 +147,34 @@ export const users = sqliteTable(
 	(u) => [uniqueIndex('case_insensitive_email').on(lower(u.email))],
 );
 
-export const user_sessions = sqliteTable('auth_sessions', (us) => ({
-	s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	s_id_utf8: us
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.s_id}),1,8), substr(hex(${user_sessions.s_id}),9,4), substr(hex(${user_sessions.s_id}),13,4), substr(hex(${user_sessions.s_id}),17,4), substr(hex(${user_sessions.s_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	u_id: us
-		.blob({ mode: 'buffer' })
-		.notNull()
-		.$type<D1Blob>()
-		.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	u_id_utf8: us
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.u_id}),1,8), substr(hex(${user_sessions.u_id}),9,4), substr(hex(${user_sessions.u_id}),13,4), substr(hex(${user_sessions.u_id}),17,4), substr(hex(${user_sessions.u_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	expires: us.text({ mode: 'text' }).notNull().$type<ISODateString>(),
-	supplemental: us.text({ mode: 'json' }).notNull().default({}).$type<Record<string, any>>(),
-}));
+export const user_sessions = sqliteTable(
+	'auth_sessions',
+	(us) => ({
+		s_id: us.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		s_id_utf8: us
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.s_id}),1,8), substr(hex(${user_sessions.s_id}),9,4), substr(hex(${user_sessions.s_id}),13,4), substr(hex(${user_sessions.s_id}),17,4), substr(hex(${user_sessions.s_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		u_id: us
+			.blob({ mode: 'buffer' })
+			.notNull()
+			.$type<D1Blob>()
+			.references(() => users.u_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		u_id_utf8: us
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.u_id}),1,8), substr(hex(${user_sessions.u_id}),9,4), substr(hex(${user_sessions.u_id}),13,4), substr(hex(${user_sessions.u_id}),17,4), substr(hex(${user_sessions.u_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		expires: us.text({ mode: 'text' }).notNull().$type<ISODateString>(),
+		supplemental: us.text({ mode: 'json' }).notNull().default({}).$type<Record<string, any>>(),
+	}),
+	(us) => [unique().on(us.s_id, us.u_id)],
+);
 
 export const users_webauthn = sqliteTable(
 	'auth_webauthn',
@@ -189,7 +193,7 @@ export const users_webauthn = sqliteTable(
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${user_sessions.u_id}),1,8), substr(hex(${user_sessions.u_id}),9,4), substr(hex(${user_sessions.u_id}),13,4), substr(hex(${user_sessions.u_id}),17,4), substr(hex(${user_sessions.u_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		name: uw.text({ mode: 'text' }),
-		credential_public_key: uw.blob({ mode: 'buffer' }).notNull().$type<D1Blob>(),
+		credential_public_key: uw.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 		counter: uw.integer({ mode: 'number' }).notNull(),
 		credential_device_type: uw.text().notNull(),
 		credential_backed_up: uw.integer({ mode: 'boolean' }).notNull(),
