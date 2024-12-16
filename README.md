@@ -50,7 +50,7 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - [ ] `3.5 million ops` monthly **total** operations. Upon hitting limit, only retreival operations will go through.
     - [ ] Automated key rotation (time & usage based) with webhook notifications
     - [x] Manual key rotation
-    - [ ] Up to the last 3 (in-use: has been used for a generation op at least once) datakeys are stored per keyring.
+    - [ ] Up to the last `TBA` (in-use: has been used for a generation op at least once) datakeys are stored per keyring.
     - [x] PQC key generation - current NIST forerunner(s)
     - [ ] PQC encryption - current NIST forerunner(s)
 - [ ] (`$TBA`/month) Paid (`TBA` support) managed version
@@ -63,8 +63,8 @@ Breaking api changes will use a new api version and a depreciation schedule for 
         - [ ] Base price already includes `TBA` monthly generative operations
     - [ ] `Unlimited free` retreival operations
     - [ ] Key rotations now include webhook customization and email notifications
-    - [ ] (`$TBA`/100 in-use datakeys) per keyring
-        - [ ] Base price already includes `100` datakeys per keyring
+    - [ ] (`$TBA`/`TBA` in-use datakeys) per keyring
+        - [ ] Base price already includes `TBA` datakeys per keyring
 
 > We pledge that retreival operations will always be free and accessible. We never want to be in a situation where we're keeping your data hostage.
 
