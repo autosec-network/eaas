@@ -34,12 +34,13 @@ export const properties = sqliteTable('properties', (p) => ({
 		.$type<UuidExport['utf8']>(),
 	name: p.text({ mode: 'text' }).unique().notNull(),
 	avatar: p.text({ mode: 'text' }).unique(),
-	flags: p.text({ mode: 'json' }).notNull().$type<TenantFlagsObject>().default({}),
+	flags: p.text({ mode: 'json' }).unique().notNull().$type<TenantFlagsObject>().default({}),
 	/**
 	 * tenant was created time
 	 */
 	b_time: p
 		.text({ mode: 'text', length: 24 })
+		.unique()
 		.notNull()
 		.$type<ISODateString>()
 		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
@@ -48,6 +49,7 @@ export const properties = sqliteTable('properties', (p) => ({
 	 */
 	c_time: p
 		.text({ mode: 'text', length: 24 })
+		.unique()
 		.notNull()
 		.$type<ISODateString>()
 		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`)
