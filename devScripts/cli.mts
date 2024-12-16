@@ -1,7 +1,7 @@
 #!/usr/bin/env -S npx tsx
 import { stringify } from '@iarna/toml';
 import type { DatabaseCreateParams } from 'cloudflare/resources/d1/database.mjs';
-import { sql } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { exec } from 'node:child_process';
 import { unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
@@ -10,11 +10,12 @@ import { hideBin } from 'yargs/helpers';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
 import type { CliWranglerConfig } from '../shared/db-core/types.mjs';
 import { tenants } from '../shared/db-preview/schemas/root';
-import { api_keys_keyrings, properties } from '../shared/db-preview/schemas/tenant';
+import { api_keys_keyrings, keyrings, properties } from '../shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
-import type { PrefixedUuid, UuidExport } from '../shared/types/d1/index.mjs';
+import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
+import type { D1Blob, PrefixedUuid, UuidExport } from '../shared/types/d1/index.mjs';
 
 const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN } = process.env;
 
@@ -154,8 +155,71 @@ yargs(hideBin(process.argv))
 					alias: 'n',
 					type: 'string',
 				})
-				.demandOption('name'),
-		(args) => {},
+				.demandOption('name')
+				.option('key_type', {
+					choices: Object.values(KeyAlgorithms).slice(Object.values(KeyAlgorithms).length / 2) as [`${KeyAlgorithms}`],
+				})
+				.demandOption('key_type')
+				.option('key_size', {
+					type: 'number',
+				})
+				.option('hash_size', {
+					type: 'number',
+					choices: [256, 384, 512],
+				})
+				.option('count_rotation', {
+					description: 'Number of encryptions before triggering key rotation. Defaults to 2^32',
+					type: 'number',
+					default: 2 ** 32,
+				}),
+		(args) =>
+			Promise.all([args.t_id, BufferHelpers.generateUuid]).then(([t_id, kr_id]) =>
+				DBManager.getDrizzle(
+					{
+						accountId: CF_ACCOUNT_ID!,
+						apiToken: CICD_CF_API_TOKEN!,
+						databaseId: StaticDatabase.Root.eaas_root_p,
+					},
+					true,
+				)
+					.select({
+						d1_id: tenants.d1_id,
+					})
+					.from(tenants)
+					.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
+					.limit(1)
+					.then((rows) =>
+						Promise.all(
+							rows.map(async (row) => ({
+								...row,
+								d1_id: await BufferHelpers.uuidConvert(row.d1_id),
+							})),
+						),
+					)
+					.then(([row]) => {
+						if (row) {
+							return DBManager.getDrizzle(
+								{
+									accountId: CF_ACCOUNT_ID!,
+									apiToken: CICD_CF_API_TOKEN!,
+									databaseId: row.d1_id.utf8,
+								},
+								true,
+							)
+								.insert(keyrings)
+								.values({
+									// @ts-expect-error
+									kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
+									name: args.name,
+									key_type: args.key_type,
+									key_size: args.key_size,
+									count_rotation: args.count_rotation,
+								})
+								.returning()
+								.then(console.log);
+						}
+					}),
+			),
 	)
 	.command(
 		'createApikey',
