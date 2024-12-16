@@ -52,13 +52,14 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - [x] Manual key rotation
     - [x] PQC key generation - current NIST forerunner(s)
     - [ ] PQC encryption - current NIST forerunner(s)
-- [ ] Paid (`TBA` support) managed version
+- [ ] (`$TBA`/month) Paid (`TBA` support) managed version
     - [x] Everything in free
     - [ ] `TBA` logging (operation metadata only)
-    - [ ] `Unlimited` external log push
+    - [ ] `Unlimited free` external log push
     - [ ] Other vendors BYO key vault
-    - [ ] `Unlimited` keyrings
+    - [ ] `Unlimited free` keyrings
     - [ ] (`$TBA`/million ops) monthly generative operations
+        - [ ] Base price already includes `TBA` monthly generative operations
     - [ ] `Unlimited free` retreival operations
     - [ ] Key rotations now include webhook customization and email notifications
 
