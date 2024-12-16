@@ -3,7 +3,6 @@ import { stringify } from '@iarna/toml';
 import type { DatabaseCreateParams } from 'cloudflare/resources/d1/database.mjs';
 import { sql } from 'drizzle-orm';
 import { exec } from 'node:child_process';
-import { readdirSync } from 'node:fs';
 import { unlink, writeFile } from 'node:fs/promises';
 import { promisify } from 'node:util';
 import yargs from 'yargs';
