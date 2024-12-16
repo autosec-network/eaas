@@ -8,9 +8,9 @@ Currently under development, see progress under the [Projects](https://github.co
 
 Current plans:
 
--   [ ] Free (community supported) hosted version
-    -   [ ] 3 month logging (operation metadata only - no actual data)
-    -   [ ] BYO key vault (initially will only support Bitwarden)
+- [ ] Free (community supported) hosted version
+    - [ ] 3 month logging (operation metadata only - no actual data)
+    - [ ] BYO key vault (initially will only support Bitwarden)
 
 ## Sponsors
 
