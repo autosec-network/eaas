@@ -53,7 +53,7 @@
 	"devDependencies": {
 		"@builder.io/qwik": "^1.11.0",
 		"@builder.io/qwik-city": "^1.11.0",
-		"@rollup/plugin-node-resolve": "^15.3.0",
+		"@rollup/plugin-node-resolve": "^16.0.0",
 		"autoprefixer": "^10.4.20",
 		"eslint-plugin-qwik": "^1.11.0",
 		"less": "^4.2.1",
