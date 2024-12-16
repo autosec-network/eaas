@@ -115,7 +115,10 @@ export class BufferHelpers {
 							base64,
 						})),
 					);
-				} else if (new RegExp(/^[a-z\d+/]+={0,2}$/i).test(input)) {
+					/**
+					 * @link https://base64.guru/standards/base64url
+					 */
+				} else if (new RegExp(/^[a-z\d_-]+$/i).test(input)) {
 					const base64: UuidExport['base64'] = input;
 
 					return this.base64ToBuffer(base64, base64.includes('_')).then((blob) =>
