@@ -4,7 +4,24 @@ Inspired by [Hashicorp's Vault's Transit secrets engine](https://developer.hashi
 
 Keep your own storage system and just pass-through encrypt/decrypt and stay up to date and compliant. No data is ever stored and only lives long enough to do the operation. Per request additional wrapping to counter MITM/TLS inspection is also available.
 
-Currently under development, see progress under the [Projects](https://github.com/autosec-network/eaas/projects) tab.
+## Versioning
+
+> [!NOTE]
+> Currently under development, see progress under the [Projects](https://github.com/autosec-network/eaas/projects) tab.
+
+Breaking api changes will use a new api version and a depreciation schedule for the previous respective version.
+
+| Version | Status  | Support                  |
+| ------- | ------- | ------------------------ |
+| `v0`    | `ALPHA` | From `2024-12-14` to `?` |
+
+- `ALPHA`: Expect breaking changes at any time
+- `BETA`: Should no longer have breaking changes, but not fully stable yet.
+- `GA`: Maintenance (bug/security fixes) changes only.
+- `DEPRECATED`: Still maintenance only, but endpoints will be shutdown soon. Migrate to new endpoint by corresponding date above.
+- `RETIRED`: Shut down.
+
+## Plans
 
 Current plans:
 
