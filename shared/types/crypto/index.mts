@@ -1,0 +1,15 @@
+export enum KeyAlgorithms {
+	'RSASSA-PKCS1-v1_5',
+	'RSA-PSS',
+	'RSA-OAEP',
+	ECDSA,
+	ECDH,
+	HMAC,
+	'AES-CTR',
+	'AES-CBC',
+	'AES-GCM',
+	'AES-KW',
+	Ed25519,
+	X25519,
+	'ML-KEM',
+}
