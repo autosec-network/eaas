@@ -200,26 +200,28 @@ yargs(hideBin(process.argv))
 					)
 					.then(([row]) => {
 						if (row) {
-							return DBManager.getDrizzle(
-								{
-									accountId: CF_ACCOUNT_ID!,
-									apiToken: CICD_CF_API_TOKEN!,
-									databaseId: row.d1_id.utf8,
-								},
-								true,
-							)
-								.insert(keyrings)
-								.values({
+							return (
+								DBManager.getDrizzle(
+									{
+										accountId: CF_ACCOUNT_ID!,
+										apiToken: CICD_CF_API_TOKEN!,
+										databaseId: row.d1_id.utf8,
+									},
+									true,
+								)
+									.insert(keyrings)
 									// @ts-expect-error
-									kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
-									name: args.name,
-									key_type: args.key_type,
-									key_size: args.key_size,
-									hash: args.hash,
-									count_rotation: args.count_rotation,
-								})
-								.returning()
-								.then(console.log);
+									.values({
+										kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
+										name: args.name,
+										key_type: args.key_type,
+										key_size: args.key_size,
+										hash: args.hash,
+										count_rotation: sql.raw(`(unhex(${BigInt(args.count_rotation).toString(16)}))`),
+									})
+									.returning()
+									.then(console.log)
+							);
 						}
 					}),
 			),
