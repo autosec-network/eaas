@@ -12,7 +12,7 @@ interface Secrets {
 }
 
 interface Bindings {
-	DB: D1Database;
+	EAAS_ROOT: D1Database;
 	SIDECAR_WORKER: Service<SidecarWorker>;
 }
 

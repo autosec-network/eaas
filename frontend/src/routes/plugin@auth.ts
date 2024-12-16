@@ -7,7 +7,7 @@ export const { onRequest, useSession, useSignIn, useSignOut } = QwikAuth$(({ pla
 	const { cf } = platform.request;
 
 	return {
-		adapter: D1Adapter(platform.env.DB),
+		adapter: D1Adapter(platform.env.EAAS_ROOT),
 		providers: [
 			Passkey({
 				id: 'passkey',

@@ -4,7 +4,7 @@ compatibility_date = "2024-12-05"
 compatibility_flags = ["nodejs_compat_v2"]
 upload_source_maps = true
 d1_databases = [
-    { binding = "DB", database_name = "eaas", database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "fd2c6d75-b6d9-4a6e-8bca-bbce33682dc5" },
 ]
 services = [{ binding = "SIDECAR_WORKER", service = "eaas-sidecar-preview" }]
 
@@ -20,7 +20,8 @@ compatibility_date = "2024-12-05"
 compatibility_flags = ["nodejs_compat_v2"]
 upload_source_maps = false
 d1_databases = [
-    { binding = "DB", database_name = "eaas", database_id = "4e4077c0-ef92-45db-b2ef-7401b87751a0", preview_database_id = "49780132-5d17-4dc9-a332-ed6f696054f0" },
+    # { binding = "EAAS_ROOT", database_name = "eaas_root", database_id = "c576d6cf-f202-4845-a971-f95d0e00e95a" },
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "fd2c6d75-b6d9-4a6e-8bca-bbce33682dc5" },
 ]
 services = [{ binding = "SIDECAR_WORKER", service = "eaas-sidecar" }]
 

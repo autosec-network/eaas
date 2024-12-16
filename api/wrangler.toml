@@ -8,7 +8,7 @@ minify = true
 upload_source_maps = true
 version_metadata = { binding = "CF_VERSION_METADATA" }
 d1_databases = [
-    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "a1570eae-ba56-49ae-b7be-4341282945f4" },
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "fd2c6d75-b6d9-4a6e-8bca-bbce33682dc5" },
 ]
 
 [vars]
@@ -33,7 +33,7 @@ upload_source_maps = true
 version_metadata = { binding = "CF_VERSION_METADATA" }
 d1_databases = [
     # { binding = "EAAS_ROOT", database_name = "eaas_root", database_id = "c576d6cf-f202-4845-a971-f95d0e00e95a" },
-    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "a1570eae-ba56-49ae-b7be-4341282945f4" },
+    { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "fd2c6d75-b6d9-4a6e-8bca-bbce33682dc5" },
 ]
 
 [env.production.vars]
