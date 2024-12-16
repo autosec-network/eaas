@@ -40,4 +40,4 @@ export const workersCryptoCatalog = {
     "DSA-SHA1",
     "ecdsa-with-SHA1",
   ],
-} as const;
+};
