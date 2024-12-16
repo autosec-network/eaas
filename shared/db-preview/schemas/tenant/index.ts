@@ -240,7 +240,7 @@ export const keyrings = sqliteTable(
 		 */
 		count_rotation: k
 			.blob({ mode: 'buffer' })
-			.default(sql<D1Blob>`(unhex(${(BigInt(2) ** BigInt(32)).toString(16).length % 2 === 0 ? (BigInt(2) ** BigInt(32)).toString(16) : `0${(BigInt(2) ** BigInt(32)).toString(16)}`}))`)
+			.default(sql.raw(`(unhex(${(BigInt(2) ** BigInt(32)).toString(16).length % 2 === 0 ? (BigInt(2) ** BigInt(32)).toString(16) : `0${(BigInt(2) ** BigInt(32)).toString(16)}`}))`))
 			.$type<D1Blob>(),
 		/**
 		 * keyring was created time
@@ -322,7 +322,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	encryption_count: d
 		.blob({ mode: 'buffer' })
 		.notNull()
-		.default(sql<D1Blob>`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `0${BigInt(0).toString(16)}`}))`)
+		.default(sql.raw(`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `0${BigInt(0).toString(16)}`}))`))
 		.$type<D1Blob>(),
 }));
 
