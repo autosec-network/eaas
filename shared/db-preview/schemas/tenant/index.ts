@@ -246,7 +246,7 @@ export const keyrings = sqliteTable(
 		 */
 		key_size: k.integer({ mode: 'number' }),
 		/**
-		 * Used to derive encryption key from actual key
+		 * Used to derive generation op key from actual key
 		 * Some keys use it in the key generation too
 		 */
 		hash: k.text({ mode: 'text', enum: workersCryptoCatalog.hashes }).notNull(),
@@ -257,7 +257,7 @@ export const keyrings = sqliteTable(
 		 */
 		time_rotation: k.integer({ mode: 'boolean' }).notNull().default(true),
 		/**
-		 * Number of encryptions before triggering key rotation
+		 * Number of generation operations before triggering key rotation
 		 * @default 2^32
 		 * @link https://csrc.nist.gov/pubs/sp/800/38/d/final
 		 *
@@ -346,7 +346,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	 * @link https://github.com/drizzle-team/drizzle-orm/issues/2902
 	 * @link https://github.com/drizzle-team/drizzle-orm/issues/3609
 	 */
-	encryption_count: d
+	generation_count: d
 		.blob({ mode: 'buffer' })
 		.notNull()
 		.default(sql.raw(`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `0${BigInt(0).toString(16)}`}))`))
