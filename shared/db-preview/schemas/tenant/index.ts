@@ -1,6 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import { KeyAlgorithms } from '../../../types/crypto/index.mjs';
+import type { KeyAlgorithms } from '../../../types/crypto/index.mjs';
 import { workersCryptoCatalog } from '../../../types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
 import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenants/index.mjs';
@@ -203,9 +203,13 @@ export const keyrings = sqliteTable(
 		key_type: k
 			.text({
 				mode: 'text',
-				// When doing `Object.values()` on enums, all the values are followed by the keys
-				enum: Object.values(KeyAlgorithms).slice(Object.values(KeyAlgorithms).length / 2) as [`${KeyAlgorithms}`],
+				/**
+				 * When doing `Object.values()` on enums, all the values are followed by the keys
+				 * Disable for now because `.mjs` isn't available at compile time
+				 */
+				// enum: Object.values(KeyAlgorithms).slice(Object.values(KeyAlgorithms).length / 2) as [`${KeyAlgorithms}`],
 			})
+			.$type<[`${KeyAlgorithms}`]>()
 			.notNull(),
 		/**
 		 * Not used for every key type
