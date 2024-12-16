@@ -242,14 +242,14 @@ yargs(hideBin(process.argv))
 					type: 'string',
 					coerce: (t_id: string) => BufferHelpers.uuidConvert(t_id),
 				})
-				.demandOption('kr_id')
+				.demandOption('t_id')
 				.option('kr_id', {
 					alias: 'kr',
 					description: 'tenant uuid (with or without hyphens and/or prefixes and/or suffixes)',
 					type: 'string',
 					coerce: (kr_id: string) => BufferHelpers.uuidConvert(kr_id),
 				})
-				.demandOption('t_id')
+				.demandOption('kr_id')
 				.option('expires', {
 					alias: 'e',
 					description: 'Date and/or time when key should expires. Defaults to 90 days from now',
