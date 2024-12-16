@@ -215,6 +215,7 @@ yargs(hideBin(process.argv))
 									name: args.name,
 									key_type: args.key_type,
 									key_size: args.key_size,
+									hash: args.hash,
 									count_rotation: args.count_rotation,
 								})
 								.returning()
