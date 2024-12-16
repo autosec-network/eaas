@@ -35,9 +35,7 @@ export const users = sqliteTable(
 		email: u.text({ mode: 'text' }).notNull().$type<EmailAddress>(),
 		partial_user: u.integer({ mode: 'boolean' }).notNull().default(false),
 	}),
-	(u) => ({
-		case_insensitive_email: uniqueIndex('case_insensitive_email').on(lower(u.email)),
-	}),
+	(u) => [uniqueIndex('case_insensitive_email').on(lower(u.email))],
 );
 
 export const tenants = sqliteTable('tenants', (t) => ({
@@ -87,9 +85,7 @@ export const users_tenants = sqliteTable(
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${users_tenants.t_id}),1,8), substr(hex(${users_tenants.t_id}),9,4), substr(hex(${users_tenants.t_id}),13,4), substr(hex(${users_tenants.t_id}),17,4), substr(hex(${users_tenants.t_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 	}),
-	(ut) => ({
-		unq: unique().on(ut.u_id, ut.t_id),
-	}),
+	(ut) => [unique().on(ut.u_id, ut.t_id)],
 );
 
 export const users_accounts = sqliteTable(
@@ -110,9 +106,7 @@ export const users_accounts = sqliteTable(
 		provider: ua.text({ mode: 'text' }).notNull().$type<AdapterAccount['provider']>(),
 		provider_account_id: ua.text({ mode: 'text' }).notNull().$type<AdapterAccount['providerAccountId']>(),
 	}),
-	(uaa) => ({
-		pk: primaryKey({ columns: [uaa.provider, uaa.provider_account_id] }),
-	}),
+	(uaa) => [primaryKey({ columns: [uaa.provider, uaa.provider_account_id] })],
 );
 
 export const users_sessions = sqliteTable('users_sessions', (us) => ({
