@@ -168,7 +168,7 @@ yargs(hideBin(process.argv))
 					type: 'string',
 					choices: workersCryptoCatalog.hashes,
 				})
-				.demandOption('hash_size')
+				.demandOption('hash')
 				.option('count_rotation', {
 					description: 'Number of encryptions before triggering key rotation. Defaults to 2^32',
 					type: 'number',
