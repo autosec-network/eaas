@@ -89,7 +89,7 @@ jobs:
                 .finally(() => mf.dispose());
       - run: npx tsc --project shared/types/crypto/tsconfig.catalog.json
       - run: npm install -D prettier @demosjarco/prettier-config
-      - run: npx prettier --no-config --write shared/types/crypto/workers-crypto-catalog.m*s
+      - run: npx prettier --write shared/types/crypto/workers-crypto-catalog.m*s
       - run: git add shared/types/crypto/workers-crypto-catalog.m*s
       - run: git commit -m "Updated crypto catalog" || echo "crypto catalog not touched"
       - run: git push
