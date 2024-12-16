@@ -14,6 +14,7 @@ import { api_keys_keyrings, keyrings, properties } from '../shared/db-preview/sc
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
+import { BaseBitwardenServer } from '../shared/types/bw/index.mjs';
 import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
 import { workersCryptoCatalog } from '../shared/types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, PrefixedUuid, UuidExport } from '../shared/types/d1/index.mjs';
@@ -119,6 +120,8 @@ yargs(hideBin(process.argv))
 												t_id: sql`unhex(${t_id.hex})`,
 												d1_id: sql`unhex(${converted_d1_id.value.hex})`,
 												name: args.name,
+												// @ts-expect-error types not yet updated
+												bw_url: (d1CreateResponse['created_in_region'] as 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc').toLowerCase().endsWith('nam') ? BaseBitwardenServer[0] : BaseBitwardenServer[1],
 											});
 									} else {
 										return;
