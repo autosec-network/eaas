@@ -208,7 +208,7 @@ export const keyrings = sqliteTable(
 		 * Used to derive encryption key from actual key
 		 * Some keys use it in the key generation too
 		 */
-		hash: k.text({ enum: workersCryptoCatalog.hashes }).notNull().default('sha512'),
+		hash: k.text({ mode: 'text', enum: workersCryptoCatalog.hashes }).notNull().default('sha512'),
 		/**
 		 * Actual cron is stored in scheduler DO, not here. This is just flag to enable/disable DO
 		 * @default true and DO is created with cron of 1 year
