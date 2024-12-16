@@ -199,7 +199,10 @@ export const keyrings = sqliteTable(
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings.kr_id}),1,8), substr(hex(${keyrings.kr_id}),9,4), substr(hex(${keyrings.kr_id}),13,4), substr(hex(${keyrings.kr_id}),17,4), substr(hex(${keyrings.kr_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		name: k.text({ mode: 'text' }).notNull(),
-		exportable: k.integer({ mode: 'boolean' }).notNull().default(false),
+		/**
+		 * For security settings, only a write-once setting
+		 */
+		plaintext_export: k.integer({ mode: 'boolean' }).notNull().default(false),
 		key_type: k
 			.text({
 				mode: 'text',
