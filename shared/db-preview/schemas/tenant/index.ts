@@ -1,5 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import type { BaseBitwardenServer } from '../../../types/bw/index.mjs';
 import type { KeyAlgorithms } from '../../../types/crypto/index.mjs';
 import { workersCryptoCatalog } from '../../../types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
@@ -54,6 +55,26 @@ export const properties = sqliteTable('properties', (p) => ({
 		.$type<ISODateString>()
 		.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`)
 		.$onUpdate(() => sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+	/**
+	 * Bitwarden root server url. Defaults to public Bitwarden server in the region (US or EU) that the tenant was created in.
+	 * Do not include subdomain (like `api.` or `identity.`)
+	 * @link https://bitwarden.com/help/public-api/#endpoints
+	 *
+	 * `null` disables Bitwarden store.
+	 */
+	bw_url: p.text({ mode: 'text' }).unique().$type<(typeof BaseBitwardenServer)[number] | string>(),
+	/**
+	 * Bitwarden secrets manager secret id for the access token (for self hosted). This access token is stored securely on the root bitwarden server (in the region that the tenant was created in) account.
+	 * `null` disables self hosting
+	 */
+	bw_id: p.blob({ mode: 'buffer' }).unique().$type<D1Blob>(),
+	/**
+	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+	 */
+	bw_id_utf8: p
+		.text({ mode: 'text' })
+		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${properties.bw_id}),1,8), substr(hex(${properties.bw_id}),9,4), substr(hex(${properties.bw_id}),13,4), substr(hex(${properties.bw_id}),17,4), substr(hex(${properties.bw_id}),21)))`, { mode: 'virtual' })
+		.$type<UuidExport['utf8']>(),
 }));
 
 export const users = sqliteTable(
