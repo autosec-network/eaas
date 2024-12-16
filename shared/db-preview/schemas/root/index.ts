@@ -133,26 +133,30 @@ export const users_sessions = sqliteTable('users_sessions', (us) => ({
 	expires: us.text({ mode: 'text' }).notNull().$type<ISODateString>(),
 }));
 
-export const api_keys_tenants = sqliteTable('api_keys_tenants', (akt) => ({
-	ak_id: akt.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	ak_id_utf8: akt
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys_tenants.ak_id}),1,8), substr(hex(${api_keys_tenants.ak_id}),9,4), substr(hex(${api_keys_tenants.ak_id}),13,4), substr(hex(${api_keys_tenants.ak_id}),17,4), substr(hex(${api_keys_tenants.ak_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	t_id: akt
-		.blob({ mode: 'buffer' })
-		.notNull()
-		.$type<D1Blob>()
-		.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
-	/**
-	 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-	 */
-	t_id_utf8: akt
-		.text({ mode: 'text' })
-		.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys_tenants.t_id}),1,8), substr(hex(${api_keys_tenants.t_id}),9,4), substr(hex(${api_keys_tenants.t_id}),13,4), substr(hex(${api_keys_tenants.t_id}),17,4), substr(hex(${api_keys_tenants.t_id}),21)))`, { mode: 'virtual' })
-		.$type<UuidExport['utf8']>(),
-	expires: akt.text({ mode: 'text' }).notNull().$type<ISODateString>(),
-}));
+export const api_keys_tenants = sqliteTable(
+	'api_keys_tenants',
+	(akt) => ({
+		ak_id: akt.blob({ mode: 'buffer' }).primaryKey().notNull().$type<D1Blob>(),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		ak_id_utf8: akt
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys_tenants.ak_id}),1,8), substr(hex(${api_keys_tenants.ak_id}),9,4), substr(hex(${api_keys_tenants.ak_id}),13,4), substr(hex(${api_keys_tenants.ak_id}),17,4), substr(hex(${api_keys_tenants.ak_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		t_id: akt
+			.blob({ mode: 'buffer' })
+			.notNull()
+			.$type<D1Blob>()
+			.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		t_id_utf8: akt
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys_tenants.t_id}),1,8), substr(hex(${api_keys_tenants.t_id}),9,4), substr(hex(${api_keys_tenants.t_id}),13,4), substr(hex(${api_keys_tenants.t_id}),17,4), substr(hex(${api_keys_tenants.t_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
+		expires: akt.text({ mode: 'text' }).notNull().$type<ISODateString>(),
+	}),
+	(akt) => [unique().on(akt.ak_id, akt.t_id)],
+);
