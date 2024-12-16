@@ -15,6 +15,7 @@ import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
 import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
+import { workersCryptoCatalog } from '../shared/types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, PrefixedUuid, UuidExport } from '../shared/types/d1/index.mjs';
 
 const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN } = process.env;
@@ -163,10 +164,11 @@ yargs(hideBin(process.argv))
 				.option('key_size', {
 					type: 'number',
 				})
-				.option('hash_size', {
-					type: 'number',
-					choices: [256, 384, 512],
+				.option('hash', {
+					type: 'string',
+					choices: workersCryptoCatalog.hashes,
 				})
+				.demandOption('hash_size')
 				.option('count_rotation', {
 					description: 'Number of encryptions before triggering key rotation. Defaults to 2^32',
 					type: 'number',
