@@ -1,5 +1,6 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
+import { workersCryptoCatalog } from '../../../types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
 import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenants/index.mjs';
 
@@ -203,7 +204,11 @@ export const keyrings = sqliteTable(
 		 * Not used for every key type
 		 */
 		key_size: k.integer({ mode: 'number' }),
-		hash_size: k.integer({ mode: 'number' }),
+		/**
+		 * Used to derive encryption key from actual key
+		 * Some keys use it in the key generation too
+		 */
+		hash: k.text({ enum: workersCryptoCatalog.hashes }).notNull().default('sha512'),
 		/**
 		 * Actual cron is stored in scheduler DO, not here. This is just flag to enable/disable DO
 		 * @default true and DO is created with cron of 1 year
