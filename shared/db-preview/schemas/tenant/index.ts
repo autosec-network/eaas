@@ -248,7 +248,7 @@ export const keyrings = sqliteTable(
 			.$type<ISODateString>()
 			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
 	}),
-	(k) => [uniqueIndex('case_insensitive_name').on(lower(k.name))],
+	(k) => [uniqueIndex('case_insensitive_keyring_name').on(lower(k.name))],
 );
 
 export const datakeys = sqliteTable('datakeys', (d) => ({
@@ -364,7 +364,7 @@ export const api_keys = sqliteTable(
 			.$type<ISODateString>()
 			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
 	}),
-	(ak) => [uniqueIndex('case_insensitive_name').on(lower(ak.name))],
+	(ak) => [uniqueIndex('case_insensitive_apikey_name').on(lower(ak.name))],
 );
 
 export const keyrings_api_keys = sqliteTable(
