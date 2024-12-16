@@ -168,6 +168,7 @@ export class DBManager {
 	}
 
 	public static getDoDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: DurableObjectStorage, logger: CustomLoging = false) {
+		// @ts-expect-error drizzle has out of date cf types
 		return drizzleDO<TSchema>(dbRef, {
 			logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
 			casing: 'snake_case',
