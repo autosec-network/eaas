@@ -62,6 +62,8 @@ Breaking api changes will use a new api version and a depreciation schedule for 
 
 > We pledge that retreival operations will always be free and accessible. We never want to be in a situation where we're keeping your data hostage.
 
+[Full terminology](https://github.com/autosec-network/eaas/wiki/Terminology)
+
 ## Sponsors
 
 [![Cloudflare](https://github.com/Cloudflare.png?size=75)](https://www.cloudflare.com/developer-expert-program/)
