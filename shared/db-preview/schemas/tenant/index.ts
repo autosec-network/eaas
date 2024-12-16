@@ -320,10 +320,10 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	 * @link https://github.com/drizzle-team/drizzle-orm/issues/3609
 	 */
 	encryption_count: d
-		.blob()
+		.blob({ mode: 'buffer' })
 		.notNull()
-		.default((BigInt(2) ** BigInt(32)).toString())
-		.$type<ReturnType<bigint['toString']>>(),
+		.default(sql.raw(`(unhex(${BigInt(0).toString(16)}))`))
+		.$type<D1Blob>(),
 }));
 
 export const api_keys = sqliteTable(
