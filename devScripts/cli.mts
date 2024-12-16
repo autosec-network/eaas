@@ -10,7 +10,7 @@ import { hideBin } from 'yargs/helpers';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
 import type { CliWranglerConfig } from '../shared/db-core/types.mjs';
 import { tenants } from '../shared/db-preview/schemas/root';
-import { properties } from '../shared/db-preview/schemas/tenant';
+import { api_keys_keyrings, properties } from '../shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
@@ -137,5 +137,85 @@ yargs(hideBin(process.argv))
 						});
 					}),
 			),
+	)
+	.command(
+		'createKeyring',
+		'Generate a new keyring',
+		(yargs) =>
+			yargs
+				.option('t_id', {
+					alias: 't',
+					description: 'tenant uuid (with or without hyphens and/or prefixes and/or suffixes)',
+					type: 'string',
+					coerce: (t_id: string) => BufferHelpers.uuidConvert(t_id),
+				})
+				.demandOption('t_id')
+				.option('name', {
+					alias: 'n',
+					type: 'string',
+				})
+				.demandOption('name'),
+		(args) => {},
+	)
+	.command(
+		'createApikey',
+		'Generate a new api key',
+		(yargs) =>
+			yargs
+				.option('t_id', {
+					alias: 't',
+					description: 'tenant uuid (with or without hyphens and/or prefixes and/or suffixes)',
+					type: 'string',
+					coerce: (t_id: string) => BufferHelpers.uuidConvert(t_id),
+				})
+				.demandOption('kr_id')
+				.option('kr_id', {
+					alias: 'kr',
+					description: 'tenant uuid (with or without hyphens and/or prefixes and/or suffixes)',
+					type: 'string',
+					coerce: (kr_id: string) => BufferHelpers.uuidConvert(kr_id),
+				})
+				.demandOption('t_id')
+				.option('expires', {
+					alias: 'e',
+					description: 'Date and/or time when key should expires. Defaults to 90 days from now',
+					type: 'string',
+					coerce: (expires: string) => new Date(expires),
+					// days * hours * minutes * seconds * milliseconds
+					default: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
+				})
+				.option('encrypt', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_encrypt.default,
+				})
+				.option('decrypt', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_decrypt.default,
+				})
+				.option('rewrap', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_rewrap.default,
+				})
+				.option('sign', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_sign.default,
+				})
+				.option('verify', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_verify.default,
+				})
+				.option('hmac', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_hmac.default,
+				})
+				.option('random', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_random.default,
+				})
+				.option('hash', {
+					type: 'boolean',
+					default: api_keys_keyrings.r_hash.default,
+				}),
+		(args) => {},
 	)
 	.parse();
