@@ -18,7 +18,7 @@ Breaking api changes will use a new api version and a depreciation schedule for 
 - `ALPHA`: Expect breaking changes at any time
 - `BETA`: Should no longer have breaking changes, but not fully stable yet.
 - `GA`: Maintenance (bug/security fixes) changes only.
-- `DEPRECATED`: Still maintenance only, but endpoints will be shutdown soon. Migrate to new endpoint by corresponding date above.
+- `DEPRECATED`: Still maintenance only, but endpoints will be shutdown soon. Migrate to new endpoint by the corresponding date above.
 - `RETIRED`: Shut down.
 
 ## Plans
