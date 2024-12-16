@@ -23,11 +23,43 @@ Breaking api changes will use a new api version and a depreciation schedule for 
 
 ## Plans
 
-Current plans:
+### Legend
 
-- [ ] Free (community supported) hosted version
-    - [ ] 3 month logging (operation metadata only - no actual data)
-    - [ ] BYO key vault (initially will only support Bitwarden)
+- Generative operations
+    - encryption
+    - signing
+    - hmac
+    - randomness
+- Retreival operations
+
+    - decryption
+    - key rewraps
+    - verify
+    - hash
+
+### Pricing
+
+- [ ] Free (community supported) managed version
+    - [ ] 3 month logging (operation metadata only)
+    - [ ] Bitwarden BYO key vault
+    - [ ] `Unlimited` seats and machine api keys
+    - [ ] `TBA` keyrings
+    - [ ] `3.5 million ops` monthly **total** operations. Upon hitting limit, only retreival operations will go through.
+    - [ ] Automated key rotation (time & usage based) with webhook notifications
+    - [ ] Manual key rotation
+    - [ ] PQC key generation - current NIST forerunner(s)
+    - [ ] PQC encryption - current NIST forerunner(s)
+- [ ] Paid (`TBA` support) managed version
+    - [ ] Everything in free
+    - [ ] `TBA` logging (operation metadata only)
+    - [ ] `Unlimited` external log push
+    - [ ] Other vendors BYO key vault
+    - [ ] `Unlimited` keyrings
+    - [ ] (`$TBA`/million ops) monthly generative operations
+    - [ ] `Unlimited free` retreival operations
+    - [ ] Key rotations now include webhook customization and email notifications
+
+> We pledge that retreival operations will always be free and accessible. We never want to be in a situation where we're keeping your data hostage.
 
 ## Sponsors
 
