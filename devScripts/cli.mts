@@ -60,6 +60,10 @@ yargs(hideBin(process.argv))
 						...(args.location_hint && { primary_location_hint: args.location_hint as Exclude<DatabaseCreateParams['primary_location_hint'], undefined> }),
 					})
 					.then((d1CreateResponse) => {
+						console.log(d1CreateResponse);
+						return d1CreateResponse;
+					})
+					.then((d1CreateResponse) => {
 						const { name } = d1CreateResponse;
 						const tenantWranglerConfig: CliWranglerConfig = createTempWranglerConfig(name as PrefixedUuid, d1CreateResponse.uuid as UuidExport['utf8']);
 
@@ -118,7 +122,6 @@ yargs(hideBin(process.argv))
 										return;
 									}
 								})
-								.then(() => console.log(d1CreateResponse))
 								.catch((reason) =>
 									NetHelpers.cfApi(CICD_CF_API_TOKEN!)
 										.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! })
