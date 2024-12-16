@@ -245,7 +245,7 @@ yargs(hideBin(process.argv))
 				.demandOption('t_id')
 				.option('kr_id', {
 					alias: 'kr',
-					description: 'tenant uuid (with or without hyphens and/or prefixes and/or suffixes)',
+					description: 'keyring uuid (with or without hyphens)',
 					type: 'string',
 					coerce: (kr_id: string) => BufferHelpers.uuidConvert(kr_id),
 				})
