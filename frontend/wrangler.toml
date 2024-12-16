@@ -6,7 +6,11 @@ upload_source_maps = true
 d1_databases = [
     { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "74b7a7fd-18ea-422f-a888-47214742e4cf" },
 ]
-services = [{ binding = "SIDECAR_WORKER", service = "eaas-sidecar-preview" }]
+services = [
+    { binding = "SIDECAR_WORKER", service = "eaas-sidecar" },
+    # Not yet published
+    # { binding = "SIDECAR_WORKER", service = "eaas-sidecar-preview" },
+]
 
 
 [vars]
