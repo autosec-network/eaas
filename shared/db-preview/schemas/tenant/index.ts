@@ -367,9 +367,22 @@ export const api_keys = sqliteTable(
 	(ak) => [uniqueIndex('case_insensitive_apikey_name').on(lower(ak.name))],
 );
 
-export const keyrings_api_keys = sqliteTable(
+export const api_keys_keyrings = sqliteTable(
 	'keyrings_api_keys',
 	(kak) => ({
+		ak_id: kak
+			.blob({ mode: 'buffer' })
+			.primaryKey()
+			.notNull()
+			.$type<D1Blob>()
+			.references(() => api_keys.ak_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
+		/**
+		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
+		 */
+		ak_id_utf8: kak
+			.text({ mode: 'text' })
+			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings_api_keys.ak_id}),1,8), substr(hex(${keyrings_api_keys.ak_id}),9,4), substr(hex(${keyrings_api_keys.ak_id}),13,4), substr(hex(${keyrings_api_keys.ak_id}),17,4), substr(hex(${keyrings_api_keys.ak_id}),21)))`, { mode: 'virtual' })
+			.$type<UuidExport['utf8']>(),
 		kr_id: kak
 			.blob({ mode: 'buffer' })
 			.notNull()
@@ -381,18 +394,6 @@ export const keyrings_api_keys = sqliteTable(
 		kr_id_utf8: kak
 			.text({ mode: 'text' })
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings_api_keys.kr_id}),1,8), substr(hex(${keyrings_api_keys.kr_id}),9,4), substr(hex(${keyrings_api_keys.kr_id}),13,4), substr(hex(${keyrings_api_keys.kr_id}),17,4), substr(hex(${keyrings_api_keys.kr_id}),21)))`, { mode: 'virtual' })
-			.$type<UuidExport['utf8']>(),
-		ak_id: kak
-			.blob({ mode: 'buffer' })
-			.notNull()
-			.$type<D1Blob>()
-			.references(() => api_keys.ak_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
-		/**
-		 * @deprecated DO NOT USE (BufferHelpers is faster and cheaper)
-		 */
-		ak_id_utf8: kak
-			.text({ mode: 'text' })
-			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${keyrings_api_keys.ak_id}),1,8), substr(hex(${keyrings_api_keys.ak_id}),9,4), substr(hex(${keyrings_api_keys.ak_id}),13,4), substr(hex(${keyrings_api_keys.ak_id}),17,4), substr(hex(${keyrings_api_keys.ak_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
 		/**
 		 * Encrypt data
