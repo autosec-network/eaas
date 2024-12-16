@@ -107,5 +107,5 @@
 		"skipLibCheck": true /* Skip type checking all .d.ts files. */
 	},
 	"files": ["./.eslintrc.cjs", "./prettier.config.mjs"],
-	"include": ["shared"]
+	"include": ["shared", "devScripts"]
 }

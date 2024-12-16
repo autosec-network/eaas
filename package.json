@@ -8,6 +8,7 @@
 		"preclean": "npx -y rimraf@latest --glob ./**/.wrangler",
 		"clean": "npm -w frontend run clean",
 		"cli:pre": "tsx shared/db-preview/cli.mts",
+		"dev": "tsx devScripts/cli.mts",
 		"generate:pre:root": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/root/index.ts\" --out=\"shared/db-preview/schemas/root\"",
 		"generate:pre:tenant": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/tenant/index.ts\" --out=\"shared/db-preview/schemas/tenant\""
 	},
