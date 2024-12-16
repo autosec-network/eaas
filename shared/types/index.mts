@@ -8,6 +8,11 @@ export type ObjectValues<T> =
 		? U[]
 		: never;
 
+/**
+ * It is used to carry over the types when using the `Object.keys()` method.
+ */
+export type EnumKeys<T extends object> = keyof T;
+
 type MethodKeys<T> = {
 	[P in keyof T]: T[P] extends (...args: any[]) => any ? P : never;
 }[keyof T];
