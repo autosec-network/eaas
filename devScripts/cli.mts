@@ -319,20 +319,25 @@ yargs(hideBin(process.argv))
 								.from(tenants)
 								.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
 								.limit(1),
-							r_db.insert(api_keys_tenants).values({
-								ak_id: sql`unhex(${ak_id.hex})`,
-								t_id: sql`unhex(${t_id.hex})`,
-								expires: args.expires.toISOString(),
-							}),
+							r_db
+								.insert(api_keys_tenants)
+								.values({
+									ak_id: sql`unhex(${ak_id.hex})`,
+									t_id: sql`unhex(${t_id.hex})`,
+									expires: args.expires.toISOString(),
+								})
+								.returning(),
 						])
-						.then(([rows]) =>
-							Promise.all(
+						.then(([rows, insert]) => {
+							console.log(insert);
+
+							return Promise.all(
 								rows.map(async (row) => ({
 									...row,
 									d1_id: await BufferHelpers.uuidConvert(row.d1_id),
 								})),
-							),
-						)
+							);
+						})
 						.then(([row]) => {
 							if (row) {
 								const t_db = DBManager.getDrizzle(
@@ -371,10 +376,7 @@ yargs(hideBin(process.argv))
 											})
 											.returning(),
 									])
-									.then(([ak, akk]) => {
-										console.log(ak);
-										console.log(akk);
-									});
+									.then(console.log);
 							}
 						});
 				}),
