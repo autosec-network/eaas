@@ -31,7 +31,6 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - hmac
     - randomness
 - Retreival operations
-
     - decryption
     - key rewraps
     - verify
