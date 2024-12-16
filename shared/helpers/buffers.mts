@@ -4,7 +4,8 @@ import { CryptoHelpers } from './crypto.mjs';
 
 export class BufferHelpers {
 	public static bigintToBuffer(number: bigint): Promise<UuidExport['blob']> {
-		return this.hexToBuffer(number.toString(16));
+		const hexString = number.toString(16);
+		return this.hexToBuffer(hexString.length % 2 === 0 ? hexString : `0${hexString}`);
 	}
 
 	public static bufferToBigint(buffer: UuidExport['blob'] | D1Blob) {
