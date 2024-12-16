@@ -217,7 +217,7 @@ yargs(hideBin(process.argv))
 										key_type: args.key_type,
 										key_size: args.key_size,
 										hash: args.hash,
-										count_rotation: sql.raw(`(unhex(${BigInt(args.count_rotation).toString(16)}))`),
+										count_rotation: sql<D1Blob>`(unhex(${BigInt(args.count_rotation).toString(16)}))`,
 									})
 									.returning()
 									.then(console.log)
