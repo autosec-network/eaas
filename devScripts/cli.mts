@@ -199,7 +199,6 @@ yargs(hideBin(process.argv))
 						),
 					)
 					.then(([row]) => {
-						console.debug('0', BigInt(0).toString(16));
 						if (row) {
 							const count_rotation = BigInt(args.count_rotation).toString(16);
 
