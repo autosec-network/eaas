@@ -382,7 +382,7 @@ export const api_keys = sqliteTable(
 			.$type<UuidExport['utf8']>(),
 		name: ak.text({ mode: 'text' }).notNull(),
 		/**
-		 * Hashed value of api key
+		 * Hashed value of api key secret
 		 */
 		hash: ak.blob({ mode: 'buffer' }).unique().notNull().$type<D1Blob>(),
 		expires: ak.text({ mode: 'text' }).notNull().$type<ISODateString>(),
