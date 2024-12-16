@@ -9,8 +9,8 @@ import yargs from 'yargs';
 import { hideBin } from 'yargs/helpers';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
 import type { CliWranglerConfig } from '../shared/db-core/types.mjs';
-import { tenants } from '../shared/db-preview/schemas/root';
-import { api_keys_keyrings, keyrings, properties } from '../shared/db-preview/schemas/tenant';
+import { api_keys_tenants, tenants } from '../shared/db-preview/schemas/root';
+import { api_keys, api_keys_keyrings, keyrings, properties } from '../shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
@@ -250,6 +250,11 @@ yargs(hideBin(process.argv))
 					coerce: (kr_id: string) => BufferHelpers.uuidConvert(kr_id),
 				})
 				.demandOption('kr_id')
+				.option('name', {
+					alias: 'n',
+					type: 'string',
+				})
+				.demandOption('name')
 				.option('expires', {
 					alias: 'e',
 					description: 'Date and/or time when key should expires. Defaults to 90 days from now',
@@ -290,6 +295,89 @@ yargs(hideBin(process.argv))
 					type: 'boolean',
 					default: api_keys_keyrings.r_hash.default,
 				}),
-		(args) => {},
+		(args) =>
+			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid, CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
+				Promise.all([BufferHelpers.bufferToBase64(ak_secret.buffer, false), CryptoHelpers.getHash('SHA-512', ak_secret.buffer)]).then(async ([ak_secret_base64, ak_secret_hash]) => {
+					console.log('Bearer', `0.${ak_id.base64}.${ak_secret_base64}`);
+					console.log('Raw', 0, (await BufferHelpers.uuidConvert(ak_id.base64)).utf8, Buffer.from(ak_secret_hash).toString('utf-8'));
+
+					const r_db = DBManager.getDrizzle(
+						{
+							accountId: CF_ACCOUNT_ID!,
+							apiToken: CICD_CF_API_TOKEN!,
+							databaseId: StaticDatabase.Root.eaas_root_p,
+						},
+						true,
+					);
+
+					return r_db
+						.batch([
+							r_db
+								.select({
+									d1_id: tenants.d1_id,
+								})
+								.from(tenants)
+								.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
+								.limit(1),
+							r_db.insert(api_keys_tenants).values({
+								ak_id: sql`unhex(${ak_id.hex})`,
+								t_id: sql`unhex(${t_id.hex})`,
+								expires: args.expires.toISOString(),
+							}),
+						])
+						.then(([rows]) =>
+							Promise.all(
+								rows.map(async (row) => ({
+									...row,
+									d1_id: await BufferHelpers.uuidConvert(row.d1_id),
+								})),
+							),
+						)
+						.then(([row]) => {
+							if (row) {
+								const t_db = DBManager.getDrizzle(
+									{
+										accountId: CF_ACCOUNT_ID!,
+										apiToken: CICD_CF_API_TOKEN!,
+										databaseId: row.d1_id.utf8,
+									},
+									true,
+								);
+
+								return t_db
+									.batch([
+										t_db
+											.insert(api_keys)
+											.values({
+												ak_id: sql`unhex(${ak_id.hex})`,
+												name: args.name,
+												hash: sql`unhex(${ak_secret_hash})`,
+												expires: args.expires.toISOString(),
+											})
+											.returning(),
+										t_db
+											.insert(api_keys_keyrings)
+											.values({
+												ak_id: sql`unhex(${ak_id.hex})`,
+												kr_id: sql`unhex(${kr_id.hex})`,
+												r_encrypt: args.encrypt,
+												r_decrypt: args.decrypt,
+												r_rewrap: args.rewrap,
+												r_sign: args.sign,
+												r_verify: args.verify,
+												r_hmac: args.hmac,
+												r_random: args.random,
+												r_hash: args.hash,
+											})
+											.returning(),
+									])
+									.then(([ak, akk]) => {
+										console.log(ak);
+										console.log(akk);
+									});
+							}
+						});
+				}),
+			),
 	)
 	.parse();
