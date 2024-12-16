@@ -80,11 +80,14 @@ export class BufferHelpers {
 			const uuid = uuidv7({ random }) as UuidExport['utf8'];
 			const uuidHex = uuid.replaceAll('-', '');
 
-			return this.hexToBuffer(uuidHex).then((blob) => ({
-				utf8: uuid,
-				hex: uuidHex,
-				blob,
-			}));
+			return this.hexToBuffer(uuidHex).then((blob) =>
+				this.bufferToBase64(blob, false).then((base64) => ({
+					utf8: uuid,
+					hex: uuidHex,
+					blob,
+					base64,
+				})),
+			);
 		});
 	}
 
