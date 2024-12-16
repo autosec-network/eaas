@@ -10,7 +10,7 @@ import type { ApiDbRef, DrizzleCommonDatabase, FlexibleDbRef } from './types.mjs
 export namespace StaticDatabase {
 	export enum Root {
 		eaas_root = 'c576d6cf-f202-4845-a971-f95d0e00e95a',
-		eaas_root_p = 'a1570eae-ba56-49ae-b7be-4341282945f4',
+		eaas_root_p = 'fd2c6d75-b6d9-4a6e-8bca-bbce33682dc5',
 	}
 
 	// t_00000000-0000-0000-0000-000000000001
