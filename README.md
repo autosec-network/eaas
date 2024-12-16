@@ -40,18 +40,20 @@ Breaking api changes will use a new api version and a depreciation schedule for 
 
 ### Pricing
 
-- [ ] Free (community supported) managed version
-    - [ ] 3 month logging (operation metadata only)
+> Checkmarks below mean it's live and/or enforced.
+
+- [x] Free (community supported) managed version
+    - [x] 3 month logging (operation metadata only)
     - [ ] Bitwarden BYO key vault
-    - [ ] `Unlimited` seats and machine api keys
+    - [x] `Unlimited` seats and machine api keys
     - [ ] `TBA` keyrings
     - [ ] `3.5 million ops` monthly **total** operations. Upon hitting limit, only retreival operations will go through.
     - [ ] Automated key rotation (time & usage based) with webhook notifications
-    - [ ] Manual key rotation
-    - [ ] PQC key generation - current NIST forerunner(s)
+    - [x] Manual key rotation
+    - [x] PQC key generation - current NIST forerunner(s)
     - [ ] PQC encryption - current NIST forerunner(s)
 - [ ] Paid (`TBA` support) managed version
-    - [ ] Everything in free
+    - [x] Everything in free
     - [ ] `TBA` logging (operation metadata only)
     - [ ] `Unlimited` external log push
     - [ ] Other vendors BYO key vault
