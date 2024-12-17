@@ -81,8 +81,6 @@ app.use('*', (c, next) => {
 									endTime(c, 'auth-db-fetch-root');
 
 									if (row) {
-										console.debug('row', row);
-
 										if (row.expires >= new Date()) {
 											startTime(c, 'auth-db-fetch-tenant');
 
