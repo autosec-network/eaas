@@ -12,7 +12,9 @@ const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
 
 // Security
 app.use('*', (c, next) => {
-	if (/^\/v\d+\/openapi\/?$/i.test(c.req.path)) {
+	if (new RegExp(/^\/v\d+\/openapi3?\/?$/i).test(c.req.path)) {
+		return next();
+	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig.openapi.json$/i).test(c.req.path)) {
 		return next();
 	} else {
 		return bearerAuth({
