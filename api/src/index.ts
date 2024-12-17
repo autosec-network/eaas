@@ -10,6 +10,8 @@ import { z } from 'zod';
 import baseApp from '~/base.mjs';
 import docs from '~/docs.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
+import { Helpers } from '~shared/helpers/index.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
@@ -68,6 +70,27 @@ export default class extends WorkerEntrypoint<EnvVars> {
 				},
 			),
 		);
+
+		// DB Setup
+		app.use('*', async (c, next) => {
+			if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
+				c.set(
+					'r_db',
+					DBManager.getDrizzle(
+						{
+							accountId: c.env.CF_ACCOUNT_ID,
+							apiToken: c.env.CF_API_TOKEN,
+							databaseId: c.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
+						},
+						c.env.NODE_ENV !== 'production',
+					),
+				);
+			} else {
+				DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production');
+			}
+
+			await next();
+		});
 
 		app.route('/:version/docs', docs);
 		app.route('/', baseApp);

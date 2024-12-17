@@ -1,4 +1,5 @@
 import type { TimingVariables } from 'hono/timing';
+import type { DBManager } from '~shared/db-core/db.mjs';
 
 export interface EnvVars extends Secrets, Bindings, VipBindingsProd, VipBindingsPreview, Record<string, any> {
 	CF_ACCOUNT_ID: string;
@@ -25,6 +26,7 @@ interface VipBindingsPreview {
 }
 
 export interface ContextVariables extends TimingVariables {
+	r_db: ReturnType<typeof DBManager.getDrizzle>;
 	permissions: {
 		r_encrypt: boolean;
 		r_decrypt: boolean;

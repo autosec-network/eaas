@@ -8,7 +8,7 @@ import { endTime, startTime } from 'hono/timing';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api1 from '~/v0/index.mjs';
-import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
+import { DBManager } from '~shared/db-core/db.mjs';
 import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
 import { api_keys, api_keys_keyrings } from '~shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
@@ -46,19 +46,8 @@ app.use('*', async (c, next) => {
 							endTime(c, 'auth-parse-token');
 
 							startTime(c, 'auth-db-fetch-root');
-
-							return (
-								Helpers.isLocal(c.env.CF_VERSION_METADATA)
-									? DBManager.getDrizzle(
-											{
-												accountId: c.env.CF_ACCOUNT_ID,
-												apiToken: c.env.CF_API_TOKEN,
-												databaseId: StaticDatabase.Root.eaas_root_p,
-											},
-											c.env.NODE_ENV !== 'production',
-										)
-									: DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production')
-							)
+							return c
+								.get('r_db')
 								.select({
 									expires: api_keys_tenants.expires,
 									t_id: tenants.t_id,
