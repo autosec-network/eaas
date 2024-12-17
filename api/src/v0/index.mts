@@ -64,7 +64,7 @@ app.doc('/openapi3', (c) => ({
 		},
 	],
 }));
-app.doc('v0.cf-aig.openapi.json', {
+app.doc('/v0.cf-aig.openapi.json', {
 	openapi: '3.0.0',
 	info: {
 		title,
