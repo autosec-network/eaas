@@ -1,6 +1,6 @@
 import type { TimingVariables } from 'hono/timing';
 
-export interface EnvVars extends Secrets, Bindings, Record<string, any> {
+export interface EnvVars extends Secrets, Bindings, VipBindingsProd, VipBindingsPreview, Record<string, any> {
 	CF_ACCOUNT_ID: string;
 	GIT_HASH: string;
 	ENVIRONMENT: 'production' | 'preview';
@@ -15,6 +15,13 @@ interface Secrets {
 interface Bindings {
 	CF_VERSION_METADATA: WorkerVersionMetadata;
 	EAAS_ROOT: D1Database;
+}
+
+interface VipBindingsProd {}
+
+interface VipBindingsPreview {
+	// Sushidata
+	A1C64BAC8BEB2FD34541EB5F35B15B66EA0F21227F449A4E59F6816902A96530: D1Database;
 }
 
 export interface ContextVariables extends TimingVariables {

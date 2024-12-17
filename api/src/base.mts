@@ -61,6 +61,7 @@ app.use('*', async (c, next) => {
 							)
 								.select({
 									expires: api_keys_tenants.expires,
+									t_id: tenants.t_id,
 									d1_id: tenants.d1_id,
 								})
 								.from(api_keys_tenants)
@@ -70,9 +71,10 @@ app.use('*', async (c, next) => {
 								.then((rows) =>
 									Promise.all(
 										rows.map((row) =>
-											BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
+											Promise.all([BufferHelpers.uuidConvert(row.t_id), BufferHelpers.uuidConvert(row.d1_id)]).then(([t_id, d1_id]) => ({
 												...row,
 												expires: new Date(row.expires),
+												t_id,
 												d1_id,
 											})),
 										),
@@ -82,21 +84,31 @@ app.use('*', async (c, next) => {
 									console.error('Unknown root lookup db error', e);
 									return false;
 								})
-								.then(([row]) => {
+								.then(async ([row]) => {
 									endTime(c, 'auth-db-fetch-root');
 
 									if (row) {
 										if (row.expires >= new Date()) {
 											startTime(c, 'auth-db-fetch-tenant');
 
-											return DBManager.getDrizzle(
+											let t_db = DBManager.getDrizzle(
 												{
 													accountId: c.env.CF_ACCOUNT_ID,
 													apiToken: c.env.CF_API_TOKEN,
 													databaseId: row.d1_id.utf8,
 												},
 												true,
-											)
+											);
+
+											if (!Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
+												const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}_p`)).toUpperCase();
+
+												if (potentialVipBinding in c.env) {
+													t_db = DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, true);
+												}
+											}
+
+											return t_db
 												.select({
 													hash: api_keys.hash,
 													r_encrypt: api_keys_keyrings.r_encrypt,
