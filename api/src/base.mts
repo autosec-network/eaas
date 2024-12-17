@@ -14,7 +14,7 @@ const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
 app.use('*', (c, next) => {
 	if (new RegExp(/^\/v\d+\/openapi3?\/?$/i).test(c.req.path)) {
 		return next();
-	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig.openapi.json$/i).test(c.req.path)) {
+	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig\.openapi\.json$/i).test(c.req.path)) {
 		return next();
 	} else {
 		return bearerAuth({
