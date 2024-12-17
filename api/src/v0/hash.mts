@@ -8,6 +8,15 @@ import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalo
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
+app.use('*', async (c, next) => {
+	if (c.get('permissions').r_hash) {
+		await next();
+	} else {
+		console.log("Token doesn't have permissions");
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+	}
+});
+
 const example = 'Hello world';
 
 const input = z.discriminatedUnion('format', [
