@@ -22,7 +22,7 @@ const contact: oas31.ContactObject = {
 };
 
 // Before auth or api routes
-app.doc31('/openapi', (c) => ({
+app.doc31('/openapi31', (c) => ({
 	openapi: '3.1.0',
 	info: {
 		title,
@@ -43,7 +43,7 @@ app.doc31('/openapi', (c) => ({
 		},
 	],
 }));
-app.doc('/openapi3', (c) => ({
+app.doc('/openapi', (c) => ({
 	openapi: '3.0.0',
 	info: {
 		title,

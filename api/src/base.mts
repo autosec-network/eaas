@@ -20,7 +20,7 @@ const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 // Security
 app.use('*', async (c, next) => {
-	if (new RegExp(/^\/v\d+\/openapi3?\/?$/i).test(c.req.path)) {
+	if (new RegExp(/^\/v\d+\/openapi(31)?\/?$/i).test(c.req.path)) {
 		await next();
 	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig\.openapi\.json$/i).test(c.req.path)) {
 		await next();
