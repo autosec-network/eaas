@@ -76,24 +76,30 @@ app.use('*', async (c, next) => {
 										if (row.expires >= new Date()) {
 											startTime(c, 'auth-db-fetch-tenant');
 
-											let t_db = DBManager.getDrizzle(
-												{
-													accountId: c.env.CF_ACCOUNT_ID,
-													apiToken: c.env.CF_API_TOKEN,
-													databaseId: row.d1_id.utf8,
-												},
-												true,
+											c.set('t_id', row.t_id);
+											c.set('t_d1_id', row.d1_id);
+											c.set(
+												't_db',
+												DBManager.getDrizzle(
+													{
+														accountId: c.env.CF_ACCOUNT_ID,
+														apiToken: c.env.CF_API_TOKEN,
+														databaseId: row.d1_id.utf8,
+													},
+													c.env.NODE_ENV !== 'production',
+												),
 											);
 
 											if (!Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
-												const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}_p`)).toUpperCase();
+												const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}${c.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
 												if (potentialVipBinding in c.env) {
-													t_db = DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, true);
+													c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, c.env.NODE_ENV !== 'production'));
 												}
 											}
 
-											return t_db
+											return c
+												.get('t_db')
 												.select({
 													hash: api_keys.hash,
 													r_encrypt: api_keys_keyrings.r_encrypt,
