@@ -17,4 +17,15 @@ interface Bindings {
 	EAAS_ROOT: D1Database;
 }
 
-export interface ContextVariables extends TimingVariables {}
+export interface ContextVariables extends TimingVariables {
+	permissions: {
+		r_encrypt: boolean;
+		r_decrypt: boolean;
+		r_rewrap: boolean;
+		r_sign: boolean;
+		r_verify: boolean;
+		r_hmac: boolean;
+		r_random: boolean;
+		r_hash: boolean;
+	};
+}
