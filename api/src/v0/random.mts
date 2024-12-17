@@ -7,7 +7,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 app.use('*', async (c, next) => {
-	if (c.get('permissions').r_random) {
+	if (Object.values(c.var.permissions).some(({ r_random }) => r_random)) {
 		await next();
 	} else {
 		console.log("Token doesn't have permissions");

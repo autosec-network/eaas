@@ -102,6 +102,7 @@ app.use('*', async (c, next) => {
 												.get('t_db')
 												.select({
 													hash: api_keys.hash,
+													kr_id: api_keys_keyrings.kr_id,
 													r_encrypt: api_keys_keyrings.r_encrypt,
 													r_decrypt: api_keys_keyrings.r_decrypt,
 													r_rewrap: api_keys_keyrings.r_rewrap,
@@ -116,16 +117,20 @@ app.use('*', async (c, next) => {
 												.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
 												.then((rows) =>
 													Promise.all(
-														rows.map((row) => ({
-															...row,
-															hash: new Uint8Array(row.hash),
-														})),
+														// eslint-disable-next-line @typescript-eslint/no-unused-vars
+														rows.map((row) =>
+															BufferHelpers.uuidConvert(row.kr_id).then((kr_id) => ({
+																...row,
+																kr_id,
+															})),
+														),
 													),
 												)
-												.then(async ([row]) => {
+												.then(async (rows) => {
 													endTime(c, 'auth-db-fetch-tenant');
+													const hashRow = rows.find((row) => row.hash);
 
-													if (row) {
+													if (hashRow) {
 														startTime(c, 'auth-verify-token');
 														const receivedSecret = await BufferHelpers.base64ToBuffer(ak_secret_base64url);
 														let calculatedHash: Uint8Array;
@@ -142,18 +147,14 @@ app.use('*', async (c, next) => {
 																break;
 														}
 
-														if (timingSafeEqual(calculatedHash!, row.hash)) {
+														if (timingSafeEqual(calculatedHash!, new Uint8Array(hashRow.hash))) {
 															endTime(c, 'auth-verify-token');
 
-															c.set('permissions', {
-																r_encrypt: row.r_encrypt,
-																r_decrypt: row.r_decrypt,
-																r_rewrap: row.r_rewrap,
-																r_sign: row.r_sign,
-																r_verify: row.r_verify,
-																r_hmac: row.r_hmac,
-																r_random: row.r_random,
-																r_hash: row.r_hash,
+															rows.forEach(({ hash, kr_id, ...row }) => {
+																c.set('permissions', {
+																	...c.var.permissions,
+																	[kr_id.base64url]: row,
+																});
 															});
 
 															return true;

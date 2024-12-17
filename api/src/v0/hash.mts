@@ -9,7 +9,7 @@ import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalo
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 app.use('*', async (c, next) => {
-	if (c.get('permissions').r_hash) {
+	if (Object.values(c.var.permissions).some(({ r_hash }) => r_hash)) {
 		await next();
 	} else {
 		console.log("Token doesn't have permissions");
