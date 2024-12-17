@@ -423,7 +423,6 @@ export const api_keys_keyrings = sqliteTable(
 	(kak) => ({
 		ak_id: kak
 			.blob({ mode: 'buffer' })
-			.primaryKey()
 			.notNull()
 			.$type<D1Blob>()
 			.references(() => api_keys.ak_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
