@@ -62,8 +62,8 @@ yargs(hideBin(process.argv))
 						name: `t_${t_id.utf8}_p`,
 						...(args.location_hint && { primary_location_hint: args.location_hint as Exclude<DatabaseCreateParams['primary_location_hint'], undefined> }),
 					})
-					.then((d1CreateResponse) => {
-						console.log(d1CreateResponse);
+					.then(async (d1CreateResponse) => {
+						console.log(d1CreateResponse, (await CryptoHelpers.getHash('SHA-256', d1CreateResponse.name!)).toUpperCase());
 						return d1CreateResponse;
 					})
 					.then((d1CreateResponse) => {
