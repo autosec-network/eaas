@@ -69,10 +69,6 @@ app.use('*', async (c, next) => {
 										),
 									),
 								)
-								.catch((e) => {
-									console.error('Unknown root lookup db error', e);
-									return false;
-								})
 								.then(async ([row]) => {
 									endTime(c, 'auth-db-fetch-root');
 
@@ -120,10 +116,6 @@ app.use('*', async (c, next) => {
 														})),
 													),
 												)
-												.catch((e) => {
-													console.error('Unknown tenant lookup db error', e);
-													return false;
-												})
 												.then(async ([row]) => {
 													endTime(c, 'auth-db-fetch-tenant');
 
