@@ -27,6 +27,7 @@ interface VipBindingsPreview {
 
 export interface ContextVariables extends TimingVariables {
 	r_db: ReturnType<typeof DBManager.getDrizzle>;
+
 	permissions: {
 		r_encrypt: boolean;
 		r_decrypt: boolean;
