@@ -18,11 +18,11 @@ import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 // Security
-app.use('*', (c, next) => {
+app.use('*', async (c, next) => {
 	if (new RegExp(/^\/v\d+\/openapi3?\/?$/i).test(c.req.path)) {
-		return next();
+		await next();
 	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig\.openapi\.json$/i).test(c.req.path)) {
-		return next();
+		await next();
 	} else {
 		return bearerAuth({
 			/**

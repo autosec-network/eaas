@@ -20,7 +20,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			if (c.env.NODE_ENV === 'development') {
 			}
 
-			return next();
+			await next();
 		});
 
 		// Security
@@ -46,7 +46,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 				return logger()(c, next);
 			}
 
-			return next();
+			await next();
 		});
 
 		app.use(
