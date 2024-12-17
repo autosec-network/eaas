@@ -39,7 +39,7 @@ app.use('*', async (c, next) => {
 
 				startTime(c, 'auth-parse-token');
 				if (apiTokenFormat.test(token)) {
-					const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [ApiKeyVersions, string, string];
+					const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [`${ApiKeyVersions}`, string, string];
 
 					if (version in ApiKeyVersions) {
 						return BufferHelpers.uuidConvert(ak_id_base64url).then((ak_id) => {
