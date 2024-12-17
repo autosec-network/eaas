@@ -10,7 +10,7 @@ version_metadata = { binding = "CF_VERSION_METADATA" }
 d1_databases = [
     { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "74b7a7fd-18ea-422f-a888-47214742e4cf" },
     # VipBindingsPreview
-    { binding = "A1C64BAC8BEB2FD34541EB5F35B15B66EA0F21227F449A4E59F6816902A96530", database_id = "b8777faa-c242-4427-a1b7-eca2b59897be" },
+    { binding = "68CC143C1849B4743673A0992380C561026BF54AEB437BEBC2858BE7A2E5C036", database_id = "1c224b19-4090-4f2f-9bb2-375b6e77f1a1" },
 ]
 
 [vars]
@@ -38,7 +38,7 @@ d1_databases = [
     { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "74b7a7fd-18ea-422f-a888-47214742e4cf" },
     # VipBindingsProd
     # VipBindingsPreview
-    { binding = "A1C64BAC8BEB2FD34541EB5F35B15B66EA0F21227F449A4E59F6816902A96530", database_id = "b8777faa-c242-4427-a1b7-eca2b59897be" },
+    { binding = "68CC143C1849B4743673A0992380C561026BF54AEB437BEBC2858BE7A2E5C036", database_id = "1c224b19-4090-4f2f-9bb2-375b6e77f1a1" },
 ]
 
 [env.production.vars]

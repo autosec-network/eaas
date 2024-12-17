@@ -23,7 +23,7 @@ interface VipBindingsProd {}
 
 interface VipBindingsPreview {
 	// Sushidata
-	A1C64BAC8BEB2FD34541EB5F35B15B66EA0F21227F449A4E59F6816902A96530: D1Database;
+	'68CC143C1849B4743673A0992380C561026BF54AEB437BEBC2858BE7A2E5C036': D1Database;
 }
 
 export interface ContextVariables extends TimingVariables {
