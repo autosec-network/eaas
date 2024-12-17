@@ -14,7 +14,7 @@ import { api_keys, api_keys_keyrings, keyrings, properties } from '../shared/db-
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { NetHelpers } from '../shared/helpers/net.mjs';
-import { BaseBitwardenServer } from '../shared/types/bw/index.mjs';
+import { ApiKeyVersions, BaseBitwardenServer } from '../shared/types/bw/index.mjs';
 import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
 import { workersCryptoCatalog } from '../shared/types/crypto/workers-crypto-catalog.mjs';
 import type { D1Blob, PrefixedUuid, UuidExport } from '../shared/types/d1/index.mjs';
@@ -298,8 +298,8 @@ yargs(hideBin(process.argv))
 		(args) =>
 			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid, CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
 				Promise.all([BufferHelpers.bufferToBase64(ak_secret.buffer, false), CryptoHelpers.getHash('SHA-512', ak_secret.buffer)]).then(async ([ak_secret_base64, ak_secret_hash]) => {
-					console.log('Bearer', `0.${ak_id.base64}.${ak_secret_base64}`);
-					console.log('Raw', 0, (await BufferHelpers.uuidConvert(ak_id.base64)).utf8, Buffer.from(ak_secret_hash).toString('utf-8'));
+					console.log('Bearer', `${ApiKeyVersions['512base64sha512']}.${ak_id.base64}.${ak_secret_base64}`);
+					console.log('Raw', ApiKeyVersions['512base64sha512'], (await BufferHelpers.uuidConvert(ak_id.base64)).utf8, Buffer.from(ak_secret_hash).toString('utf-8'));
 
 					const r_db = DBManager.getDrizzle(
 						{
