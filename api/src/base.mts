@@ -37,13 +37,13 @@ app.use('*', async (c, next) => {
 				 */
 				const apiTokenFormat = new RegExp(/^\d+\.[a-z\d_-]+\.[a-z\d_-]+$/i);
 
+				startTime(c, 'auth-parse-token');
 				if (apiTokenFormat.test(token)) {
 					const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [ApiKeyVersions, string, string];
 
 					if (version in ApiKeyVersions) {
-						startTime(c, 'auth-parse-ak');
 						return BufferHelpers.uuidConvert(ak_id_base64url).then((ak_id) => {
-							endTime(c, 'auth-parse-ak');
+							endTime(c, 'auth-parse-token');
 
 							startTime(c, 'auth-db-fetch-root');
 
