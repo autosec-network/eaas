@@ -57,6 +57,6 @@ export class Helpers {
 	}
 
 	public static isLocal(metadata: WorkerVersionMetadata) {
-		return 'timestamp' in metadata;
+		return !('timestamp' in metadata);
 	}
 }
