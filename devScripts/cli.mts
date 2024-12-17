@@ -297,9 +297,10 @@ yargs(hideBin(process.argv))
 				}),
 		(args) =>
 			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid, CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
-				Promise.all([BufferHelpers.bufferToBase64(ak_secret.buffer, false), CryptoHelpers.getHash('SHA-512', ak_secret.buffer)]).then(async ([ak_secret_base64, ak_secret_hash]) => {
-					console.log('Bearer', `${ApiKeyVersions['512base64sha512']}.${ak_id.base64}.${ak_secret_base64}`);
-					console.log('Raw', ApiKeyVersions['512base64sha512'], (await BufferHelpers.uuidConvert(ak_id.base64)).utf8, Buffer.from(ak_secret_hash).toString('utf-8'));
+				// Hono's bearerAuth only accepts url safe characters
+				Promise.all([BufferHelpers.bufferToBase64(ak_secret.buffer, true), CryptoHelpers.getHash('SHA-512', ak_secret.buffer)]).then(async ([ak_secret_base64url, ak_secret_hash]) => {
+					console.log('Bearer', [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.'));
+					console.log('Raw', ApiKeyVersions['512base64urlSha512'], (await BufferHelpers.uuidConvert(ak_id.base64)).utf8, Buffer.from(ak_secret_hash).toString('utf-8'));
 
 					const r_db = DBManager.getDrizzle(
 						{
