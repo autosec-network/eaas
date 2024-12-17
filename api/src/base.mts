@@ -1,11 +1,19 @@
+import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bearerAuth } from 'hono/bearer-auth';
 import { bodyLimit } from 'hono/body-limit';
 import { contextStorage } from 'hono/context-storage';
 import { prettyJSON } from 'hono/pretty-json';
-import { createHash } from 'node:crypto';
+import { endTime, startTime } from 'hono/timing';
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api1 from '~/v0/index.mjs';
+import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
+import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
+import { api_keys, api_keys_keyrings } from '~shared/db-preview/schemas/tenant';
+import { BufferHelpers } from '~shared/helpers/buffers.mjs';
+import { CryptoHelpers } from '~shared/helpers/crypto.mjs';
+import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 
 const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
@@ -22,8 +30,155 @@ app.use('*', (c, next) => {
 			 * Use node crypto for optimization
 			 */
 			hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
-			verifyToken: async (token, c) => {
-				return true;
+			verifyToken: (token) => {
+				/**
+				 * @link https://base64.guru/standards/base64url
+				 */
+				const apiTokenFormat = new RegExp(/^\d+\.[a-z\d_-]+\.[a-z\d_-]+$/i);
+
+				if (apiTokenFormat.test(token)) {
+					const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [ApiKeyVersions, string, string];
+
+					if (version in ApiKeyVersions) {
+						startTime(c, 'auth-parse-ak');
+						return BufferHelpers.uuidConvert(ak_id_base64url).then((ak_id) => {
+							endTime(c, 'auth-parse-ak');
+
+							startTime(c, 'auth-db-fetch-root');
+							// DBManager.getDrizzle(c.env.EAAS_ROOT)
+							return DBManager.getDrizzle(
+								{
+									accountId: c.env.CF_ACCOUNT_ID,
+									apiToken: c.env.CF_API_TOKEN,
+									databaseId: StaticDatabase.Root.eaas_root_p,
+								},
+								true,
+							)
+								.select({
+									expires: api_keys_tenants.expires,
+									d1_id: tenants.d1_id,
+								})
+								.from(api_keys_tenants)
+								.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
+								.where(eq(api_keys_tenants.ak_id, sql`unhex(${ak_id.hex})`))
+								.limit(1)
+								.then((rows) =>
+									Promise.all(
+										rows.map((row) =>
+											BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
+												...row,
+												expires: new Date(row.expires),
+												d1_id,
+											})),
+										),
+									),
+								)
+								.catch((e) => {
+									console.error('Unknown root lookup db error', e);
+									return false;
+								})
+								.then(([row]) => {
+									endTime(c, 'auth-db-fetch-root');
+
+									if (row) {
+										console.debug('row', row);
+
+										if (row.expires >= new Date()) {
+											startTime(c, 'auth-db-fetch-tenant');
+
+											return DBManager.getDrizzle(
+												{
+													accountId: c.env.CF_ACCOUNT_ID,
+													apiToken: c.env.CF_API_TOKEN,
+													databaseId: row.d1_id.utf8,
+												},
+												true,
+											)
+												.select({
+													hash: api_keys.hash,
+													r_encrypt: api_keys_keyrings.r_encrypt,
+													r_decrypt: api_keys_keyrings.r_decrypt,
+													r_rewrap: api_keys_keyrings.r_rewrap,
+													r_sign: api_keys_keyrings.r_sign,
+													r_verify: api_keys_keyrings.r_verify,
+													r_hmac: api_keys_keyrings.r_hmac,
+													r_random: api_keys_keyrings.r_random,
+													r_hash: api_keys_keyrings.r_hash,
+												})
+												.from(api_keys)
+												.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))
+												.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
+												.then((rows) =>
+													Promise.all(
+														rows.map((row) => ({
+															...row,
+															hash: new Uint8Array(row.hash),
+														})),
+													),
+												)
+												.catch((e) => {
+													console.error('Unknown tenant lookup db error', e);
+													return false;
+												})
+												.then(async ([row]) => {
+													endTime(c, 'auth-db-fetch-tenant');
+
+													if (row) {
+														startTime(c, 'auth-verify-token');
+														const receivedSecret = await BufferHelpers.base64ToBuffer(ak_secret_base64url);
+														let calculatedHash: Uint8Array;
+
+														if (version == ApiKeyVersions['256base64urlSha256']) {
+															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
+														} else if (version == ApiKeyVersions['384base64urlSha384']) {
+															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-384', receivedSecret)));
+														} else if (version == ApiKeyVersions['512base64urlSha512']) {
+															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-512', receivedSecret)));
+														}
+
+														if (timingSafeEqual(calculatedHash!, row.hash)) {
+															endTime(c, 'auth-verify-token');
+
+															c.set('permissions', {
+																r_encrypt: row.r_encrypt,
+																r_decrypt: row.r_decrypt,
+																r_rewrap: row.r_rewrap,
+																r_sign: row.r_sign,
+																r_verify: row.r_verify,
+																r_hmac: row.r_hmac,
+																r_random: row.r_random,
+																r_hash: row.r_hash,
+															});
+
+															return true;
+														} else {
+															endTime(c, 'auth-verify-token');
+															console.error(new Error('Token hash mismatch'));
+															return false;
+														}
+													} else {
+														console.error(new Error('Token not found in tenant'));
+														return false;
+													}
+												});
+										} else {
+											console.error(new Error('Token expired'));
+											return false;
+										}
+									} else {
+										console.error(new Error('Token not found in root'));
+										return false;
+									}
+								});
+						});
+					} else {
+						console.error(new Error('Token unknown version '));
+						return false;
+					}
+				} else {
+					console.error(new Error('Token fails regex'));
+					return false;
+				}
 			},
 		})(c, next);
 	}
