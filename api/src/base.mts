@@ -130,12 +130,16 @@ app.use('*', async (c, next) => {
 														const receivedSecret = await BufferHelpers.base64ToBuffer(ak_secret_base64url);
 														let calculatedHash: Uint8Array;
 
-														if (version == ApiKeyVersions['256base64urlSha256']) {
-															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
-														} else if (version == ApiKeyVersions['384base64urlSha384']) {
-															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-384', receivedSecret)));
-														} else if (version == ApiKeyVersions['512base64urlSha512']) {
-															calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-512', receivedSecret)));
+														switch (version) {
+															case ApiKeyVersions['256base64urlSha256']:
+																calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
+																break;
+															case ApiKeyVersions['384base64urlSha384']:
+																calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-384', receivedSecret)));
+																break;
+															case ApiKeyVersions['512base64urlSha512']:
+																calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-512', receivedSecret)));
+																break;
 														}
 
 														if (timingSafeEqual(calculatedHash!, row.hash)) {
