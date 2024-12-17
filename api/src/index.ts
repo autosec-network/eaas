@@ -5,15 +5,15 @@ import { cors } from 'hono/cors';
 import { csrf } from 'hono/csrf';
 import { etag } from 'hono/etag';
 import { logger } from 'hono/logger';
-import { timing, type TimingVariables } from 'hono/timing';
+import { timing } from 'hono/timing';
 import { z } from 'zod';
 import baseApp from '~/base.mjs';
 import docs from '~/docs.mjs';
-import type { EnvVars } from '~/types.mjs';
+import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
-		const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
+		const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 		// Dev debug injection point
 		app.use('*', async (c, next) => {

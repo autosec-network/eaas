@@ -2,10 +2,9 @@ import { swaggerUI } from '@hono/swagger-ui';
 import { Hono } from 'hono';
 import { cache } from 'hono/cache';
 import { cors } from 'hono/cors';
-import type { TimingVariables } from 'hono/timing';
-import type { EnvVars } from '~/types.mjs';
+import type { ContextVariables, EnvVars } from '~/types.mjs';
 
-const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
+const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 // Security
 app.use('*', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'], maxAge: 300 }));

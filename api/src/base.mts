@@ -3,12 +3,11 @@ import { bearerAuth } from 'hono/bearer-auth';
 import { bodyLimit } from 'hono/body-limit';
 import { contextStorage } from 'hono/context-storage';
 import { prettyJSON } from 'hono/pretty-json';
-import type { TimingVariables } from 'hono/timing';
 import { createHash } from 'node:crypto';
-import type { EnvVars } from '~/types.mjs';
+import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api1 from '~/v0/index.mjs';
 
-const app = new Hono<{ Bindings: EnvVars; Variables: TimingVariables }>();
+const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 // Security
 app.use('*', (c, next) => {
