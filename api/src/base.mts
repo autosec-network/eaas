@@ -13,6 +13,7 @@ import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
 import { api_keys, api_keys_keyrings } from '~shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '~shared/helpers/crypto.mjs';
+import { Helpers } from '~shared/helpers/index.mjs';
 import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 
 const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
@@ -45,14 +46,18 @@ app.use('*', async (c, next) => {
 							endTime(c, 'auth-parse-ak');
 
 							startTime(c, 'auth-db-fetch-root');
-							// DBManager.getDrizzle(c.env.EAAS_ROOT)
-							return DBManager.getDrizzle(
-								{
-									accountId: c.env.CF_ACCOUNT_ID,
-									apiToken: c.env.CF_API_TOKEN,
-									databaseId: StaticDatabase.Root.eaas_root_p,
-								},
-								true,
+
+							return (
+								Helpers.isLocal(c.env.CF_VERSION_METADATA)
+									? DBManager.getDrizzle(
+											{
+												accountId: c.env.CF_ACCOUNT_ID,
+												apiToken: c.env.CF_API_TOKEN,
+												databaseId: StaticDatabase.Root.eaas_root_p,
+											},
+											c.env.NODE_ENV !== 'production',
+										)
+									: DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production')
 							)
 								.select({
 									expires: api_keys_tenants.expires,
