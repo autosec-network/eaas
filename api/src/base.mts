@@ -130,7 +130,7 @@ app.use('*', async (c, next) => {
 														const receivedSecret = await BufferHelpers.base64ToBuffer(ak_secret_base64url);
 														let calculatedHash: Uint8Array;
 
-														switch (version) {
+														switch (parseInt(version)) {
 															case ApiKeyVersions['256base64urlSha256']:
 																calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
 																break;
