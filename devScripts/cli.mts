@@ -350,16 +350,16 @@ yargs(hideBin(process.argv))
 								);
 
 								return t_db
-									.batch([
-										t_db
-											.insert(api_keys)
-											.values({
-												ak_id: sql`unhex(${ak_id.hex})`,
-												name: args.name,
-												hash: sql`unhex(${ak_secret_hash})`,
-												expires: args.expires.toISOString(),
-											})
-											.returning(),
+									.insert(api_keys)
+									.values({
+										ak_id: sql`unhex(${ak_id.hex})`,
+										name: args.name,
+										hash: sql`unhex(${ak_secret_hash})`,
+										expires: args.expires.toISOString(),
+									})
+									.returning()
+									.then(console.log)
+									.then(() =>
 										t_db
 											.insert(api_keys_keyrings)
 											.values({
@@ -374,9 +374,9 @@ yargs(hideBin(process.argv))
 												r_random: args.random,
 												r_hash: args.hash,
 											})
-											.returning(),
-									])
-									.then(console.log);
+											.returning()
+											.then(console.log),
+									);
 							}
 						});
 				}),
