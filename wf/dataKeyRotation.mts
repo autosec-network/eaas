@@ -25,7 +25,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 		);
 
 		const t_d1_id_utf8 = await step.do(
-			'',
+			'Lookup tenant from root',
 			{
 				retries: {
 					limit: Number.MAX_SAFE_INTEGER,
