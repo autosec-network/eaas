@@ -239,7 +239,7 @@ export const keyrings = sqliteTable(
 				 */
 				// enum: Object.values(KeyAlgorithms).slice(Object.values(KeyAlgorithms).length / 2) as [`${KeyAlgorithms}`],
 			})
-			.$type<[`${KeyAlgorithms}`]>()
+			.$type<KeyAlgorithms>()
 			.notNull(),
 		/**
 		 * Not used for every key type
