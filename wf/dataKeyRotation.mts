@@ -219,8 +219,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						} else {
 							throw new NonRetryableError('Missing or bad `key_size`');
 						}
-					case KeyAlgorithms['ECDSA']:
-					case KeyAlgorithms['ECDH']:
+					case KeyAlgorithms.ECDSA:
+					case KeyAlgorithms.ECDH:
 						let normalizedCurve: undefined | 'P-256' | 'P-384' | 'P-521';
 						switch (key_size) {
 							case 256:
