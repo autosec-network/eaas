@@ -215,7 +215,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									throw new NonRetryableError(err.message, 'Generate key failure');
 								});
 
-							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.privateKey), crypto.subtle.exportKey('jwk', keyPair.publicKey)]).then(([privateKey, publicKey]) => ({ privateKey, publicKey }));
+							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
 						} else {
 							throw new NonRetryableError('Missing or bad `key_size`');
 						}
@@ -272,7 +272,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									throw new NonRetryableError(err.message, 'Generate key failure');
 								});
 
-							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.privateKey), crypto.subtle.exportKey('jwk', keyPair.publicKey)]).then(([privateKey, publicKey]) => ({ privateKey, publicKey }));
+							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
 						} else {
 							throw new NonRetryableError('Unsupported curve');
 						}
