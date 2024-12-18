@@ -58,9 +58,9 @@ jobs:
             GIT_HASH
           secrets: |
             CF_API_TOKEN
-            BW_SM_ACCESS_TOKEN
+            US_BW_SM_ACCESS_TOKEN
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           GIT_HASH: ${{ github.sha }}
           CF_API_TOKEN: ${{ secrets.API_CF_API_TOKEN }}
-          BW_SM_ACCESS_TOKEN: ${{ secrets.BW_SM_ACCESS_TOKEN}}
+          US_BW_SM_ACCESS_TOKEN: ${{ secrets.US_BW_SM_ACCESS_TOKEN}}
