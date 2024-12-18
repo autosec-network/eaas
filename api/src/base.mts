@@ -46,8 +46,7 @@ app.use('*', async (c, next) => {
 							endTime(c, 'auth-parse-token');
 
 							startTime(c, 'auth-db-fetch-root');
-							return c
-								.get('r_db')
+							return c.var.r_db
 								.select({
 									expires: api_keys_tenants.expires,
 									t_id: tenants.t_id,
