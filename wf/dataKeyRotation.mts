@@ -219,6 +219,63 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						} else {
 							throw new NonRetryableError('Missing or bad `key_size`');
 						}
+					case KeyAlgorithms['ECDSA']:
+					case KeyAlgorithms['ECDH']:
+						let normalizedCurve: undefined | 'P-256' | 'P-384' | 'P-521';
+						switch (key_size) {
+							case 256:
+								normalizedCurve = 'P-256';
+								break;
+							case 384:
+								normalizedCurve = 'P-384';
+								break;
+							case 521:
+								normalizedCurve = 'P-521';
+								break;
+
+							default:
+								// Lets try to infer some defaults
+								switch (normalizedHashName) {
+									case 'SHA-256':
+										normalizedCurve = 'P-256';
+										break;
+									case 'SHA-384':
+										normalizedCurve = 'P-384';
+										break;
+									case 'SHA-512':
+										normalizedCurve = 'P-521';
+										break;
+								}
+								break;
+						}
+
+						if (normalizedCurve) {
+							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							switch (key_type) {
+								case KeyAlgorithms['ECDSA']:
+									normalizedUsages = ['sign', 'verify'];
+									break;
+								case KeyAlgorithms['ECDH']:
+									normalizedUsages = ['deriveBits', 'deriveKey'];
+							}
+
+							const keyPair = await crypto.subtle
+								.generateKey(
+									{
+										name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
+										namedCurve: normalizedCurve,
+									} satisfies EcKeyGenParams,
+									true,
+									normalizedUsages,
+								)
+								.catch((err: DOMException) => {
+									throw new NonRetryableError(err.message, 'Generate key failure');
+								});
+
+							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.privateKey), crypto.subtle.exportKey('jwk', keyPair.publicKey)]).then(([privateKey, publicKey]) => ({ privateKey, publicKey }));
+						} else {
+							throw new NonRetryableError('Unsupported curve');
+						}
 
 					default:
 						throw new NonRetryableError('Unsupported key type');
