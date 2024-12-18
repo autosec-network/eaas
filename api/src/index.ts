@@ -89,7 +89,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 					),
 				);
 			} else {
-				DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production');
+				c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production'));
 			}
 
 			await next();
