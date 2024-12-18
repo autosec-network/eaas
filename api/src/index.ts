@@ -13,7 +13,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
 import { Helpers } from '~shared/helpers/index.mjs';
 
-export { DataKeyRotation as PullSources } from '../../wf/dataKeyRotation.mjs';
+export { DataKeyRotation } from '../../wf/dataKeyRotation.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
