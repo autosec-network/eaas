@@ -144,7 +144,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 
 			const salt = await step.do('Generate salt', async () => crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength)));
 
-			const { privateKey, publicKey } = await step.do('Generate key(s)', async () => {
+			const { publicKey, privateKey } = await step.do('Generate key(s)', async () => {
 				let normalizedHashName: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512';
 				switch (hash) {
 					case 'sha1':
