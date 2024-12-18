@@ -104,7 +104,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				);
 			}
 
-			const keyring = await step.do(
+			const { key_type, key_size, hash, generation_versions, retreival_versions } = await step.do(
 				'Get keyring info',
 				{
 					retries: {
