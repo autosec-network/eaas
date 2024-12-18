@@ -24,7 +24,6 @@ export const ZodUuidExportInput = z.union([
 		.trim()
 		.length(32)
 		.refine((value) => isHexadecimal(value)),
-	z.array(z.number().int().nonnegative().finite().safe()).nonempty(),
 	z.string().trim().base64(),
 	z.string().trim().base64url(),
 ]);
