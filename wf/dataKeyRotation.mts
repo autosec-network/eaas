@@ -276,6 +276,53 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						} else {
 							throw new NonRetryableError('Unsupported curve');
 						}
+					case KeyAlgorithms['ML-KEM']:
+						let normalizedMlkemKeySize: undefined | 512 | 768 | 1024;
+						switch (key_size) {
+							case 512:
+							case 768:
+							case 1024:
+								normalizedMlkemKeySize = key_size;
+								break;
+
+							default:
+								// Lets try to infer some defaults
+								switch (normalizedHashName) {
+									case 'SHA-256':
+										normalizedMlkemKeySize = 512;
+										break;
+									case 'SHA-384':
+										normalizedMlkemKeySize = 768;
+										break;
+									case 'SHA-512':
+										normalizedMlkemKeySize = 1024;
+										break;
+								}
+								break;
+						}
+
+						if (normalizedMlkemKeySize) {
+							return (async () => {
+								switch (normalizedMlkemKeySize) {
+									case 512:
+										return import('@noble/post-quantum/ml-kem').then(({ ml_kem512 }) => ml_kem512);
+									case 768:
+										return import('@noble/post-quantum/ml-kem').then(({ ml_kem768 }) => ml_kem768);
+									case 1024:
+										return import('@noble/post-quantum/ml-kem').then(({ ml_kem1024 }) => ml_kem1024);
+								}
+							})().then((ml_kem) => {
+								const { publicKey, secretKey } = ml_kem.keygen();
+								const { cipherText } = ml_kem.encapsulate(publicKey);
+
+								return {
+									publicKey: cipherText,
+									privateKey: secretKey,
+								};
+							});
+						} else {
+							throw new NonRetryableError('Unsupported key size');
+						}
 
 					default:
 						throw new NonRetryableError('Unsupported key type');
