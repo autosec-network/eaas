@@ -175,21 +175,21 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 					case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 					case KeyAlgorithms['RSA-PSS']:
 					case KeyAlgorithms['RSA-OAEP']:
-						let normalizedKeySize: undefined | number;
+						let normalizedRsaKeySize: undefined | number;
 						if (key_size && key_size >= 2048) {
-							normalizedKeySize = key_size;
+							normalizedRsaKeySize = key_size;
 						} else {
 							// Lets try to infer some defaults
 							switch (normalizedHashName) {
 								case 'SHA-256':
 								case 'SHA-384':
 								case 'SHA-512':
-									normalizedKeySize = salt.byteLength * 8 * 8;
+									normalizedRsaKeySize = salt.byteLength * 8 * 8;
 									break;
 							}
 						}
 
-						if (normalizedKeySize) {
+						if (normalizedRsaKeySize) {
 							let normalizedUsages: ReadonlyArray<KeyUsage>;
 							switch (key_type) {
 								case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
@@ -204,7 +204,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								.generateKey(
 									{
 										name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
-										modulusLength: normalizedKeySize,
+										modulusLength: normalizedRsaKeySize,
 										publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
 										hash: normalizedHashName,
 									} satisfies RsaHashedKeyGenParams,
@@ -221,35 +221,35 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						}
 					case KeyAlgorithms.ECDSA:
 					case KeyAlgorithms.ECDH:
-						let normalizedCurve: undefined | 'P-256' | 'P-384' | 'P-521';
+						let normalizedEccCurve: undefined | 'P-256' | 'P-384' | 'P-521';
 						switch (key_size) {
 							case 256:
-								normalizedCurve = 'P-256';
+								normalizedEccCurve = 'P-256';
 								break;
 							case 384:
-								normalizedCurve = 'P-384';
+								normalizedEccCurve = 'P-384';
 								break;
 							case 521:
-								normalizedCurve = 'P-521';
+								normalizedEccCurve = 'P-521';
 								break;
 
 							default:
 								// Lets try to infer some defaults
 								switch (normalizedHashName) {
 									case 'SHA-256':
-										normalizedCurve = 'P-256';
+										normalizedEccCurve = 'P-256';
 										break;
 									case 'SHA-384':
-										normalizedCurve = 'P-384';
+										normalizedEccCurve = 'P-384';
 										break;
 									case 'SHA-512':
-										normalizedCurve = 'P-521';
+										normalizedEccCurve = 'P-521';
 										break;
 								}
 								break;
 						}
 
-						if (normalizedCurve) {
+						if (normalizedEccCurve) {
 							let normalizedUsages: ReadonlyArray<KeyUsage>;
 							switch (key_type) {
 								case KeyAlgorithms['ECDSA']:
@@ -263,7 +263,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								.generateKey(
 									{
 										name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
-										namedCurve: normalizedCurve,
+										namedCurve: normalizedEccCurve,
 									} satisfies EcKeyGenParams,
 									true,
 									normalizedUsages,
