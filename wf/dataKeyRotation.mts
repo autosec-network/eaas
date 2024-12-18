@@ -10,6 +10,7 @@ import { keyrings } from '../shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { Helpers } from '../shared/helpers/index.mjs';
+import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
 import { ZodUuidExportInput, type D1Blob } from '../shared/types/d1/index.mjs';
 
 export const workflowParams = z.object({
@@ -142,6 +143,87 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			);
 
 			const salt = await step.do('Generate salt', async () => crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength)));
+
+			const { privateKey, publicKey } = await step.do('Generate key(s)', async () => {
+				let normalizedHashName: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512';
+				switch (hash) {
+					case 'sha1':
+					case 'md5-sha1':
+					case 'DSA-SHA1':
+					case 'RSA-SHA1':
+					case 'ecdsa-with-SHA1':
+						normalizedHashName = 'SHA-1';
+						break;
+					case 'sha256':
+					case 'RSA-SHA256':
+						normalizedHashName = 'SHA-256';
+						break;
+					case 'sha384':
+					case 'RSA-SHA384':
+						normalizedHashName = 'SHA-384';
+						break;
+					case 'sha512':
+					case 'RSA-SHA512':
+						normalizedHashName = 'SHA-512';
+						break;
+
+					default:
+						throw new NonRetryableError('Unsupported hash type');
+				}
+
+				switch (key_type) {
+					case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
+					case KeyAlgorithms['RSA-PSS']:
+					case KeyAlgorithms['RSA-OAEP']:
+						let normalizedKeySize: undefined | number;
+						if (key_size && key_size >= 2048) {
+							normalizedKeySize = key_size;
+						} else {
+							// Lets try to infer some defaults
+							switch (normalizedHashName) {
+								case 'SHA-256':
+								case 'SHA-384':
+								case 'SHA-512':
+									normalizedKeySize = salt.byteLength * 8 * 8;
+									break;
+							}
+						}
+
+						if (normalizedKeySize) {
+							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							switch (key_type) {
+								case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
+								case KeyAlgorithms['RSA-PSS']:
+									normalizedUsages = ['sign', 'verify'];
+									break;
+								case KeyAlgorithms['RSA-OAEP']:
+									normalizedUsages = ['encrypt', 'decrypt'];
+							}
+
+							const keyPair = await crypto.subtle
+								.generateKey(
+									{
+										name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
+										modulusLength: normalizedKeySize,
+										publicExponent: new Uint8Array([0x01, 0x00, 0x01]),
+										hash: normalizedHashName,
+									} satisfies RsaHashedKeyGenParams,
+									true,
+									normalizedUsages,
+								)
+								.catch((err: DOMException) => {
+									throw new NonRetryableError(err.message, 'Generate key failure');
+								});
+
+							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.privateKey), crypto.subtle.exportKey('jwk', keyPair.publicKey)]).then(([privateKey, publicKey]) => ({ privateKey, publicKey }));
+						} else {
+							throw new NonRetryableError('Missing or bad `key_size`');
+						}
+
+					default:
+						throw new NonRetryableError('Unsupported key type');
+				}
+			});
 		});
 	}
 }
