@@ -1,6 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { eq, sql } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { EnvVars } from '../api/src/types.mjs';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
@@ -139,6 +140,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							}),
 					),
 			);
+
+			const salt = await step.do('Generate salt', async () => crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength)));
 		});
 	}
 }
