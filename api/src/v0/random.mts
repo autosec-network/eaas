@@ -46,14 +46,17 @@ export const route = createRoute({
 							result: z.union([
 								z
 									.string()
+									.trim()
 									.refine((value) => isHexadecimal(value))
 									.openapi({ example: Buffer.from(example).toString('hex') }),
 								z
 									.string()
+									.trim()
 									.base64()
 									.openapi({ example: Buffer.from(example).toString('base64') }),
 								z
 									.string()
+									.trim()
 									.base64url()
 									.openapi({ example: Buffer.from(example).toString('base64url') }),
 							]),

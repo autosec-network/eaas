@@ -60,6 +60,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 				z.object({
 					version: z
 						.string()
+						.trim()
 						.min(2)
 						.regex(/^v\d+$/)
 						.refine((version) => z.coerce.number().int().nonnegative().finite().safe().safeParse(version.slice(1)).success),

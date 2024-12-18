@@ -23,37 +23,41 @@ const input = z.discriminatedUnion('format', [
 	z.object({
 		input: z
 			.string()
+			.trim()
 			.refine((value) => isHexadecimal(value))
 			.describe('Specifies the hex encoded input data')
 			.openapi({ example: Buffer.from(example).toString('hex') }),
 		format: z.literal('hex').describe('Specifies the input encoding'),
-		reference: z.string().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
+		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
 	}),
 	z.object({
 		input: z.union([
 			z
 				.string()
+				.trim()
 				.base64()
 				.describe('Specifies the base64 encoded input data')
 				.openapi({ example: Buffer.from(example).toString('base64') }),
 			z
 				.string()
+				.trim()
 				.base64url()
 				.describe('Specifies the base64url encoded input data')
 				.openapi({ example: Buffer.from(example).toString('base64url') }),
 		]),
 		format: z.literal('base64').describe('Specifies the input encoding'),
-		reference: z.string().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
+		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
 	}),
 ]);
 
 const output = z.object({
 	value: z
 		.string()
+		.trim()
 		.refine((value) => isHexadecimal(value))
 		.describe('The hash of the input data, hex encoded.')
 		.openapi({ example: createHash('sha256').update(Buffer.from(example)).digest('hex') }),
-	reference: z.string().optional().describe('The value of the `reference` field from the corresponding item in the request'),
+	reference: z.string().trim().optional().describe('The value of the `reference` field from the corresponding item in the request'),
 });
 
 export const route = createRoute({
