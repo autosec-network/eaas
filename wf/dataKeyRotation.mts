@@ -252,10 +252,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						if (normalizedEccCurve) {
 							let normalizedUsages: ReadonlyArray<KeyUsage>;
 							switch (key_type) {
-								case KeyAlgorithms['ECDSA']:
+								case KeyAlgorithms.ECDSA:
 									normalizedUsages = ['sign', 'verify'];
 									break;
-								case KeyAlgorithms['ECDH']:
+								case KeyAlgorithms.ECDH:
 									normalizedUsages = ['deriveBits', 'deriveKey'];
 							}
 
