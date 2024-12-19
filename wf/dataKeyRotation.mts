@@ -316,8 +316,23 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								const { cipherText } = ml_kem.encapsulate(publicKey);
 
 								return {
-									publicKey: cipherText,
-									privateKey: secretKey,
+									publicKey: {
+										kty: 'LWE',
+										key_ops: ['encrypt'],
+										alg: `ML-KEM${normalizedMlkemKeySize}`,
+										crv: 'Kyber',
+										ext: true,
+										x: Buffer.from(cipherText).toString('base64url'),
+									} as JsonWebKey,
+									privateKey: {
+										kty: 'LWE',
+										key_ops: ['decrypt'],
+										alg: `ML-KEM${normalizedMlkemKeySize}`,
+										crv: 'Kyber',
+										ext: true,
+										x: Buffer.from(cipherText).toString('base64url'),
+										d: Buffer.from(secretKey).toString('base64url'),
+									} as JsonWebKey,
 								};
 							});
 						} else {
