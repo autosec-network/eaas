@@ -291,6 +291,67 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							});
 
 						return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
+					case KeyAlgorithms['AES-CTR']:
+					case KeyAlgorithms['AES-CBC']:
+					case KeyAlgorithms['AES-GCM']:
+					case KeyAlgorithms['AES-KW']:
+						let normalizedAesSize: undefined | 128 | 192 | 256;
+						switch (key_size) {
+							case 256:
+								normalizedAesSize = 128;
+								break;
+							case 384:
+								normalizedAesSize = 192;
+								break;
+							case 521:
+								normalizedAesSize = 256;
+								break;
+
+							default:
+								// Lets try to infer some defaults
+								switch (normalizedHashName) {
+									case 'SHA-256':
+										normalizedAesSize = 128;
+										break;
+									case 'SHA-384':
+										normalizedAesSize = 192;
+										break;
+									case 'SHA-512':
+										normalizedAesSize = 256;
+										break;
+								}
+								break;
+						}
+
+						if (normalizedAesSize) {
+							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							switch (key_type) {
+								case KeyAlgorithms['AES-CTR']:
+								case KeyAlgorithms['AES-CBC']:
+								case KeyAlgorithms['AES-GCM']:
+									normalizedUsages = ['encrypt', 'decrypt'];
+									break;
+								case KeyAlgorithms['AES-KW']:
+									normalizedUsages = ['wrapKey', 'unwrapKey'];
+							}
+
+							const key = await crypto.subtle
+								.generateKey(
+									{
+										name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
+										length: normalizedAesSize,
+									} satisfies AesKeyGenParams,
+									true,
+									normalizedUsages,
+								)
+								.catch((err: DOMException) => {
+									throw new NonRetryableError(err.message, 'Generate key failure');
+								});
+
+							return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
+						} else {
+							throw new NonRetryableError('Unsupported curve');
+						}
 					case KeyAlgorithms.Ed25519:
 					case KeyAlgorithms.X25519:
 						let normalizedUsages: KeyUsage[];
