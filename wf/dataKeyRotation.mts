@@ -438,6 +438,67 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						} else {
 							throw new NonRetryableError('Unsupported key size');
 						}
+					case KeyAlgorithms['ML-DSA']:
+						let normalizedMldsaKeySize: undefined | 44 | 65 | 87;
+						switch (key_size) {
+							case 44:
+							case 65:
+							case 87:
+								normalizedMldsaKeySize = key_size;
+								break;
+
+							default:
+								// Lets try to infer some defaults
+								switch (normalizedHashName) {
+									case 'SHA-256':
+										normalizedMldsaKeySize = 44;
+										break;
+									case 'SHA-384':
+										normalizedMldsaKeySize = 65;
+										break;
+									case 'SHA-512':
+										normalizedMldsaKeySize = 87;
+										break;
+								}
+								break;
+						}
+
+						if (normalizedMldsaKeySize) {
+							return (async () => {
+								switch (normalizedMldsaKeySize) {
+									case 44:
+										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa44 }) => ml_dsa44);
+									case 65:
+										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa65 }) => ml_dsa65);
+									case 87:
+										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa87 }) => ml_dsa87);
+								}
+							})().then((ml_dsa) => {
+								const { publicKey, secretKey } = ml_dsa.keygen(crypto.getRandomValues(new Uint8Array(256 / 8)));
+
+								return {
+									publicKey: {
+										kty: 'LWE',
+										key_ops: ['sign'],
+										alg: `ML-DSA${normalizedMldsaKeySize}`,
+										crv: 'CRYSTALS-Dilithium',
+										ext: true,
+										x: Buffer.from(publicKey).toString('base64url'),
+									} as JsonWebKey,
+									privateKey: {
+										kty: 'LWE',
+										key_ops: ['verify'],
+										alg: `ML-DSA${normalizedMldsaKeySize}`,
+										crv: 'CRYSTALS-Dilithium',
+										ext: true,
+										x: Buffer.from(publicKey).toString('base64url'),
+										d: Buffer.from(secretKey).toString('base64url'),
+									} as JsonWebKey,
+								};
+							});
+						} else {
+							throw new NonRetryableError('Unsupported key size');
+						}
 
 					default:
 						throw new NonRetryableError('Unsupported key type');

@@ -12,4 +12,5 @@ export enum KeyAlgorithms {
 	Ed25519 = 'ed25519',
 	X25519 = 'x25519',
 	'ML-KEM' = 'ml-kem',
+	'ML-DSA' = 'ml-dsa',
 }
