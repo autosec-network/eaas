@@ -291,6 +291,30 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							});
 
 						return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
+					case KeyAlgorithms.Ed25519:
+					case KeyAlgorithms.X25519:
+						let normalizedUsages: KeyUsage[];
+						switch (key_type) {
+							case KeyAlgorithms.Ed25519:
+								normalizedUsages = ['sign', 'verify'];
+								break;
+							case KeyAlgorithms.X25519:
+								normalizedUsages = ['deriveBits'];
+						}
+
+						const keyPair = (await crypto.subtle
+							.generateKey(
+								{
+									name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
+								},
+								true,
+								normalizedUsages,
+							)
+							.catch((err: DOMException) => {
+								throw new NonRetryableError(err.message, 'Generate key failure');
+							})) as CryptoKeyPair;
+
+						return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
 					case KeyAlgorithms['ML-KEM']:
 						let normalizedMlkemKeySize: undefined | 512 | 768 | 1024;
 						switch (key_size) {
