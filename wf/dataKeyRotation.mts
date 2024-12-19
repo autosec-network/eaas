@@ -505,6 +505,111 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							} else {
 								throw new NonRetryableError('Unsupported key size');
 							}
+						case KeyAlgorithms['SLH-DSA-SHA2-S']:
+						case KeyAlgorithms['SLH-DSA-SHA2-F']:
+						case KeyAlgorithms['SLH-DSA-SHAKE-S']:
+						case KeyAlgorithms['SLH-DSA-SHAKE-F']:
+							let normalizedSlhdsaKeySize: undefined | 128 | 192 | 256;
+							switch (key_size) {
+								case 128:
+								case 192:
+								case 256:
+									normalizedSlhdsaKeySize = key_size;
+									break;
+
+								default:
+									// Lets try to infer some defaults
+									switch (normalizedHashName) {
+										case 'SHA-256':
+											normalizedSlhdsaKeySize = 128;
+											break;
+										case 'SHA-384':
+											normalizedSlhdsaKeySize = 192;
+											break;
+										case 'SHA-512':
+											normalizedSlhdsaKeySize = 256;
+											break;
+									}
+									break;
+							}
+
+							if (normalizedSlhdsaKeySize) {
+								return (async () => {
+									const fragments = key_type.split('-');
+									switch (fragments[2] as 'sha2' | 'shake') {
+										case 'sha2':
+											switch (fragments[2] as 's' | 'f') {
+												case 's':
+													switch (normalizedSlhdsaKeySize) {
+														case 128:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_128s }) => slh_dsa_sha2_128s);
+														case 192:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_192s }) => slh_dsa_sha2_192s);
+														case 256:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_256s }) => slh_dsa_sha2_256s);
+													}
+												// eslint-disable-next-line no-fallthrough
+												case 'f':
+													switch (normalizedSlhdsaKeySize) {
+														case 128:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_128f }) => slh_dsa_sha2_128f);
+														case 192:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_192f }) => slh_dsa_sha2_192f);
+														case 256:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_256f }) => slh_dsa_sha2_256f);
+													}
+											}
+
+										// eslint-disable-next-line no-fallthrough
+										case 'shake':
+											switch (fragments[2] as 's' | 'f') {
+												case 's':
+													switch (normalizedSlhdsaKeySize) {
+														case 128:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_128s }) => slh_dsa_shake_128s);
+														case 192:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_192s }) => slh_dsa_shake_192s);
+														case 256:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_256s }) => slh_dsa_shake_256s);
+													}
+												// eslint-disable-next-line no-fallthrough
+												case 'f':
+													switch (normalizedSlhdsaKeySize) {
+														case 128:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_128f }) => slh_dsa_shake_128f);
+														case 192:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_192f }) => slh_dsa_shake_192f);
+														case 256:
+															return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_256f }) => slh_dsa_shake_256f);
+													}
+											}
+									}
+								})().then((slh_dsa) => {
+									const { publicKey, secretKey } = slh_dsa.keygen(crypto.getRandomValues(new Uint8Array(normalizedSlhdsaKeySize / 8)));
+
+									return {
+										publicKey: {
+											kty: 'LWE',
+											key_ops: ['sign'],
+											alg: `SLH-DSA${normalizedSlhdsaKeySize}`,
+											crv: 'Sphincs+',
+											ext: true,
+											x: Buffer.from(publicKey).toString('base64url'),
+										} as JsonWebKey,
+										privateKey: {
+											kty: 'LWE',
+											key_ops: ['verify'],
+											alg: `SLH-DSA${normalizedSlhdsaKeySize}`,
+											crv: 'Sphincs+',
+											ext: true,
+											x: Buffer.from(publicKey).toString('base64url'),
+											d: Buffer.from(secretKey).toString('base64url'),
+										} as JsonWebKey,
+									};
+								});
+							} else {
+								throw new NonRetryableError('Unsupported key size');
+							}
 
 						default:
 							throw new NonRetryableError('Unsupported key type');
