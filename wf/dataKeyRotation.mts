@@ -276,6 +276,21 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						} else {
 							throw new NonRetryableError('Unsupported curve');
 						}
+					case KeyAlgorithms.HMAC:
+						const key = await crypto.subtle
+							.generateKey(
+								{
+									name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
+									hash: normalizedHashName,
+								} satisfies HmacKeyGenParams,
+								true,
+								['sign', 'verify'],
+							)
+							.catch((err: DOMException) => {
+								throw new NonRetryableError(err.message, 'Generate key failure');
+							});
+
+						return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
 					case KeyAlgorithms['ML-KEM']:
 						let normalizedMlkemKeySize: undefined | 512 | 768 | 1024;
 						switch (key_size) {
