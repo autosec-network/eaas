@@ -156,7 +156,13 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 		 * @todo delete older versions
 		 */
 
-		const salt = await step.do('Generate salt', async () => crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength)));
+		const salt = await step.do('Generate salt', async () => {
+			const salt = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
+			return {
+				base64: Buffer.from(salt).toString('base64'),
+				base64url: Buffer.from(salt).toString('base64url'),
+			};
+		});
 
 		const { publicKey, privateKey } = await step.do(
 			'Generate key(s)',
@@ -204,7 +210,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								case 'SHA-256':
 								case 'SHA-384':
 								case 'SHA-512':
-									normalizedRsaKeySize = salt.byteLength * 8 * 8;
+									normalizedRsaKeySize = Buffer.from(salt.base64, 'base64').byteLength * 8 * 8;
 									break;
 							}
 						}
@@ -655,7 +661,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				new BitwardenHelper(jwt).encryptSecret(
 					JSON.stringify({
 						public: publicKey,
-						salt: Buffer.from(salt).toString('base64url'),
+						salt: salt.base64url,
 					} satisfies SecretNote),
 				),
 			);
