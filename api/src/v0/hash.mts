@@ -91,7 +91,7 @@ export const embededRoute = createRoute({
 					schema: z
 						.object({
 							success: z.boolean(),
-							result: z.union([z.array(embededOutput), embededOutput]),
+							result: z.union([z.array(embededOutput).nonempty(), embededOutput]),
 						})
 						.openapi('HashOutput'),
 				},
