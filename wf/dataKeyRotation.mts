@@ -716,7 +716,6 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						dk_id: sql<D1Blob>`unhex(${dk_id.hex})`,
 						kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
 						bw_id: sql<D1Blob>`unhex(${(await BufferHelpers.uuidConvert(uploadedSecret.id)).hex})`,
-						generation_count: sql<D1Blob>`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `0${BigInt(0).toString(16)}`}))`,
 					})
 					.then(() => {}),
 		);
