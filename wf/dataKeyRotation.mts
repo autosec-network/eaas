@@ -8,7 +8,7 @@ import type { EnvVars } from '../api/src/types.mjs';
 import { BitwardenHelper } from '../shared/bitwarden.mjs';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
 import { tenants } from '../shared/db-preview/schemas/root';
-import { keyrings } from '../shared/db-preview/schemas/tenant';
+import { datakeys, keyrings } from '../shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '../shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { Helpers } from '../shared/helpers/index.mjs';
@@ -626,6 +626,98 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						throw new NonRetryableError('Unsupported key type');
 				}
 			},
+		);
+
+		const uploadedSecret = await step.do('Bitwarden Secrets Manager', async () => {
+			const jwt = await step.do(
+				'Get JWT',
+				{
+					retries: {
+						limit: Number.MAX_SAFE_INTEGER,
+						/**
+						 * Bitwarden secrets manager rate limit is per 1 minute
+						 */
+						delay: 1 * 60 * 1000,
+						backoff: 'constant',
+					},
+				},
+				() => BitwardenHelper.identity(this.env.US_BW_SM_ACCESS_TOKEN),
+			);
+
+			// tenantId/keyringId/secretId
+			const secretKey = await step.do('Encrypt key', async () => new BitwardenHelper(jwt).encryptSecret([t_id.utf8, kr_id.utf8, dk_id.utf8].join('/')));
+			const secretValue = await step.do('Encrypt value', () => new BitwardenHelper(jwt).encryptSecret(JSON.stringify(privateKey)));
+			const secretNote = await step.do('Encrypt note', () =>
+				new BitwardenHelper(jwt).encryptSecret(
+					JSON.stringify({
+						public: publicKey,
+						salt: Buffer.from(salt).toString('base64url'),
+					} satisfies SecretNote),
+				),
+			);
+
+			const bwProject = await step.do(
+				'Get bitwarde project',
+				{
+					retries: {
+						limit: Number.MAX_SAFE_INTEGER,
+						/**
+						 * Bitwarden secrets manager rate limit is per 1 minute
+						 */
+						delay: 1 * 60 * 1000,
+						backoff: 'constant',
+					},
+				},
+				() =>
+					new BitwardenHelper(jwt).getProjects().then((projects) => {
+						if (projects.length > 0) {
+							return projects[0]!;
+						} else {
+							throw new NonRetryableError('No projects found for access token');
+						}
+					}),
+			);
+
+			const uploadedSecret = await step.do(
+				'Upload secret',
+				{
+					retries: {
+						limit: Number.MAX_SAFE_INTEGER,
+						/**
+						 * Bitwarden secrets manager rate limit is per 1 minute
+						 */
+						delay: 1 * 60 * 1000,
+						backoff: 'constant',
+					},
+				},
+				() => new BitwardenHelper(jwt).setSecret(bwProject.id, secretKey, secretValue, secretNote),
+			);
+
+			return uploadedSecret;
+		});
+
+		await step.do(
+			'Add DB record',
+			{
+				retries: {
+					limit: Number.MAX_SAFE_INTEGER,
+					/**
+					 * CF global rate limit is 1200/5m
+					 * @link https://developers.cloudflare.com/fundamentals/api/reference/limits/
+					 */
+					delay: 5 * 60 * 1000,
+					backoff: 'constant',
+				},
+			},
+			async () =>
+				t_db()
+					.insert(datakeys)
+					.values({
+						dk_id: sql<D1Blob>`unhex(${dk_id.hex})`,
+						kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
+						bw_id: sql<D1Blob>`unhex(${(await BufferHelpers.uuidConvert(uploadedSecret.id)).hex})`,
+					})
+					.then(() => {}),
 		);
 	}
 }
