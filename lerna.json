@@ -5,6 +5,10 @@
 		"changed": {
 			"loglevel": "error",
 			"json": true
+		},
+		"list": {
+			"loglevel": "error",
+			"json": true
 		}
 	}
 }
