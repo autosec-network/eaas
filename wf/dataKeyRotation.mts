@@ -152,6 +152,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 					}),
 		);
 
+		/**
+		 * @todo delete older versions
+		 */
+
 		const salt = await step.do('Generate salt', async () => crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength)));
 
 		const { publicKey, privateKey } = await step.do(
