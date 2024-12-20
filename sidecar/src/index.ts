@@ -1,6 +1,6 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { BitwardenHelper, EncString, SymmetricCryptoKey } from './bitwarden.mjs';
 import type { EnvVars } from './types.mjs';
+import { BitwardenHelper, EncString, SymmetricCryptoKey } from '../../shared/bitwarden/index.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch() {
