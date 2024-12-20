@@ -4,9 +4,9 @@ export interface SecretNote {
 	/**
 	 * base64 encoded
 	 */
-	public?: string;
+	public?: JsonWebKey;
 	/**
-	 * base64 encoded
+	 * base64url encoded
 	 */
 	salt: string;
 }
