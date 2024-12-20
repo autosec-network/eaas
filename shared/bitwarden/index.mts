@@ -164,6 +164,20 @@ export class BitwardenHelper {
 			throw new Error('No secret IDs provided');
 		}
 	}
+
+	public async decryptSecret(cipherText: string) {
+		// Step 1: Parse the string into an EncString object
+		const encString = EncString.fromString(cipherText);
+
+		// Step 2: Create the SymmetricCryptoKey
+		const symmetricKey = await SymmetricCryptoKey.fromBase64Key(this.orgEncryptionKey, encString.encType as 0 | 1 | 2);
+
+		const decryptedData = await encString.decryptWithKey(symmetricKey);
+
+		const decryptedString = new TextDecoder().decode(decryptedData);
+
+		return decryptedString;
+	}
 }
 
 /**
