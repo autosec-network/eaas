@@ -591,7 +591,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 										}
 								}
 							})().then((slh_dsa) => {
-								const { publicKey, secretKey } = slh_dsa.keygen(crypto.getRandomValues(new Uint8Array(normalizedSlhdsaKeySize / 8)));
+								// expected seed is 3/8 of the hash size used
+								const { publicKey, secretKey } = slh_dsa.keygen(crypto.getRandomValues(new Uint8Array(normalizedSlhdsaKeySize * 0.375)));
 
 								return {
 									publicKey: {
