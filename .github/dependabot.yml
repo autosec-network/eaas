@@ -37,7 +37,8 @@ updates:
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
-      interval: 'weekly'
+      # interval: 'weekly'
+      interval: 'daily'
     open-pull-requests-limit: 999
     ignore:
       # Match lts/*
