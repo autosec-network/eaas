@@ -19,8 +19,12 @@ app.use('*', async (c, next) => {
 
 const example = 'Hello world';
 
-const input = z.discriminatedUnion('format', [
-	z.object({
+const embededInputBase = z.object({
+	algorithm: z.enum(workersCryptoCatalog.hashes).describe('Specifies the hash algorithm to use').openapi({ example: 'sha256' }),
+});
+
+const embededInput = z.discriminatedUnion('format', [
+	embededInputBase.extend({
 		input: z
 			.string()
 			.trim()
@@ -30,7 +34,7 @@ const input = z.discriminatedUnion('format', [
 		format: z.literal('hex').describe('Specifies the input encoding'),
 		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
 	}),
-	z.object({
+	embededInputBase.extend({
 		input: z.union([
 			z
 				.string()
@@ -50,7 +54,7 @@ const input = z.discriminatedUnion('format', [
 	}),
 ]);
 
-const output = z.object({
+const embededOutput = z.object({
 	value: z
 		.string()
 		.trim()
@@ -60,23 +64,20 @@ const output = z.object({
 	reference: z.string().trim().optional().describe('The value of the `reference` field from the corresponding item in the request'),
 });
 
-export const route = createRoute({
+export const embededRoute = createRoute({
 	method: 'post',
-	path: '/{algorithm}',
+	path: '/',
 	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
 	request: {
-		params: z.object({
-			algorithm: z.enum(workersCryptoCatalog.hashes).describe('Specifies the hash algorithm to use').openapi({ example: 'sha256' }),
-		}),
 		body: {
 			content: {
 				'application/json': {
 					schema: z
 						.union([
 							z.object({
-								batch_input: z.array(input).nonempty(),
+								batch_input: z.array(embededInput).nonempty(),
 							}),
-							input,
+							embededInput,
 						])
 						.openapi('HashInput'),
 				},
@@ -90,7 +91,7 @@ export const route = createRoute({
 					schema: z
 						.object({
 							success: z.boolean(),
-							result: z.union([z.array(output), output]),
+							result: z.union([z.array(embededOutput), embededOutput]),
 						})
 						.openapi('HashOutput'),
 				},
@@ -100,7 +101,7 @@ export const route = createRoute({
 	},
 });
 
-app.openapi(route, (c) => {
+app.openapi(embededRoute, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 	/**
@@ -116,7 +117,7 @@ app.openapi(route, (c) => {
 					const { input, format, reference } = item;
 
 					startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
-					const value = createHash(c.req.param('algorithm'))
+					const value = createHash(item.algorithm)
 						.update(Buffer.from(input, format === 'base64' ? (base64TypeCheck.test(input) ? 'base64url' : 'base64') : format))
 						.digest('hex');
 					endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
@@ -131,7 +132,7 @@ app.openapi(route, (c) => {
 		);
 	} else {
 		startTime(c, 'hashItem');
-		const value = createHash(c.req.param('algorithm'))
+		const value = createHash(json.algorithm)
 			.update(Buffer.from(json.input, json.format === 'base64' ? (base64TypeCheck.test(json.input) ? 'base64url' : 'base64') : json.format))
 			.digest('hex');
 		endTime(c, 'hashItem');
