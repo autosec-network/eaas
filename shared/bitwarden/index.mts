@@ -1,6 +1,7 @@
 import { decodeJwt, type JWTPayload } from 'jose';
 import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
+import type { ProjectResponse } from './schemas';
 
 interface ParsedJwt extends JWTPayload {
 	scope: ['api.secrets'];
@@ -8,6 +9,11 @@ interface ParsedJwt extends JWTPayload {
 	sub: UUID;
 	type: 'ServiceAccount';
 	organization: UUID;
+}
+
+interface ProjectResponsEnhanced extends ProjectResponse {
+	read: boolean;
+	write: boolean;
 }
 
 interface SecretsProject {
@@ -66,6 +72,25 @@ export class BitwardenHelper {
 					});
 			} else {
 				throw new Error('Failed to get token', { cause: await response.text() });
+			}
+		});
+	}
+
+	public getProjects(orgId: UUID = (decodeJwt(this.jwt) as ParsedJwt)['organization']) {
+		return fetch(new URL(['organizations', orgId, 'projects'].join('/'), 'https://api.bitwarden.com'), {
+			headers: {
+				Authorization: `Bearer ${this.jwt}`,
+			},
+		}).then(async (response) => {
+			if (response.ok) {
+				return response
+					.json<{
+						object: string;
+						data: ProjectResponsEnhanced[];
+					}>()
+					.then(({ data: projects }) => projects.filter((project) => project.read && project.write));
+			} else {
+				throw new Error('Failed to get secrets and projects', { cause: await response.text() });
 			}
 		});
 	}
