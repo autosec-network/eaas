@@ -172,11 +172,7 @@ export class BitwardenHelper {
 		// Step 2: Create the SymmetricCryptoKey
 		const symmetricKey = await SymmetricCryptoKey.fromBase64Key(this.orgEncryptionKey, encString.encType as 0 | 1 | 2);
 
-		const decryptedData = await encString.decryptWithKey(symmetricKey);
-
-		const decryptedString = new TextDecoder().decode(decryptedData);
-
-		return decryptedString;
+		return encString.decryptToString(symmetricKey);
 	}
 }
 
