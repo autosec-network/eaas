@@ -22,19 +22,28 @@ export default class extends WorkerEntrypoint<EnvVars> {
 					orgEncryptionKey: redact(jwt.orgEncryptionKey),
 				},
 				secrets: await Promise.all(
-					secrets.map(async (secret) => ({
-						id: secret.id,
-						organizationId: secret.organizationId,
-						projectId: secret.projects[0]?.id,
-						key: secret.key,
-						decryptedKey: await bws.decryptSecret(secret.key),
-						value: secret.value,
-						decryptedValue: await bws.decryptSecret(secret.value),
-						note: secret.note,
-						decryptedNote: await bws.decryptSecret(secret.note),
-						creationDate: secret.creationDate,
-						revisionDate: secret.revisionDate,
-					})),
+					secrets.map(async (secret) => {
+						const decryptedKey = await bws.decryptSecret(secret.key, true);
+						const decryptedValue = await bws.decryptSecret(secret.value, true);
+						const decryptedNote = await bws.decryptSecret(secret.note, true);
+
+						return {
+							id: secret.id,
+							organizationId: secret.organizationId,
+							projectId: secret.projects[0]?.id,
+							key: secret.key,
+							decryptedKey: decryptedKey.data,
+							reecryptedKey: await bws.encryptSecret(decryptedKey.data, decryptedKey.iv),
+							value: secret.value,
+							decryptedValue: decryptedValue.data,
+							reecryptedValue: await bws.encryptSecret(decryptedValue.data, decryptedValue.iv),
+							note: secret.note,
+							decryptedNote: decryptedNote.data,
+							reecryptedNote: await bws.encryptSecret(decryptedNote.data, decryptedNote.iv),
+							creationDate: secret.creationDate,
+							revisionDate: secret.revisionDate,
+						};
+					}),
 				),
 			}),
 			{ headers: { 'Content-Type': 'application/json' } },
