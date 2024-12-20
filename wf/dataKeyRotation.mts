@@ -1,6 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { eq, sql } from 'drizzle-orm';
+import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { z } from 'zod';
 import type { EnvVars } from '../api/src/types.mjs';
