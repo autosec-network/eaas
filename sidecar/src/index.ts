@@ -1,5 +1,5 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { BitwardenHelper } from '../../shared/bitwarden/index.mjs';
+import { BitwardenHelper } from '../../shared/bitwarden.mjs';
 import type { EnvVars } from './types.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
