@@ -186,6 +186,16 @@ export class BitwardenHelper {
 			return encString.decryptToString(symmetricKey);
 		}
 	}
+
+	public async encryptSecret(plainText: string, iv?: Uint8Array, version: 0 | 1 | 2 = 2) {
+		// Step 1: Create the SymmetricCryptoKey
+		const symmetricKey = await SymmetricCryptoKey.fromBase64Key(this.orgEncryptionKey, version);
+
+		// Step 2: Parse the string into an EncString object
+		const encString = await EncString.encryptAes256Hmac(new TextEncoder().encode(plainText), symmetricKey, iv);
+
+		return encString.toString();
+	}
 }
 
 /**
