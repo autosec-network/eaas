@@ -657,7 +657,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			);
 
 			const bwProject = await step.do(
-				'Get bitwarde project',
+				'Get bitwarden project',
 				{
 					retries: {
 						limit: Number.MAX_SAFE_INTEGER,
