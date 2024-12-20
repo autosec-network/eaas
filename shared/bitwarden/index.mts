@@ -165,14 +165,26 @@ export class BitwardenHelper {
 		}
 	}
 
-	public async decryptSecret(cipherText: string) {
+	/**
+	 * @param iv - Only for debugging purposes. leave undefined otherwise
+	 */
+	public async decryptSecret(cipherText: string): Promise<string>;
+	public async decryptSecret(cipherText: string, iv: true): Promise<{ data: string; iv: Readonly<Uint8Array> }>;
+	public async decryptSecret(cipherText: string, iv?: boolean) {
 		// Step 1: Parse the string into an EncString object
 		const encString = EncString.fromString(cipherText);
 
 		// Step 2: Create the SymmetricCryptoKey
 		const symmetricKey = await SymmetricCryptoKey.fromBase64Key(this.orgEncryptionKey, encString.encType as 0 | 1 | 2);
 
-		return encString.decryptToString(symmetricKey);
+		if (iv) {
+			return encString.decryptToString(symmetricKey).then((data) => ({
+				data,
+				iv: encString.iv,
+			}));
+		} else {
+			return encString.decryptToString(symmetricKey);
+		}
 	}
 }
 
@@ -308,13 +320,13 @@ export class SymmetricCryptoKey {
  */
 export class EncString {
 	encType: number; // 0,1,2
-	iv: Uint8Array;
+	_iv: Uint8Array;
 	data: Uint8Array;
 	mac?: Uint8Array;
 
 	constructor(encType: number, iv: Uint8Array, data: Uint8Array, mac?: Uint8Array) {
 		this.encType = encType;
-		this.iv = iv;
+		this._iv = iv;
 		this.data = data;
 		this.mac = mac;
 	}
@@ -357,7 +369,7 @@ export class EncString {
 	 * Convert to the string format: `encType.iv|data` or `encType.iv|data|mac`
 	 */
 	toString(): string {
-		const parts: string[] = [Buffer.from(this.iv).toString('base64'), Buffer.from(this.data).toString('base64')];
+		const parts: string[] = [Buffer.from(this._iv).toString('base64'), Buffer.from(this.data).toString('base64')];
 		if (this.encType === 1 || this.encType === 2) {
 			if (!this.mac) {
 				throw new Error('MAC missing for variant 1/2');
@@ -365,6 +377,10 @@ export class EncString {
 			parts.push(Buffer.from(this.mac).toString('base64'));
 		}
 		return `${this.encType}.${parts.join('|')}`;
+	}
+
+	get iv(): Readonly<Uint8Array> {
+		return this._iv;
 	}
 
 	/**
@@ -401,7 +417,7 @@ export class EncString {
 		if (this.encType === 0) {
 			arr = new Uint8Array(1 + 16 + this.data.length);
 			arr[0] = this.encType;
-			arr.set(this.iv, 1);
+			arr.set(this._iv, 1);
 			arr.set(this.data, 17);
 		} else {
 			if (!this.mac) {
@@ -409,7 +425,7 @@ export class EncString {
 			}
 			arr = new Uint8Array(1 + 16 + 32 + this.data.length);
 			arr[0] = this.encType;
-			arr.set(this.iv, 1);
+			arr.set(this._iv, 1);
 			arr.set(this.mac, 17);
 			arr.set(this.data, 49);
 		}
@@ -420,11 +436,10 @@ export class EncString {
 	 * Encrypt data into variant 2 (AES256 + HMAC-SHA256).
 	 * Adjust as needed for other variants.
 	 */
-	static async encryptAes256Hmac(dataDec: Uint8Array, key: SymmetricCryptoKey): Promise<EncString> {
+	static async encryptAes256Hmac(dataDec: Uint8Array, key: SymmetricCryptoKey, iv: Uint8Array = crypto.getRandomValues(new Uint8Array(16))): Promise<EncString> {
 		if (!key.macKey) {
 			throw new Error('MAC key required for variant 2 encryption');
 		}
-		const iv = crypto.getRandomValues(new Uint8Array(16));
 		const encData = await crypto.subtle.encrypt(
 			{
 				name: 'AES-CBC',
@@ -461,7 +476,7 @@ export class EncString {
 				.decrypt(
 					{
 						name: 'AES-CBC',
-						iv: this.iv,
+						iv: this._iv,
 					},
 					key.encKey,
 					this.data,
@@ -476,9 +491,9 @@ export class EncString {
 			}
 
 			// Verify MAC
-			const macData = new Uint8Array(this.iv.length + this.data.length);
-			macData.set(this.iv, 0);
-			macData.set(this.data, this.iv.length);
+			const macData = new Uint8Array(this._iv.length + this.data.length);
+			macData.set(this._iv, 0);
+			macData.set(this.data, this._iv.length);
 
 			const valid = await crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData);
 			if (!valid) {
@@ -489,7 +504,7 @@ export class EncString {
 				.decrypt(
 					{
 						name: 'AES-CBC',
-						iv: this.iv,
+						iv: this._iv,
 					},
 					key.encKey,
 					this.data,
@@ -502,9 +517,9 @@ export class EncString {
 			}
 
 			// Verify MAC
-			const macData = new Uint8Array(this.iv.length + this.data.length);
-			macData.set(this.iv, 0);
-			macData.set(this.data, this.iv.length);
+			const macData = new Uint8Array(this._iv.length + this.data.length);
+			macData.set(this._iv, 0);
+			macData.set(this.data, this._iv.length);
 
 			const valid = await crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData);
 			if (!valid) {
@@ -515,7 +530,7 @@ export class EncString {
 				.decrypt(
 					{
 						name: 'AES-CBC',
-						iv: this.iv,
+						iv: this._iv,
 					},
 					key.encKey,
 					this.data,
