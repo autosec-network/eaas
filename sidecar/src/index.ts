@@ -1,11 +1,11 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import type { EnvVars } from './types.mjs';
 import { BitwardenHelper, EncString, SymmetricCryptoKey } from '../../shared/bitwarden/index.mjs';
+import type { EnvVars } from './types.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch() {
 		const jwt = await BitwardenHelper.identity(this.env.US_BW_SM_ACCESS_TOKEN);
-		const bws = new BitwardenHelper(jwt.access_token);
+		const bws = new BitwardenHelper(jwt);
 		const { secrets: secretsList } = await bws.secretsAndProjects();
 		const secrets = await bws.getSecrets(secretsList.map((secret) => secret.id));
 

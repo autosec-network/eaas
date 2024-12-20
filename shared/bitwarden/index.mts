@@ -22,10 +22,12 @@ interface SecretsProject {
 }
 
 export class BitwardenHelper {
-	private readonly jwt: string;
+	private readonly access_token: string;
+	private readonly orgEncryptionKey: string;
 
-	constructor(jwt: string) {
-		this.jwt = jwt;
+	constructor(identity: Awaited<ReturnType<typeof BitwardenHelper.identity>>) {
+		this.access_token = identity.access_token;
+		this.orgEncryptionKey = identity.orgEncryptionKey;
 	}
 
 	public static identity(accessToken: string) {
@@ -76,10 +78,10 @@ export class BitwardenHelper {
 		});
 	}
 
-	public getProjects(orgId: UUID = (decodeJwt(this.jwt) as ParsedJwt)['organization']) {
+	public getProjects(orgId: UUID = (decodeJwt(this.access_token) as ParsedJwt)['organization']) {
 		return fetch(new URL(['organizations', orgId, 'projects'].join('/'), 'https://api.bitwarden.com'), {
 			headers: {
-				Authorization: `Bearer ${this.jwt}`,
+				Authorization: `Bearer ${this.access_token}`,
 			},
 		}).then(async (response) => {
 			if (response.ok) {
@@ -95,10 +97,10 @@ export class BitwardenHelper {
 		});
 	}
 
-	public secretsAndProjects(orgId: UUID = (decodeJwt(this.jwt) as ParsedJwt)['organization']) {
+	public secretsAndProjects(orgId: UUID = (decodeJwt(this.access_token) as ParsedJwt)['organization']) {
 		return fetch(new URL(['organizations', orgId, 'secrets'].join('/'), 'https://api.bitwarden.com'), {
 			headers: {
-				Authorization: `Bearer ${this.jwt}`,
+				Authorization: `Bearer ${this.access_token}`,
 			},
 		}).then(async (response) => {
 			if (response.ok) {
@@ -129,7 +131,7 @@ export class BitwardenHelper {
 			return fetch(new URL(['secrets', 'get-by-ids'].join('/'), 'https://api.bitwarden.com'), {
 				method: 'POST',
 				headers: {
-					Authorization: `Bearer ${this.jwt}`,
+					Authorization: `Bearer ${this.access_token}`,
 					'Content-Type': 'application/json',
 				},
 				body: JSON.stringify({
