@@ -113,6 +113,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			return t_db;
 		};
 
+		const dk_id = await step.do('Generate datakey', () => BufferHelpers.generateUuid.then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+
 		const { key_type, key_size, hash, generation_versions, retreival_versions } = await step.do(
 			'Get keyring info',
 			{
