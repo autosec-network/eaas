@@ -97,7 +97,7 @@ export class BitwardenHelper {
 		});
 	}
 
-	public secretsAndProjects(orgId: UUID = (decodeJwt(this.access_token) as ParsedJwt)['organization']) {
+	public getSecretsAndProjects(orgId: UUID = (decodeJwt(this.access_token) as ParsedJwt)['organization']) {
 		return fetch(new URL(['organizations', orgId, 'secrets'].join('/'), 'https://api.bitwarden.com'), {
 			headers: {
 				Authorization: `Bearer ${this.access_token}`,
