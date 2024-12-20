@@ -1,7 +1,7 @@
 import { decodeJwt, type JWTPayload } from 'jose';
 import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
-import type { ProjectResponse } from './types/bw/schemas';
+import type { ProjectResponse, SecretCreateRequest, SecretResponse } from './types/bw/schemas';
 
 interface ParsedJwt extends JWTPayload {
 	scope: ['api.secrets'];
@@ -11,7 +11,8 @@ interface ParsedJwt extends JWTPayload {
 	organization: UUID;
 }
 
-interface ProjectResponsEnhanced extends ProjectResponse {
+interface ProjectResponsEnhanced extends Omit<ProjectResponse, 'id'> {
+	id: UUID;
 	read: boolean;
 	write: boolean;
 }
@@ -163,6 +164,28 @@ export class BitwardenHelper {
 		} else {
 			throw new Error('No secret IDs provided');
 		}
+	}
+
+	public async setSecret(projectId: UUID, key: string, value: string, note: string = '', orgId: UUID = (decodeJwt(this.access_token) as ParsedJwt)['organization']) {
+		return fetch(new URL(['organizations', orgId, 'secrets'].join('/'), 'https://api.bitwarden.com'), {
+			method: 'POST',
+			headers: {
+				Authorization: `Bearer ${this.access_token}`,
+				'Content-Type': 'application/json',
+			},
+			body: JSON.stringify({
+				key,
+				note,
+				projectIds: [projectId],
+				value,
+			} as SecretCreateRequest),
+		}).then(async (response) => {
+			if (response.ok) {
+				return response.json<SecretResponse>();
+			} else {
+				throw new Error('Failed to get secrets and projects', { cause: await response.text() });
+			}
+		});
 	}
 
 	/**
