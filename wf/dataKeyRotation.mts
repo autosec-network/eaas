@@ -31,7 +31,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			}),
 		);
 
-		const t_id = await step.do('Generate datakey', () => BufferHelpers.uuidConvert(parsedPayload.t_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const t_id = await step.do('Convert tenant id', () => BufferHelpers.uuidConvert(parsedPayload.t_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const t_db_setup = await step.do(
 			'Tenant DB',
@@ -115,7 +115,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			return t_db;
 		};
 
-		const kr_id = await step.do('Generate datakey', () => BufferHelpers.uuidConvert(parsedPayload.kr_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const kr_id = await step.do('Convert keyring id', () => BufferHelpers.uuidConvert(parsedPayload.kr_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 		const dk_id = await step.do('Generate datakey', () => BufferHelpers.generateUuid.then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const { key_type, key_size, hash, generation_versions, retreival_versions } = await step.do(
