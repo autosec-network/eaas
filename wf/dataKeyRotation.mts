@@ -541,10 +541,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 
 						if (normalizedSlhdsaKeySize) {
 							return (async () => {
-								const fragments = key_type.split('-');
-								switch (fragments[2] as 'sha2' | 'shake') {
+								const fragments = key_type.split('-') as ['slh', 'dsa', 'sha2' | 'shake', 's' | 'f'];
+								switch (fragments[2]) {
 									case 'sha2':
-										switch (fragments[2] as 's' | 'f') {
+										switch (fragments[2]) {
 											case 's':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
@@ -568,7 +568,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 
 									// eslint-disable-next-line no-fallthrough
 									case 'shake':
-										switch (fragments[2] as 's' | 'f') {
+										switch (fragments[2]) {
 											case 's':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
