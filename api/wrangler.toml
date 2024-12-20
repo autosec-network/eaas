@@ -13,7 +13,7 @@ workflows = [
 d1_databases = [
     { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "74b7a7fd-18ea-422f-a888-47214742e4cf" },
     # VipBindingsPreview
-    { binding = "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED", database_id = "1c224b19-4090-4f2f-9bb2-375b6e77f1a1" },
+    { binding = "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED", database_id = "b55a31ba-b382-4f53-b204-2d730ee6c3aa" },
 ]
 
 [vars]
@@ -45,7 +45,7 @@ d1_databases = [
     { binding = "EAAS_ROOT", database_name = "eaas_root_p", database_id = "74b7a7fd-18ea-422f-a888-47214742e4cf" },
     # VipBindingsProd
     # VipBindingsPreview
-    { binding = "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED", database_id = "1c224b19-4090-4f2f-9bb2-375b6e77f1a1" },
+    { binding = "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED", database_id = "b55a31ba-b382-4f53-b204-2d730ee6c3aa" },
 ]
 
 [env.production.vars]
