@@ -161,7 +161,7 @@ yargs(hideBin(process.argv))
 				})
 				.demandOption('name')
 				.option('key_type', {
-					choices: Object.values(KeyAlgorithms).slice(Object.values(KeyAlgorithms).length / 2) as [`${KeyAlgorithms}`],
+					choices: Object.values(KeyAlgorithms),
 				})
 				.demandOption('key_type')
 				.option('key_size', {
