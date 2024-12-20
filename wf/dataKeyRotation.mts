@@ -540,8 +540,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						}
 
 						if (normalizedSlhdsaKeySize) {
+							const fragments = key_type.split('-') as ['slh', 'dsa', 'sha2' | 'shake', 's' | 'f'];
 							return (async () => {
-								const fragments = key_type.split('-') as ['slh', 'dsa', 'sha2' | 'shake', 's' | 'f'];
 								switch (fragments[2]) {
 									case 'sha2':
 										switch (fragments[3]) {
@@ -598,7 +598,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									publicKey: {
 										kty: 'LWE',
 										key_ops: ['sign'],
-										alg: `SLH-DSA${normalizedSlhdsaKeySize}`,
+										alg: `SLH-DSA-${fragments[2].toUpperCase()}-${normalizedSlhdsaKeySize}-${fragments[3].toUpperCase()}`,
 										crv: 'Sphincs+',
 										ext: true,
 										x: Buffer.from(publicKey).toString('base64url'),
@@ -606,7 +606,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									privateKey: {
 										kty: 'LWE',
 										key_ops: ['verify'],
-										alg: `SLH-DSA${normalizedSlhdsaKeySize}`,
+										alg: `SLH-DSA-${fragments[2].toUpperCase()}-${normalizedSlhdsaKeySize}-${fragments[3].toUpperCase()}`,
 										crv: 'Sphincs+',
 										ext: true,
 										x: Buffer.from(publicKey).toString('base64url'),
