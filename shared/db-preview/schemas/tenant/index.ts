@@ -267,7 +267,7 @@ export const keyrings = sqliteTable(
 		 */
 		count_rotation: k
 			.blob({ mode: 'buffer' })
-			.default(sql.raw(`(unhex(${(BigInt(2) ** BigInt(32)).toString(16).length % 2 === 0 ? (BigInt(2) ** BigInt(32)).toString(16) : `0${(BigInt(2) ** BigInt(32)).toString(16)}`}))`))
+			.default(sql.raw(`(unhex(${(BigInt(2) ** BigInt(32)).toString(16).length % 2 === 0 ? (BigInt(2) ** BigInt(32)).toString(16) : `'0${(BigInt(2) ** BigInt(32)).toString(16)}'`}))`))
 			.$type<D1Blob>(),
 		/**
 		 * Number of in use (1+ generation ops count) to allow for generation operations. The number is counted from the latest key.
@@ -365,7 +365,7 @@ export const datakeys = sqliteTable('datakeys', (d) => ({
 	generation_count: d
 		.blob({ mode: 'buffer' })
 		.notNull()
-		.default(sql.raw(`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `0${BigInt(0).toString(16)}`}))`))
+		.default(sql.raw(`(unhex(${BigInt(0).toString(16).length % 2 === 0 ? BigInt(0).toString(16) : `'0${BigInt(0).toString(16)}'`}))`))
 		.$type<D1Blob>(),
 }));
 
