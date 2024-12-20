@@ -8,12 +8,13 @@ on:
     paths:
       - '.github/workflows/publish-api.yml'
       - 'package*.json'
+      - 'tsconfig.json'
       - 'shared/**'
       - 'api/package*.json'
       - 'api/src/**'
-      - 'tsconfig.json'
       - 'api/tsconfig.json'
       - 'api/wrangler.toml'
+      - 'wf/**'
   workflow_dispatch:
     inputs:
       environment:
