@@ -1,4 +1,6 @@
+import type { ReadableStream } from '@cloudflare/workers-types/experimental';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
@@ -79,7 +81,7 @@ export const embededRoute = createRoute({
 							}),
 							embededInput,
 						])
-						.openapi('HashInput'),
+						.openapi('HashEmbedInput'),
 				},
 			},
 		},
@@ -93,7 +95,7 @@ export const embededRoute = createRoute({
 							success: z.boolean(),
 							result: z.union([z.array(embededOutput).nonempty(), embededOutput]),
 						})
-						.openapi('HashOutput'),
+						.openapi('HashEmbedOutput'),
 				},
 			},
 			description: 'Returns the cryptographic hash',
@@ -148,6 +150,94 @@ app.openapi(embededRoute, (c) => {
 			200,
 		);
 	}
+});
+
+const zodFileObject = z
+	.object({
+		name: z
+			.string()
+			.trim()
+			.regex(new RegExp(/.+\.\w+/i)),
+		lastModified: z.number().int().positive().finite().safe(),
+		size: z.number().int().positive().finite().safe(),
+		type: z
+			.string()
+			.trim()
+			.regex(new RegExp(/\w+\/\w+/i)),
+	})
+	.openapi({ type: 'string', format: 'binary' });
+const uploadedInput = z.object({
+	files: z.union([z.array(zodFileObject).nonempty(), zodFileObject]),
+});
+
+const uploadedOutput = z.object({
+	value: z
+		.string()
+		.trim()
+		.refine((value) => isHexadecimal(value))
+		.describe('The hash of the input data, hex encoded.')
+		.openapi({ example: createHash('sha256').update(Buffer.from(example)).digest('hex') }),
+	filename: z.string().trim(),
+});
+
+export const uploadedRoute = createRoute({
+	method: 'post',
+	path: '/{algorithm}',
+	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
+	request: {
+		params: z.object({
+			algorithm: z.enum(workersCryptoCatalog.hashes).describe('Specifies the hash algorithm to use').openapi({ example: 'sha256' }),
+		}),
+		body: {
+			content: {
+				'multipart/form-data': {
+					schema: uploadedInput.openapi('HashUploadInput'),
+				},
+			},
+		},
+	},
+	responses: {
+		200: {
+			content: {
+				'application/json': {
+					schema: z
+						.object({
+							success: z.boolean(),
+							result: z.union([z.array(uploadedOutput), uploadedOutput]),
+						})
+						.openapi('HashUploadOutput'),
+				},
+			},
+			description: 'Returns the cryptographic hash',
+		},
+	},
+});
+
+app.openapi(uploadedRoute, async (c) => {
+	const result: z.infer<typeof uploadedOutput>[] = [];
+
+	// Type cast because of CF's implementation of Request vs w3c Request
+	for await (const part of parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0])) {
+		const hash = createHash(c.req.valid('param').algorithm);
+
+		// Type cast because of CF's implementation of ReadableStream is async iterable
+		for await (const chunk of part.body as ReadableStream<Uint8Array>) {
+			hash.update(chunk);
+		}
+
+		result.push({
+			value: hash.digest('hex'),
+			filename: part.filename!,
+		});
+	}
+
+	return c.json(
+		{
+			success: true,
+			result: result,
+		},
+		200,
+	);
 });
 
 export default app;
