@@ -38,6 +38,7 @@ export interface ContextVariables extends TimingVariables {
 	permissions: Record<
 		UuidExport['base64url'],
 		{
+			kr_name: string;
 			r_encrypt: boolean;
 			r_decrypt: boolean;
 			r_rewrap: boolean;

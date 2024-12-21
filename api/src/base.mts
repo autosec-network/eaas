@@ -10,7 +10,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api1 from '~/v0/index.mjs';
 import { DBManager } from '~shared/db-core/db.mjs';
 import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
-import { api_keys, api_keys_keyrings } from '~shared/db-preview/schemas/tenant';
+import { api_keys, api_keys_keyrings, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { CryptoHelpers } from '~shared/helpers/crypto.mjs';
 import { Helpers } from '~shared/helpers/index.mjs';
@@ -102,6 +102,7 @@ app.use('*', async (c, next) => {
 												.select({
 													hash: api_keys.hash,
 													kr_id: api_keys_keyrings.kr_id,
+													kr_name: keyrings.name,
 													r_encrypt: api_keys_keyrings.r_encrypt,
 													r_decrypt: api_keys_keyrings.r_decrypt,
 													r_rewrap: api_keys_keyrings.r_rewrap,
@@ -113,6 +114,7 @@ app.use('*', async (c, next) => {
 												})
 												.from(api_keys)
 												.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))
+												.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
 												.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
 												.then((rows) =>
 													Promise.all(
