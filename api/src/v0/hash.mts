@@ -183,7 +183,7 @@ const uploadedOutput = z.object({
 export const uploadedRoute = createRoute({
 	method: 'post',
 	path: '/{algorithm}',
-	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
+	description: 'This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm',
 	request: {
 		params: z.object({
 			algorithm: z.enum(workersCryptoCatalog.hashes).describe('Specifies the hash algorithm to use').openapi({ example: 'sha256' }),
