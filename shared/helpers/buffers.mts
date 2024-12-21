@@ -6,11 +6,11 @@ export class BufferHelpers {
 	/**
 	 * @link https://base64.guru/learn/base64-characters
 	 */
-	private static readonly base64Regex = new RegExp(/^[a-z\d+/]+={0,2}$/i);
+	public static readonly base64Regex = new RegExp(/^[a-z\d+/]+={0,2}$/i);
 	/**
 	 * @link https://base64.guru/standards/base64url
 	 */
-	private static readonly base64urlRegex = new RegExp(/^[a-z\d_-]+$/i);
+	public static readonly base64urlRegex = new RegExp(/^[a-z\d_-]+$/i);
 
 	public static bigintToBuffer(number: bigint): Promise<UuidExport['blob']> {
 		const hexString = number.toString(16);

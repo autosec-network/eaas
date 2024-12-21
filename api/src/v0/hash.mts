@@ -6,6 +6,7 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
@@ -115,10 +116,6 @@ export const embededRoute = createRoute({
 app.openapi(embededRoute, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
-	/**
-	 * @link https://base64.guru/standards/base64url
-	 */
-	const base64TypeCheck = new RegExp(/^[a-z\d_-]+$/i);
 
 	if ('batch_input' in json) {
 		return c.json(
@@ -129,7 +126,7 @@ app.openapi(embededRoute, (c) => {
 
 					startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
 					const value = createHash(item.algorithm)
-						.update(Buffer.from(input, format === 'base64' ? (base64TypeCheck.test(input) ? 'base64url' : 'base64') : format))
+						.update(Buffer.from(input, format === 'base64' ? (BufferHelpers.base64urlRegex.test(input) ? 'base64url' : 'base64') : format))
 						.digest('hex');
 					endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
 
@@ -144,7 +141,7 @@ app.openapi(embededRoute, (c) => {
 	} else {
 		startTime(c, 'hashItem');
 		const value = createHash(json.algorithm)
-			.update(Buffer.from(json.input, json.format === 'base64' ? (base64TypeCheck.test(json.input) ? 'base64url' : 'base64') : json.format))
+			.update(Buffer.from(json.input, json.format === 'base64' ? (BufferHelpers.base64urlRegex.test(json.input) ? 'base64url' : 'base64') : json.format))
 			.digest('hex');
 		endTime(c, 'hashItem');
 
