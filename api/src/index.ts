@@ -18,6 +18,7 @@ export { DataKeyRotation } from '../../wf/dataKeyRotation.mjs';
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
 		const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
+		const secondaryRequest = request.clone();
 
 		// Dev debug injection point
 		app.use('*', async (c, next) => {
@@ -74,7 +75,12 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			),
 		);
 
-		// DB Setup
+		// Variable Setup
+		app.use('*', async (c, next) => {
+			c.set('bodyClone', secondaryRequest);
+
+			await next();
+		});
 		app.use('*', async (c, next) => {
 			if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
 				c.set(

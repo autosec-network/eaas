@@ -1,3 +1,4 @@
+import type { WorkerEntrypoint } from 'cloudflare:workers';
 import type { TimingVariables } from 'hono/timing';
 import type { DBManager } from '~shared/db-core/db.mjs';
 import type { UuidExport } from '~shared/types/d1/index.mjs';
@@ -27,6 +28,7 @@ interface VipBindingsPreview {
 }
 
 export interface ContextVariables extends TimingVariables {
+	bodyClone: ReturnType<Parameters<Exclude<WorkerEntrypoint['fetch'], undefined>>[0]['clone']>;
 	r_db: ReturnType<typeof DBManager.getDrizzle>;
 
 	t_id: UuidExport;
