@@ -2,6 +2,7 @@ import { OpenAPIHono } from '@hono/zod-openapi';
 import type { oas31 } from 'openapi3-ts';
 import packageJson from '~/../package.json';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import encrypt from '~/v0/encrypt.mjs';
 import hash from '~/v0/hash.mjs';
 import random from '~/v0/random.mjs';
 
@@ -96,6 +97,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	scheme: 'bearer',
 });
 
+app.route('/encrypt', encrypt);
 app.route('/hash', hash);
 app.route('/random', random);
 
