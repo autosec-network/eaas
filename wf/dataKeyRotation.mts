@@ -163,6 +163,13 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				base64url: Buffer.from(salt).toString('base64url'),
 			};
 		});
+		const macInfo = await step.do('Generate salt', async () => {
+			const salt = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
+			return {
+				base64: Buffer.from(salt).toString('base64'),
+				base64url: Buffer.from(salt).toString('base64url'),
+			};
+		});
 
 		const { publicKey, privateKey } = await step.do(
 			'Generate key(s)',
@@ -662,6 +669,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 					JSON.stringify({
 						public: publicKey,
 						salt: salt.base64url,
+						macInfo: macInfo.base64url,
 					} satisfies SecretNote),
 				),
 			);

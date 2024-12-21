@@ -1,3 +1,6 @@
+import type { EncryptionAlgorithms } from '../crypto/index.mjs';
+import type { UuidExport } from '../d1/index.mjs';
+
 export const BaseBitwardenServer = ['https://bitwarden.com', 'https://bitwarden.eu'] as const;
 
 export interface SecretNote {
@@ -9,6 +12,10 @@ export interface SecretNote {
 	 * base64url encoded
 	 */
 	salt: string;
+	/**
+	 * base64url encoded
+	 */
+	macInfo: string;
 }
 
 export enum ApiKeyVersions {
@@ -30,4 +37,25 @@ export enum ApiKeyVersions {
 	 * `2.<base64url api key id>.<base64url secret>`
 	 */
 	'512base64urlSha512' = 2,
+}
+
+export enum CipherTextVersions {
+	/**
+	 * `0.<dk_id>.<kr_id>.<algorithm>.<bitStrength>.<preamble>.<cipher text>`
+	 */
+	dkKrPreambleCipherSignature = 0,
+}
+
+// Ensure they are always in the correct order
+export function cipherText0(outputFormat: 'base64' | 'base64url' | 'hex', { dk_id, algorithm, bitStrength, preamble, cipherBuffer, signature }: { dk_id: UuidExport; preamble: Uint8Array; algorithm: EncryptionAlgorithms; bitStrength: '128' | '192' | '256'; cipherBuffer: ArrayBufferLike; signature: ArrayBufferLike }) {
+	return [
+		CipherTextVersions.dkKrPreambleCipherSignature,
+		// UuidExport already has formats as properties
+		dk_id[outputFormat],
+		Buffer.from(algorithm).toString(outputFormat),
+		Buffer.from(bitStrength).toString(outputFormat),
+		Buffer.from(preamble).toString(outputFormat),
+		Buffer.from(cipherBuffer).toString(outputFormat),
+		Buffer.from(signature).toString(outputFormat),
+	].join('.');
 }

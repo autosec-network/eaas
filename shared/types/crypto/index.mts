@@ -18,3 +18,9 @@ export enum KeyAlgorithms {
 	'SLH-DSA-SHAKE-S' = 'slh-dsa-shake-s',
 	'SLH-DSA-SHAKE-F' = 'slh-dsa-shake-f',
 }
+
+export enum EncryptionAlgorithms {
+	'AES-GCM' = 'aes-gcm',
+	'AES-CBC' = 'aes-cbc',
+	'AES-CTR' = 'aes-ctr',
+}
