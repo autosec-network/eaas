@@ -96,7 +96,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	scheme: 'bearer',
 });
 
-app.route('/random', random);
 app.route('/hash', hash);
+app.route('/random', random);
 
 export default app;
