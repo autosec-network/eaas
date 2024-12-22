@@ -334,11 +334,11 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			} satisfies HkdfParams,
 			keyMaterial,
 			{
-				name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
-				length: parseInt(algorithmSize),
-			} satisfies AesDerivedKeyParams,
+				name: 'HMAC',
+				hash: normalizedHashName,
+			} satisfies HmacKeyGenParams,
 			false,
-			['encrypt'],
+			['sign'],
 		),
 	]).then(([key, mac]) => ({ key, mac }));
 }
@@ -528,7 +528,7 @@ app.openapi(embededRoute, async (c) => {
 										inputFormat: allowedInput.inputFormat,
 									}),
 									signContent({
-										key,
+										key: mac,
 										input: allowedInput.input,
 										inputFormat: allowedInput.inputFormat,
 									}),
