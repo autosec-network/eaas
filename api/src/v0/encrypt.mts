@@ -410,13 +410,24 @@ app.openapi(embededRoute, async (c) => {
 
 	if ('batch_input' in json) {
 		// Filter out inputs that don't use keyrings we're allowed to access
-		const allowedInputs = json.batch_input.filter(({ keyringName }) => Object.values(c.var.permissions).find((keyring_permission) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(keyringName.toLowerCase())))?.r_encrypt);
+		const allowedInputs = json.batch_input.filter(
+			({ keyringName }) =>
+				Object.values(c.var.permissions).find((keyring_permission) => {
+					const name1 = Buffer.from(keyring_permission.kr_name.toLowerCase());
+					const name2 = Buffer.from(keyringName.toLowerCase());
+					return name1.byteLength === name2.byteLength && timingSafeEqual(name1, name2);
+				})?.r_encrypt,
+		);
 
 		if (allowedInputs.length > 0) {
 			// Get every unique keyring name from the allowed inputs
 			const keyringPermissions = await Promise.all(
 				Array.from(new Set(allowedInputs.map(({ keyringName }) => keyringName))).map(async (name) => {
-					const [kr_id_base64url] = Object.entries(c.var.permissions).find(([, keyring_permission]) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(name.toLowerCase())))!;
+					const [kr_id_base64url] = Object.entries(c.var.permissions).find(([, keyring_permission]) => {
+						const name1 = Buffer.from(keyring_permission.kr_name.toLowerCase());
+						const name2 = Buffer.from(name.toLowerCase());
+						return name1.byteLength === name2.byteLength && timingSafeEqual(name1, name2);
+					})!;
 
 					return {
 						// Get the base64url encoded keyring id (the key of the permission object)
