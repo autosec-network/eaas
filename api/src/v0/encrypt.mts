@@ -470,8 +470,6 @@ app.openapi(embededRoute, async (c) => {
 			const bwDatakeys = receivedDatakeys.filter(({ bw_id }) => bw_id !== undefined).map((datakey) => ({ ...datakey, bw_id: datakey.bw_id! }));
 
 			if (bwDatakeys.length > 0) {
-				console.debug('Smart placement', c.req.header('cf-placement'));
-
 				startTime(c, 'bitwarden-auth');
 				const jwt = await BitwardenHelper.identity(c.env.US_BW_SM_ACCESS_TOKEN);
 				endTime(c, 'bitwarden-auth');
