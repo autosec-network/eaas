@@ -2,7 +2,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { timingSafeEqual } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
@@ -28,6 +28,19 @@ app.use('*', async (c, next) => {
 });
 
 const exampleInput = 'Hello world';
+const exampleOutput: Parameters<typeof cipherText0>[1] = {
+	// @ts-expect-error all that's actually used
+	dk_id: {
+		hex: '00000000000000000000000000000000',
+		base64: Buffer.from('00000000000000000000000000000000', 'hex').toString('base64'),
+		base64url: Buffer.from('00000000000000000000000000000000', 'hex').toString('base64url'),
+	},
+	algorithm: EncryptionAlgorithms['AES-GCM'],
+	bitStrength: '256',
+	preamble: new Uint8Array(96 / 8),
+	cipherBuffer: new Uint8Array(Math.floor(Math.random() * 100)),
+	signature: new Uint8Array(512 / 8),
+};
 
 const embededInputBase = z.object({
 	keyringName: z.string().trim().min(1).toLowerCase().describe('Specifies the name of the key ring to use, case insensitive'),
@@ -76,15 +89,35 @@ const embededInput = z.discriminatedUnion('inputFormat', [
 	}),
 ]);
 
-const embededOutput = z.object({
-	value: z
-		.string()
-		.trim()
-		.refine((value) => isHexadecimal(value))
-		.describe('The hash of the input data, hex encoded.')
-		.openapi({ example: createHash('sha256').update(Buffer.from(exampleInput, 'utf8')).digest('hex') }),
+const embededOutputBase = z.object({
 	reference: z.string().trim().optional().describe('The value of the `reference` field from the corresponding item in the request'),
 });
+const embededOutput = z.union([
+	embededOutputBase.extend({
+		value: z
+			.string()
+			.trim()
+			.base64()
+			.describe('The encrypted text to store, base64 encoded.')
+			.openapi({ example: cipherText0('base64', exampleOutput) }),
+	}),
+	embededOutputBase.extend({
+		value: z
+			.string()
+			.trim()
+			.base64url()
+			.describe('The encrypted text to store, base64url encoded.')
+			.openapi({ example: cipherText0('base64url', exampleOutput) }),
+	}),
+	embededOutputBase.extend({
+		value: z
+			.string()
+			.trim()
+			.refine((value) => isHexadecimal(value))
+			.describe('The encrypted text to store, hex encoded.')
+			.openapi({ example: cipherText0('hex', exampleOutput) }),
+	}),
+]);
 
 export const embededRoute = createRoute({
 	method: 'post',
