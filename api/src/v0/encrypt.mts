@@ -506,6 +506,7 @@ app.openapi(embededRoute, async (c) => {
 
 				await Promise.all(
 					allowedInputs.map(async (allowedInput) => {
+						// Get correlating key from bitwarden keys
 						const bwKey = bwKeys.find((bwKey) => bwKey.name.toLowerCase() === allowedInput.keyringName.toLowerCase());
 
 						if (bwKey) {
