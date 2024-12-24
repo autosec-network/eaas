@@ -47,7 +47,7 @@ export enum CipherTextVersions {
 }
 
 // Ensure they are always in the correct order
-export function cipherText0(outputFormat: 'base64' | 'base64url' | 'hex', { dk_id, algorithm, bitStrength, preamble, cipherBuffer, signature }: { dk_id: UuidExport; preamble: Uint8Array; algorithm: EncryptionAlgorithms; bitStrength: '128' | '192' | '256'; cipherBuffer: Uint8Array; signature: ArrayBufferLike }) {
+export function cipherText0(outputFormat: 'base64' | 'base64url' | 'hex', { dk_id, algorithm, bitStrength, preamble, cipherBuffer, signature }: { dk_id: UuidExport; preamble: Uint8Array; algorithm: EncryptionAlgorithms; bitStrength: '128' | '192' | '256'; cipherBuffer: Uint8Array; signature: Uint8Array }) {
 	return [
 		CipherTextVersions.dkKrPreambleCipherSignature,
 		// UuidExport already has formats as properties

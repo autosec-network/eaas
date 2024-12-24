@@ -603,7 +603,7 @@ app.openapi(embededRoute, async (c) => {
 												bitStrength: allowedInput.bitStrength,
 												preamble,
 												cipherBuffer,
-												signature,
+												signature: new Uint8Array(signature),
 											}),
 											reference: allowedInput.reference,
 										});
@@ -795,7 +795,7 @@ app.openapi(embededRoute, async (c) => {
 												bitStrength: json.bitStrength,
 												preamble,
 												cipherBuffer,
-												signature,
+												signature: new Uint8Array(signature),
 											}),
 											reference: json.reference,
 										},
