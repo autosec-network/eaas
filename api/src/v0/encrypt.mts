@@ -410,14 +410,14 @@ app.openapi(embededRoute, async (c) => {
 
 	if ('batch_input' in json) {
 		// Filter out inputs that don't use keyrings we're allowed to access
-		const allowedInputs = json.batch_input.filter(({ keyringName }) => Object.values(c.var.permissions).find((keyring_permission) => keyring_permission.kr_name.toLowerCase() === keyringName.toLowerCase())?.r_encrypt);
+		const allowedInputs = json.batch_input.filter(({ keyringName }) => Object.values(c.var.permissions).find((keyring_permission) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(keyringName.toLowerCase())))?.r_encrypt);
 
 		if (allowedInputs.length > 0) {
 			// Get every unique keyring name from the allowed inputs
 			const keyringPermissions = await Promise.all(
 				Array.from(new Set(allowedInputs.map(({ keyringName }) => keyringName))).map(async (name) => ({
 					// Get the base64url encoded keyring id (the key of the permission object)
-					kr_id: await BufferHelpers.uuidConvert(Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === name.toLowerCase())![0]),
+					kr_id: await BufferHelpers.uuidConvert(Object.entries(c.var.permissions).find(([, keyring_permission]) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(name.toLowerCase())))![0]),
 					// Carry over the name for lookup
 					name,
 				})),
