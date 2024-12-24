@@ -5,6 +5,7 @@ import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
+import { zodFileObject } from '~/base.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
@@ -158,20 +159,6 @@ app.openapi(embededRoute, (c) => {
 	}
 });
 
-const zodFileObject = z
-	.object({
-		name: z
-			.string()
-			.trim()
-			.regex(new RegExp(/.+\.\w+/i)),
-		lastModified: z.number().int().positive().finite().safe(),
-		size: z.number().int().positive().finite().safe(),
-		type: z
-			.string()
-			.trim()
-			.regex(new RegExp(/\w+\/\w+/i)),
-	})
-	.openapi({ type: 'string', format: 'binary' });
 const uploadedInput = z.object({
 	files: z.union([z.array(zodFileObject).nonempty(), zodFileObject]),
 });

@@ -1,3 +1,4 @@
+import { z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm';
 import { Hono } from 'hono';
 import { bearerAuth } from 'hono/bearer-auth';
@@ -216,3 +217,18 @@ app.use('*', prettyJSON());
 app.route('/v0', api1);
 
 export default app;
+
+export const zodFileObject = z
+	.object({
+		name: z
+			.string()
+			.trim()
+			.regex(new RegExp(/.+\.\w+/i)),
+		lastModified: z.number().int().positive().finite().safe(),
+		size: z.number().int().positive().finite().safe(),
+		type: z
+			.string()
+			.trim()
+			.regex(new RegExp(/\w+\/\w+/i)),
+	})
+	.openapi({ type: 'string', format: 'binary' });
