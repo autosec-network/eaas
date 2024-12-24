@@ -544,6 +544,35 @@ app.openapi(embededRoute, async (c) => {
 									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
 										endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 
+										// Update encryption counter
+										c.executionCtx.waitUntil(
+											c.var.t_db.transaction(async (transaction) => {
+												const currentCount = await transaction
+													.select({ generation_count: datakeys.generation_count })
+													.from(datakeys)
+													.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+													.limit(1)
+													.then((rows) =>
+														Promise.all(
+															rows.map(async (row) => ({
+																...row,
+																generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+															})),
+														),
+													);
+
+												if (currentCount.length > 0) {
+													await transaction
+														.update(datakeys)
+														.set({ generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToBuffer(++currentCount[0]!.generation_count)})` })
+														.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+														.limit(1);
+												} else {
+													throw new Error('Datakey not found');
+												}
+											}),
+										);
+
 										// Append back
 										returningCiphertexts.push({
 											value: cipherText0(allowedInput.outputFormat, {
