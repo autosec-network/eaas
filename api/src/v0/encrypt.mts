@@ -1,5 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { eq, inArray, sql } from 'drizzle-orm';
+import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
@@ -617,10 +617,189 @@ app.openapi(embededRoute, async (c) => {
 			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
 		}
 	} else {
-		const keyring_permission = Object.values(c.var.permissions).find((keyring_permission) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
+		// const keyring_permission = Object.values(c.var.permissions).find((keyring_permission) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
+		const keyring_permissions = Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
 
-		if (keyring_permission) {
-			return c.json({});
+		if (keyring_permissions) {
+			const [kr_id_base64url, keyring_permission] = keyring_permissions;
+			const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
+
+			console.debug(kr_id, keyring_permission);
+
+			startTime(c, 'db-fetch-datakeys');
+			const receivedDatakeys = await c.var.t_db
+				.select({
+					dk_id: datakeys.dk_id,
+					kr_id: datakeys.kr_id,
+					bw_id: datakeys.bw_id,
+					generation_count: datakeys.generation_count,
+					key_type: keyrings.key_type,
+					key_size: keyrings.key_size,
+					hash: keyrings.hash,
+				})
+				.from(datakeys)
+				.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
+				.where(eq(keyrings.kr_id, sql<D1Blob>`unhex(${kr_id.hex})`))
+				.orderBy(desc(datakeys.b_time))
+				// versions is 0 based
+				.limit(keyring_permission.generation_versions + 1)
+				.then((rows) =>
+					Promise.all(
+						rows.map(({ key_type, key_size, hash, ...row }) =>
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+							})),
+						),
+					),
+				);
+			endTime(c, 'db-fetch-datakeys');
+
+			// Get all the datakeys backed by bitwarden
+			const bwDatakeys = receivedDatakeys.filter(({ bw_id }) => bw_id !== undefined).map((datakey) => ({ ...datakey, bw_id: datakey.bw_id! }));
+
+			console.debug('bwDatakeys', bwDatakeys);
+
+			if (bwDatakeys.length > 0) {
+				startTime(c, 'bitwarden-auth');
+				const jwt = await BitwardenHelper.identity(c.env.US_BW_SM_ACCESS_TOKEN);
+				endTime(c, 'bitwarden-auth');
+
+				const bws = new BitwardenHelper(jwt);
+
+				// Get all the unique keys from bitwarden and parse them into formats needeed + carry over db metadata (for filtering purposes)
+				startTime(c, 'bitwarden-fetch-datakeys');
+				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
+					Promise.all(
+						retreivedKeys.map((retreivedKey) =>
+							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
+								const [, kr_id_utf8] = key.split('/');
+								const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
+								const jsonNote = JSON.parse(note) as SecretNote;
+
+								return {
+									key_type,
+									key_size,
+									hash,
+									dk_id,
+									private: JSON.parse(value) as JsonWebKey,
+									// Must use spread because `public` is a reserved name
+									...jsonNote,
+									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
+									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
+								};
+							}),
+						),
+					),
+				);
+				endTime(c, 'bitwarden-fetch-datakeys');
+
+				// Get correlating key from bitwarden keys
+				const bwKey = bwKeys[0];
+
+				if (bwKey) {
+					startTime(c, 'encrypt-compute-keys');
+					// Comute actual encryption key from data key(s)
+					return generateKey({
+						algorithm: json.algorithm,
+						algorithmSize: json.bitStrength,
+						hash: bwKey.hash,
+						key_type: bwKey.key_type,
+						key_size: bwKey.key_size ?? undefined,
+						salt: bwKey.salt,
+						macInfo: bwKey.macInfo,
+						privateKey: bwKey.private,
+						publicKey: bwKey.public,
+					}).then(({ key, mac }) => {
+						endTime(c, 'encrypt-compute-keys');
+
+						startTime(c, 'encrypt-cipher');
+						// Actually encrypt
+						return encryptContent({
+							algorithm: json.algorithm,
+							key,
+							input: json.input,
+							inputFormat: json.inputFormat,
+						}).then(({ cipherBuffer, preamble }) => {
+							endTime(c, 'encrypt-cipher');
+
+							startTime(c, 'encrypt-sign');
+							// Sign over IV || data (to account for algorithms that don't have proper validation)
+							const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
+							mergedBuffer.set(preamble, 0);
+							mergedBuffer.set(preamble, preamble.length);
+
+							return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
+								endTime(c, 'encrypt-sign');
+
+								/**
+								 * Update encryption counter
+								 *
+								 * Potential inconsistency, but can't be resolved until D1 supports transactions
+								 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+								 */
+								c.executionCtx.waitUntil(
+									c.var.t_db
+										.select({ generation_count: datakeys.generation_count })
+										.from(datakeys)
+										.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+										.limit(1)
+										.then((rows) =>
+											Promise.all(
+												rows.map(async (row) => ({
+													...row,
+													generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+												})),
+											),
+										)
+										.then(([row]) => {
+											if (row) {
+												console.debug('row', row);
+
+												return c.var.t_db
+													.update(datakeys)
+													.set({
+														generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+													})
+													.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+													.limit(1);
+											} else {
+												throw new Error('Datakey not found');
+											}
+										}),
+								);
+
+								return c.json(
+									{
+										success: true,
+										result: {
+											value: cipherText0(json.outputFormat, {
+												algorithm: json.algorithm,
+												bitStrength: json.bitStrength,
+												cipherBuffer,
+												dk_id: bwKey.dk_id,
+												preamble,
+												signature,
+											}),
+											reference: json.reference,
+										},
+									},
+									200,
+								);
+							});
+						});
+					});
+				} else {
+					return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore', extensions: { code: 500 } }] }, 500);
+				}
+			} else {
+				return c.json({ success: false, errors: [{ message: 'Unsupported data store', extensions: { code: 500 } }] }, 500);
+			}
 		} else {
 			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
 		}
