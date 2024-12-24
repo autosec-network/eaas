@@ -18,7 +18,7 @@ export class BufferHelpers {
 	}
 
 	public static bigintToHex(number: bigint): UuidExport['hex'] {
-		return number.toString(16).length % 2 === 0 ? number.toString(16) : `'0${number.toString(16)}'`;
+		return number.toString(16).length % 2 === 0 ? number.toString(16) : `0${number.toString(16)}`;
 	}
 
 	public static bufferToBigint(buffer: UuidExport['blob'] | D1Blob) {
