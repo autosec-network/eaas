@@ -404,10 +404,6 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 	}
 }
 
-async function signContent({ key, input, inputFormat }: { key: CryptoKey; input: z.infer<typeof embededInput>['input']; inputFormat: z.infer<typeof embededInput>['inputFormat'] }) {
-	return crypto.subtle.sign({ name: 'HMAC' }, key, inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat));
-}
-
 app.openapi(embededRoute, async (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
@@ -480,6 +476,7 @@ app.openapi(embededRoute, async (c) => {
 
 				const bws = new BitwardenHelper(jwt);
 
+				// Get all the unique keys from bitwarden and parse them into formats needeed + carry over db metadata (for filtering purposes)
 				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
@@ -495,6 +492,7 @@ app.openapi(embededRoute, async (c) => {
 									hash,
 									dk_id,
 									private: JSON.parse(value) as JsonWebKey,
+									// Must use spread because `public` is a reserved name
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
@@ -520,31 +518,31 @@ app.openapi(embededRoute, async (c) => {
 								privateKey: bwKey.private,
 								publicKey: bwKey.public,
 							}).then(({ key, mac }) =>
-								Promise.all([
-									encryptContent({
-										algorithm: allowedInput.algorithm,
-										key,
-										input: allowedInput.input,
-										inputFormat: allowedInput.inputFormat,
-									}),
-									signContent({
-										key: mac,
-										input: allowedInput.input,
-										inputFormat: allowedInput.inputFormat,
-									}),
-								]).then(([{ cipherBuffer, preamble }, signature]) =>
-									returningCiphertexts.push({
-										value: cipherText0(allowedInput.outputFormat, {
-											algorithm: allowedInput.algorithm,
-											bitStrength: allowedInput.bitStrength,
-											cipherBuffer,
-											dk_id: bwKey.dk_id,
-											preamble,
-											signature,
+								encryptContent({
+									algorithm: allowedInput.algorithm,
+									key,
+									input: allowedInput.input,
+									inputFormat: allowedInput.inputFormat,
+								}).then(({ cipherBuffer, preamble }) => {
+									// Sign over IV || data
+									const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
+									mergedBuffer.set(preamble, 0);
+									mergedBuffer.set(preamble, preamble.length);
+
+									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) =>
+										returningCiphertexts.push({
+											value: cipherText0(allowedInput.outputFormat, {
+												algorithm: allowedInput.algorithm,
+												bitStrength: allowedInput.bitStrength,
+												cipherBuffer,
+												dk_id: bwKey.dk_id,
+												preamble,
+												signature,
+											}),
+											reference: allowedInput.reference,
 										}),
-										reference: allowedInput.reference,
-									}),
-								),
+									);
+								}),
 							);
 						} else {
 							return undefined;
