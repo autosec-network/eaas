@@ -415,12 +415,16 @@ app.openapi(embededRoute, async (c) => {
 		if (allowedInputs.length > 0) {
 			// Get every unique keyring name from the allowed inputs
 			const keyringPermissions = await Promise.all(
-				Array.from(new Set(allowedInputs.map(({ keyringName }) => keyringName))).map(async (name) => ({
-					// Get the base64url encoded keyring id (the key of the permission object)
-					kr_id: await BufferHelpers.uuidConvert(Object.entries(c.var.permissions).find(([, keyring_permission]) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(name.toLowerCase())))![0]),
-					// Carry over the name for lookup
-					name,
-				})),
+				Array.from(new Set(allowedInputs.map(({ keyringName }) => keyringName))).map(async (name) => {
+					const [kr_id_base64url] = Object.entries(c.var.permissions).find(([, keyring_permission]) => timingSafeEqual(Buffer.from(keyring_permission.kr_name.toLowerCase()), Buffer.from(name.toLowerCase())))!;
+
+					return {
+						// Get the base64url encoded keyring id (the key of the permission object)
+						kr_id: await BufferHelpers.uuidConvert(kr_id_base64url),
+						// Carry over the name for lookup
+						name,
+					};
+				}),
 			);
 
 			// Efficient batch retreive datakeys
