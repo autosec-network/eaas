@@ -203,8 +203,6 @@ yargs(hideBin(process.argv))
 					)
 					.then(([row]) => {
 						if (row) {
-							const count_rotation = BigInt(args.count_rotation).toString(16);
-
 							return (
 								DBManager.getDrizzle(
 									{
@@ -222,7 +220,7 @@ yargs(hideBin(process.argv))
 										key_type: args.key_type,
 										key_size: args.key_size,
 										hash: args.hash,
-										count_rotation: sql<D1Blob>`unhex(${count_rotation.length % 2 === 0 ? count_rotation : `0${count_rotation}`})`,
+										count_rotation: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(BigInt(args.count_rotation))})`,
 									})
 									.returning()
 									.then(console.log)
