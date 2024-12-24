@@ -479,6 +479,7 @@ app.openapi(embededRoute, async (c) => {
 				const bws = new BitwardenHelper(jwt);
 
 				// Get all the unique keys from bitwarden and parse them into formats needeed + carry over db metadata (for filtering purposes)
+				startTime(c, 'bitwarden-fetch-datakeys');
 				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
@@ -503,6 +504,7 @@ app.openapi(embededRoute, async (c) => {
 						),
 					),
 				);
+				endTime(c, 'bitwarden-fetch-datakeys');
 
 				await Promise.all(
 					allowedInputs.map(async (allowedInput) => {
@@ -510,6 +512,7 @@ app.openapi(embededRoute, async (c) => {
 						const bwKey = bwKeys.find((bwKey) => bwKey.name.toLowerCase() === allowedInput.keyringName.toLowerCase());
 
 						if (bwKey) {
+							startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-compute-keys`);
 							return generateKey({
 								algorithm: allowedInput.algorithm,
 								algorithmSize: allowedInput.bitStrength,
@@ -520,19 +523,27 @@ app.openapi(embededRoute, async (c) => {
 								macInfo: bwKey.macInfo,
 								privateKey: bwKey.private,
 								publicKey: bwKey.public,
-							}).then(({ key, mac }) =>
-								encryptContent({
+							}).then(({ key, mac }) => {
+								endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-compute-keys`);
+
+								startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
+								return encryptContent({
 									algorithm: allowedInput.algorithm,
 									key,
 									input: allowedInput.input,
 									inputFormat: allowedInput.inputFormat,
 								}).then(({ cipherBuffer, preamble }) => {
+									endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
+
+									startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 									// Sign over IV || data
 									const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
 									mergedBuffer.set(preamble, 0);
 									mergedBuffer.set(preamble, preamble.length);
 
-									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) =>
+									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
+										endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
+
 										returningCiphertexts.push({
 											value: cipherText0(allowedInput.outputFormat, {
 												algorithm: allowedInput.algorithm,
@@ -543,10 +554,10 @@ app.openapi(embededRoute, async (c) => {
 												signature,
 											}),
 											reference: allowedInput.reference,
-										}),
-									);
-								}),
-							);
+										});
+									});
+								});
+							});
 						} else {
 							return undefined;
 						}
