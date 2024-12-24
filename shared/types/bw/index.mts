@@ -41,7 +41,7 @@ export enum ApiKeyVersions {
 
 export enum CipherTextVersions {
 	/**
-	 * `0.<dk_id>.<kr_id>.<algorithm>.<bitStrength>.<preamble>.<cipher text>`
+	 * `0.<dk_id>.<algorithm>.<bitStrength>.<preamble>.<cipher text>.<mac>`
 	 */
 	dkKrPreambleCipherSignature = 0,
 }
