@@ -39,6 +39,8 @@ export interface ContextVariables extends TimingVariables {
 		UuidExport['base64url'],
 		{
 			kr_name: string;
+			generation_versions: number;
+			retreival_versions: number;
 			r_encrypt: boolean;
 			r_decrypt: boolean;
 			r_rewrap: boolean;

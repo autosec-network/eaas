@@ -103,6 +103,8 @@ app.use('*', async (c, next) => {
 													hash: api_keys.hash,
 													kr_id: api_keys_keyrings.kr_id,
 													kr_name: keyrings.name,
+													generation_versions: keyrings.generation_versions,
+													retreival_versions: keyrings.retreival_versions,
 													r_encrypt: api_keys_keyrings.r_encrypt,
 													r_decrypt: api_keys_keyrings.r_decrypt,
 													r_rewrap: api_keys_keyrings.r_rewrap,
