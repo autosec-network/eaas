@@ -444,6 +444,7 @@ app.openapi(embededRoute, async (c) => {
 						keyringPermissions.map(({ kr_id }) => sql<D1Blob>`unhex(${kr_id.hex})`),
 					),
 				)
+				.orderBy(desc(datakeys.b_time))
 				.groupBy(datakeys.kr_id)
 				.then((rows) =>
 					Promise.all(
