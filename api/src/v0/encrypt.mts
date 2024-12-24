@@ -598,11 +598,11 @@ app.openapi(embededRoute, async (c) => {
 										// Append back
 										returningCiphertexts.push({
 											value: cipherText0(allowedInput.outputFormat, {
+												dk_id: bwKey.dk_id,
 												algorithm: allowedInput.algorithm,
 												bitStrength: allowedInput.bitStrength,
-												cipherBuffer,
-												dk_id: bwKey.dk_id,
 												preamble,
+												cipherBuffer,
 												signature,
 											}),
 											reference: allowedInput.reference,
@@ -790,11 +790,11 @@ app.openapi(embededRoute, async (c) => {
 										success: true,
 										result: {
 											value: cipherText0(json.outputFormat, {
+												dk_id: bwKey.dk_id,
 												algorithm: json.algorithm,
 												bitStrength: json.bitStrength,
-												cipherBuffer,
-												dk_id: bwKey.dk_id,
 												preamble,
+												cipherBuffer,
 												signature,
 											}),
 											reference: json.reference,
