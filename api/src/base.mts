@@ -204,7 +204,7 @@ app.use(
 	}),
 );
 
-// Performance
+// Shared storage
 app.use('*', contextStorage());
 
 // Debug
