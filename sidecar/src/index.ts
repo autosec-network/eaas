@@ -1,4 +1,6 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
+import { Buffer } from 'node:buffer';
+import { timingSafeEqual } from 'node:crypto';
 import type { EnvVars } from '~/types.mjs';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 
@@ -33,13 +35,13 @@ export default class extends WorkerEntrypoint<EnvVars> {
 							projectId: secret.projects[0]?.id,
 							key: secret.key,
 							decryptedKey: decryptedKey.data,
-							reecryptedKey: await bws.encryptSecret(decryptedKey.data, decryptedKey.iv),
+							reecryptedKey: timingSafeEqual(Buffer.from(secret.key), Buffer.from(await bws.encryptSecret(decryptedKey.data, decryptedKey.iv))),
 							value: secret.value,
 							decryptedValue: decryptedValue.data,
-							reecryptedValue: await bws.encryptSecret(decryptedValue.data, decryptedValue.iv),
+							reecryptedValue: timingSafeEqual(Buffer.from(secret.value), Buffer.from(await bws.encryptSecret(decryptedValue.data, decryptedValue.iv))),
 							note: secret.note,
 							decryptedNote: decryptedNote.data,
-							reecryptedNote: await bws.encryptSecret(decryptedNote.data, decryptedNote.iv),
+							reecryptedNote: timingSafeEqual(Buffer.from(secret.note), Buffer.from(await bws.encryptSecret(decryptedNote.data, decryptedNote.iv))),
 							creationDate: secret.creationDate,
 							revisionDate: secret.revisionDate,
 						};
