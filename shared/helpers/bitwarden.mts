@@ -528,21 +528,23 @@ export class EncString {
 			macData.set(this._iv, 0);
 			macData.set(this.data, this._iv.length);
 
-			const valid = await crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData);
-			if (!valid) {
-				throw new Error('Invalid MAC');
-			}
-
-			return crypto.subtle
-				.decrypt(
+			return Promise.all([
+				crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData),
+				crypto.subtle.decrypt(
 					{
 						name: 'AES-CBC',
 						iv: this._iv,
 					},
 					key.encKey,
 					this.data,
-				)
-				.then((decData) => new Uint8Array(decData));
+				),
+			]).then(([valid, decData]) => {
+				if (valid) {
+					return new Uint8Array(decData);
+				} else {
+					throw new Error('Invalid MAC');
+				}
+			});
 		} else if (this.encType === 2) {
 			// AES-256 + HMAC-SHA256
 			if (!key.macKey) {
@@ -554,21 +556,23 @@ export class EncString {
 			macData.set(this._iv, 0);
 			macData.set(this.data, this._iv.length);
 
-			const valid = await crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData);
-			if (!valid) {
-				throw new Error('Invalid MAC');
-			}
-
-			return crypto.subtle
-				.decrypt(
+			return Promise.all([
+				crypto.subtle.verify('HMAC', key.macKey, this.mac!, macData),
+				crypto.subtle.decrypt(
 					{
 						name: 'AES-CBC',
 						iv: this._iv,
 					},
 					key.encKey,
 					this.data,
-				)
-				.then((decData) => new Uint8Array(decData));
+				),
+			]).then(([valid, decData]) => {
+				if (valid) {
+					return new Uint8Array(decData);
+				} else {
+					throw new Error('Invalid MAC');
+				}
+			});
 		} else {
 			throw new Error(`Invalid encType ${this.encType}`);
 		}
@@ -600,6 +604,16 @@ export class EncString {
  * @returns Expanded key as a Uint8Array.
  */
 export async function hkdfExpand(key: Uint8Array, info: string | null, outputLength: number): Promise<Uint8Array> {
+	const cryptoKey = await crypto.subtle.importKey(
+		'raw',
+		key,
+		{
+			name: 'HMAC',
+			hash: 'SHA-256',
+		},
+		false,
+		['sign'],
+	);
 	const infoBytes = info ? new TextEncoder().encode(info) : new Uint8Array();
 	const output = new Uint8Array(outputLength);
 	const hashLength = 32; // SHA-256 output length
@@ -607,20 +621,7 @@ export async function hkdfExpand(key: Uint8Array, info: string | null, outputLen
 
 	let t = new Uint8Array(0);
 	for (let i = 0; i < iterations; i++) {
-		const hmac = await crypto.subtle.sign(
-			'HMAC',
-			await crypto.subtle.importKey(
-				'raw',
-				key,
-				{
-					name: 'HMAC',
-					hash: 'SHA-256',
-				},
-				false,
-				['sign'],
-			),
-			new Uint8Array([...t, ...infoBytes, i + 1]),
-		);
+		const hmac = await crypto.subtle.sign('HMAC', cryptoKey, new Uint8Array([...t, ...infoBytes, i + 1]));
 		t = new Uint8Array(hmac);
 		output.set(t.slice(0, Math.min(hashLength, outputLength - i * hashLength)), i * hashLength);
 	}
