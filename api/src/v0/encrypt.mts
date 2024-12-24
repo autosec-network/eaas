@@ -1,4 +1,5 @@
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
@@ -376,7 +377,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 	]).then(([key, mac]) => ({ key, mac }));
 }
 
-async function encryptContent({ algorithm, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; key: CryptoKey; inputFormat: z.infer<typeof embededInput>['inputFormat']; input: z.infer<typeof embededInput>['input'] }) {
+async function encryptContent({ algorithm, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; key: CryptoKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
 	switch (algorithm) {
 		case EncryptionAlgorithms['AES-GCM']:
 			// AES-GCM uses a 96-bit iv
@@ -389,7 +390,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 						iv: gcmIv,
 					} satisfies AesGcmParams,
 					key,
-					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
+					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
 				)
 				.then((cipherBuffer) => ({
 					cipherBuffer: new Uint8Array(cipherBuffer),
@@ -406,7 +407,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 						iv: cbcIv,
 					} satisfies AesCbcParams,
 					key,
-					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
+					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
 				)
 				.then((cipherBuffer) => ({
 					cipherBuffer: new Uint8Array(cipherBuffer),
@@ -428,7 +429,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 						length: (ctrCounter.byteLength * 8) / 2,
 					} satisfies AesCtrParams,
 					key,
-					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
+					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
 				)
 				.then((cipherBuffer) => ({
 					cipherBuffer: new Uint8Array(cipherBuffer),
@@ -661,14 +662,11 @@ app.openapi(embededRoute, async (c) => {
 			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
 		}
 	} else {
-		// const keyring_permission = Object.values(c.var.permissions).find((keyring_permission) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
 		const keyring_permissions = Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
 
 		if (keyring_permissions) {
 			const [kr_id_base64url, keyring_permission] = keyring_permissions;
 			const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
-
-			console.debug(kr_id, keyring_permission);
 
 			startTime(c, 'db-fetch-datakeys');
 			const receivedDatakeys = await c.var.t_db
@@ -706,8 +704,6 @@ app.openapi(embededRoute, async (c) => {
 
 			// Get all the datakeys backed by bitwarden
 			const bwDatakeys = receivedDatakeys.filter(({ bw_id }) => bw_id !== undefined).map((datakey) => ({ ...datakey, bw_id: datakey.bw_id! }));
-
-			console.debug('bwDatakeys', bwDatakeys);
 
 			if (bwDatakeys.length > 0) {
 				startTime(c, 'bitwarden-auth');
@@ -803,8 +799,6 @@ app.openapi(embededRoute, async (c) => {
 										)
 										.then(([row]) => {
 											if (row) {
-												console.debug('row', row);
-
 												return c.var.t_db
 													.update(datakeys)
 													.set({
@@ -847,6 +841,261 @@ app.openapi(embededRoute, async (c) => {
 		} else {
 			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
 		}
+	}
+});
+
+const zodFileObject = z
+	.object({
+		name: z
+			.string()
+			.trim()
+			.regex(new RegExp(/.+\.\w+/i)),
+		lastModified: z.number().int().positive().finite().safe(),
+		size: z.number().int().positive().finite().safe(),
+		type: z
+			.string()
+			.trim()
+			.regex(new RegExp(/\w+\/\w+/i)),
+	})
+	.openapi({ type: 'string', format: 'binary' });
+const uploadedInput = z.object({
+	files: z.union([z.array(zodFileObject).nonempty(), zodFileObject]),
+});
+
+const uploadedOutput = z.object({
+	value: z
+		.string()
+		.trim()
+		.base64()
+		.describe('The hash of the input data, base64 encoded.')
+		.openapi({ example: cipherText0('base64', exampleOutput) }),
+	filename: z.string().trim(),
+});
+
+export const uploadedRoute = createRoute({
+	method: 'post',
+	path: '/{keyringName}/{algorithm}/{bitStrength}',
+	description: 'This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm',
+	request: {
+		params: z.object({
+			keyringName: z.string().trim().min(1).toLowerCase().describe('Specifies the name of the key ring to use, case insensitive'),
+			algorithm: z.nativeEnum(EncryptionAlgorithms).describe('Specifies the encryption algorithm to use').openapi({ example: EncryptionAlgorithms['AES-GCM'] }),
+			bitStrength: z.enum(['128', '192', '256']).describe('Specifies the bit strength of the encryption algorithm').openapi({ example: '256' }),
+		}),
+		body: {
+			content: {
+				'multipart/form-data': {
+					schema: uploadedInput.openapi('EncryptUploadInput'),
+				},
+			},
+		},
+	},
+	responses: {
+		200: {
+			content: {
+				'application/json': {
+					schema: z
+						.object({
+							success: z.boolean(),
+							result: z.union([z.array(uploadedOutput), uploadedOutput]),
+						})
+						.openapi('EncryptUploadOutput'),
+				},
+			},
+			description: 'Returns the cryptographic hash',
+		},
+	},
+});
+
+app.openapi(uploadedRoute, async (c) => {
+	// Needs to be set to a variable or else type isn't inferred
+	const param = c.req.valid('param');
+
+	const keyring_permissions = Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === param.keyringName.toLowerCase());
+
+	if (keyring_permissions) {
+		const returningCiphertexts: z.infer<typeof uploadedOutput>[] = [];
+
+		const [kr_id_base64url, keyring_permission] = keyring_permissions;
+		const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
+
+		startTime(c, 'db-fetch-datakeys');
+		const receivedDatakeys = await c.var.t_db
+			.select({
+				dk_id: datakeys.dk_id,
+				kr_id: datakeys.kr_id,
+				bw_id: datakeys.bw_id,
+				generation_count: datakeys.generation_count,
+				key_type: keyrings.key_type,
+				key_size: keyrings.key_size,
+				hash: keyrings.hash,
+			})
+			.from(datakeys)
+			.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
+			.where(eq(keyrings.kr_id, sql<D1Blob>`unhex(${kr_id.hex})`))
+			.orderBy(desc(datakeys.b_time))
+			// versions is 0 based
+			.limit(keyring_permission.generation_versions + 1)
+			.then((rows) =>
+				Promise.all(
+					rows.map(({ key_type, key_size, hash, ...row }) =>
+						Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+							dk_id,
+							kr_id,
+							generation_count,
+							key_type,
+							key_size,
+							hash,
+							...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+						})),
+					),
+				),
+			);
+		endTime(c, 'db-fetch-datakeys');
+
+		// Get all the datakeys backed by bitwarden
+		const bwDatakeys = receivedDatakeys.filter(({ bw_id }) => bw_id !== undefined).map((datakey) => ({ ...datakey, bw_id: datakey.bw_id! }));
+
+		if (bwDatakeys.length > 0) {
+			startTime(c, 'bitwarden-auth');
+			const jwt = await BitwardenHelper.identity(c.env.US_BW_SM_ACCESS_TOKEN);
+			endTime(c, 'bitwarden-auth');
+
+			const bws = new BitwardenHelper(jwt);
+
+			// Get all the unique keys from bitwarden and parse them into formats needeed + carry over db metadata (for filtering purposes)
+			startTime(c, 'bitwarden-fetch-datakeys');
+			const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
+				Promise.all(
+					retreivedKeys.map((retreivedKey) =>
+						Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
+							const [, kr_id_utf8] = key.split('/');
+							const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
+							const jsonNote = JSON.parse(note) as SecretNote;
+
+							return {
+								key_type,
+								key_size,
+								hash,
+								dk_id,
+								private: JSON.parse(value) as JsonWebKey,
+								// Must use spread because `public` is a reserved name
+								...jsonNote,
+								salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
+								macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
+							};
+						}),
+					),
+				),
+			);
+			endTime(c, 'bitwarden-fetch-datakeys');
+
+			// Get correlating key from bitwarden keys
+			const bwKey = bwKeys[0];
+
+			if (bwKey) {
+				startTime(c, 'encrypt-compute-keys');
+				// Comute actual encryption key from data key(s)
+				await generateKey({
+					algorithm: param.algorithm,
+					algorithmSize: param.bitStrength,
+					hash: bwKey.hash,
+					key_type: bwKey.key_type,
+					key_size: bwKey.key_size ?? undefined,
+					salt: bwKey.salt,
+					macInfo: bwKey.macInfo,
+					privateKey: bwKey.private,
+					publicKey: bwKey.public,
+				}).then(async ({ key, mac }) => {
+					endTime(c, 'encrypt-compute-keys');
+
+					for await (const part of parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0])) {
+						const input = await part.arrayBuffer();
+
+						startTime(c, `${part.filename}|encrypt-cipher`);
+						// Actually encrypt
+						await encryptContent({
+							algorithm: param.algorithm,
+							key,
+							input,
+							inputFormat: 'buffer',
+						}).then(({ preamble, cipherBuffer }) => {
+							endTime(c, `${part.filename}|encrypt-cipher`);
+
+							startTime(c, `${part.filename}|encrypt-sign`);
+							// Sign over IV || data (to account for algorithms that don't have proper validation)
+							const mergedBuffer = new Uint8Array(preamble.length + cipherBuffer.length);
+							mergedBuffer.set(preamble, 0);
+							mergedBuffer.set(cipherBuffer, preamble.length);
+
+							return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
+								endTime(c, `${part.filename}|encrypt-sign`);
+
+								// Append back
+								returningCiphertexts.push({
+									value: cipherText0('base64', {
+										dk_id: bwKey.dk_id,
+										algorithm: param.algorithm,
+										bitStrength: param.bitStrength,
+										preamble,
+										cipherBuffer,
+										signature: new Uint8Array(signature),
+									}),
+									filename: part.filename!,
+								});
+							});
+						});
+					}
+				});
+
+				/**
+				 * Update encryption counter
+				 *
+				 * Potential inconsistency, but can't be resolved until D1 supports transactions
+				 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+				 */
+				c.executionCtx.waitUntil(
+					c.var.t_db
+						.select({ generation_count: datakeys.generation_count })
+						.from(datakeys)
+						.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+						.limit(1)
+						.then((rows) =>
+							Promise.all(
+								rows.map(async (row) => ({
+									...row,
+									generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+								})),
+							),
+						)
+						.then(([row]) => {
+							if (row) {
+								return c.var.t_db
+									.update(datakeys)
+									.set({
+										generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
+									})
+									.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+									.limit(1);
+							} else {
+								throw new Error('Datakey not found');
+							}
+						}),
+				);
+			} else {
+				return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore', extensions: { code: 500 } }] }, 500);
+			}
+		}
+
+		return c.json(
+			{
+				success: returningCiphertexts.length > 0,
+				result: returningCiphertexts,
+			},
+			returningCiphertexts.length > 0 ? 200 : 422,
+		);
+	} else {
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
 	}
 });
 
