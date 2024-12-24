@@ -511,6 +511,7 @@ app.openapi(embededRoute, async (c) => {
 
 						if (bwKey) {
 							startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-compute-keys`);
+							// Comute actual encryption key from data key(s)
 							return generateKey({
 								algorithm: allowedInput.algorithm,
 								algorithmSize: allowedInput.bitStrength,
@@ -525,6 +526,7 @@ app.openapi(embededRoute, async (c) => {
 								endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-compute-keys`);
 
 								startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
+								// Actually encrypt
 								return encryptContent({
 									algorithm: allowedInput.algorithm,
 									key,
@@ -534,7 +536,7 @@ app.openapi(embededRoute, async (c) => {
 									endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
 
 									startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
-									// Sign over IV || data
+									// Sign over IV || data (to account for algorithms that don't have proper validation)
 									const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
 									mergedBuffer.set(preamble, 0);
 									mergedBuffer.set(preamble, preamble.length);
@@ -542,6 +544,7 @@ app.openapi(embededRoute, async (c) => {
 									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
 										endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 
+										// Append back
 										returningCiphertexts.push({
 											value: cipherText0(allowedInput.outputFormat, {
 												algorithm: allowedInput.algorithm,
