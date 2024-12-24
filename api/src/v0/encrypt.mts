@@ -27,7 +27,7 @@ app.use('*', async (c, next) => {
 	}
 });
 
-const example = 'Hello world';
+const exampleInput = 'Hello world';
 
 const embededInputBase = z.object({
 	keyringName: z.string().trim().min(1).toLowerCase().describe('Specifies the name of the key ring to use, case insensitive'),
@@ -42,7 +42,7 @@ const embededInput = z.discriminatedUnion('inputFormat', [
 			.string()
 			.trim()
 			.describe('Specifies the utf8 encoded input data')
-			.openapi({ example: Buffer.from(example, 'utf8').toString('utf8') }),
+			.openapi({ example: Buffer.from(exampleInput, 'utf8').toString('utf8') }),
 		inputFormat: z.literal('utf8').describe('Specifies the input encoding'),
 		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
 	}),
@@ -52,7 +52,7 @@ const embededInput = z.discriminatedUnion('inputFormat', [
 			.trim()
 			.refine((value) => isHexadecimal(value))
 			.describe('Specifies the hex encoded input data')
-			.openapi({ example: Buffer.from(example, 'utf8').toString('hex') }),
+			.openapi({ example: Buffer.from(exampleInput, 'utf8').toString('hex') }),
 		inputFormat: z.literal('hex').describe('Specifies the input encoding'),
 		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
 	}),
@@ -63,13 +63,13 @@ const embededInput = z.discriminatedUnion('inputFormat', [
 				.trim()
 				.base64()
 				.describe('Specifies the base64 encoded input data')
-				.openapi({ example: Buffer.from(example, 'utf8').toString('base64') }),
+				.openapi({ example: Buffer.from(exampleInput, 'utf8').toString('base64') }),
 			z
 				.string()
 				.trim()
 				.base64url()
 				.describe('Specifies the base64url encoded input data')
-				.openapi({ example: Buffer.from(example, 'utf8').toString('base64url') }),
+				.openapi({ example: Buffer.from(exampleInput, 'utf8').toString('base64url') }),
 		]),
 		inputFormat: z.literal('base64').describe('Specifies the input encoding'),
 		reference: z.string().trim().optional().describe('An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input'),
@@ -82,7 +82,7 @@ const embededOutput = z.object({
 		.trim()
 		.refine((value) => isHexadecimal(value))
 		.describe('The hash of the input data, hex encoded.')
-		.openapi({ example: createHash('sha256').update(Buffer.from(example, 'utf8')).digest('hex') }),
+		.openapi({ example: createHash('sha256').update(Buffer.from(exampleInput, 'utf8')).digest('hex') }),
 	reference: z.string().trim().optional().describe('The value of the `reference` field from the corresponding item in the request'),
 });
 
