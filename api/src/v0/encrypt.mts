@@ -359,7 +359,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
 				)
 				.then((cipherBuffer) => ({
-					cipherBuffer,
+					cipherBuffer: new Uint8Array(cipherBuffer),
 					preamble: gcmIv,
 				}));
 		case EncryptionAlgorithms['AES-CBC']:
@@ -376,7 +376,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
 				)
 				.then((cipherBuffer) => ({
-					cipherBuffer,
+					cipherBuffer: new Uint8Array(cipherBuffer),
 					preamble: cbcIv,
 				}));
 		case EncryptionAlgorithms['AES-CTR']:
@@ -398,7 +398,7 @@ async function encryptContent({ algorithm, key, inputFormat, input }: { algorith
 					inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input)) : Buffer.from(input, inputFormat),
 				)
 				.then((cipherBuffer) => ({
-					cipherBuffer,
+					cipherBuffer: new Uint8Array(cipherBuffer),
 					preamble: ctrCounter,
 				}));
 	}
@@ -548,14 +548,14 @@ app.openapi(embededRoute, async (c) => {
 									key,
 									input: allowedInput.input,
 									inputFormat: allowedInput.inputFormat,
-								}).then(({ cipherBuffer, preamble }) => {
+								}).then(({ preamble, cipherBuffer }) => {
 									endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
 
 									startTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 									// Sign over IV || data (to account for algorithms that don't have proper validation)
-									const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
+									const mergedBuffer = new Uint8Array(preamble.length + cipherBuffer.length);
 									mergedBuffer.set(preamble, 0);
-									mergedBuffer.set(preamble, preamble.length);
+									mergedBuffer.set(cipherBuffer, preamble.length);
 
 									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
 										endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
@@ -736,14 +736,14 @@ app.openapi(embededRoute, async (c) => {
 							key,
 							input: json.input,
 							inputFormat: json.inputFormat,
-						}).then(({ cipherBuffer, preamble }) => {
+						}).then(({ preamble, cipherBuffer }) => {
 							endTime(c, 'encrypt-cipher');
 
 							startTime(c, 'encrypt-sign');
 							// Sign over IV || data (to account for algorithms that don't have proper validation)
-							const mergedBuffer = new Uint8Array(preamble.length + preamble.length);
+							const mergedBuffer = new Uint8Array(preamble.length + cipherBuffer.length);
 							mergedBuffer.set(preamble, 0);
-							mergedBuffer.set(preamble, preamble.length);
+							mergedBuffer.set(cipherBuffer, preamble.length);
 
 							return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
 								endTime(c, 'encrypt-sign');
