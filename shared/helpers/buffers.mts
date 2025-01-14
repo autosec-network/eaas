@@ -3,6 +3,8 @@ import type { UndefinedProperties } from '../types/index.mjs';
 import { CryptoHelpers } from './crypto.mjs';
 
 export class BufferHelpers {
+	public static readonly utf8Regex = new RegExp(/^(t_)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(_p)?$/i);
+	public static readonly hexRegex = new RegExp(/^[0-9a-f]{32}$/i);
 	/**
 	 * @link https://base64.guru/learn/base64-characters
 	 */
@@ -128,7 +130,7 @@ export class BufferHelpers {
 	public static uuidConvert(input?: PrefixedUuid | UuidExport['utf8'] | UuidExport['hex'] | UuidExport['blob'] | D1Blob | UuidExport['base64'] | UuidExport['base64url']): Promise<UuidExport | UndefinedProperties<UuidExport>> {
 		if (input) {
 			if (typeof input === 'string') {
-				if (input.includes('-')) {
+				if (this.utf8Regex.test(input)) {
 					let hex = input.replaceAll('-', '');
 
 					if (input.includes('_')) {
@@ -145,7 +147,19 @@ export class BufferHelpers {
 							base64url,
 						})),
 					);
-				} else if (this.base64Regex.test(input)) {
+				} else if (this.hexRegex.test(input)) {
+					const hex: UuidExport['hex'] = input;
+
+					return this.hexToBuffer(hex).then((blob) =>
+						Promise.all([this.bufferToBase64(blob, false), this.bufferToBase64(blob, true)]).then(([base64, base64url]) => ({
+							utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
+							hex,
+							blob,
+							base64,
+							base64url,
+						})),
+					);
+				} else if (this.base64Regex.test(input) && input.length % 4 === 0) {
 					const base64: UuidExport['base64'] = input;
 
 					return this.base64ToBuffer(base64).then((blob) =>
@@ -169,18 +183,6 @@ export class BufferHelpers {
 							base64url,
 						})),
 					);
-				} else {
-					const hex: UuidExport['hex'] = input;
-
-					return this.hexToBuffer(hex).then((blob) =>
-						Promise.all([this.bufferToBase64(blob, false), this.bufferToBase64(blob, true)]).then(([base64, base64url]) => ({
-							utf8: `${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}`,
-							hex,
-							blob,
-							base64,
-							base64url,
-						})),
-					);
 				}
 			} else {
 				return Promise.all([this.bufferToHex(input), this.bufferToBase64(input, false), this.bufferToBase64(input, true)]).then(([hex, base64, base64url]) => ({
@@ -192,15 +194,15 @@ export class BufferHelpers {
 					base64url,
 				}));
 			}
-		} else {
-			// eslint-disable-next-line @typescript-eslint/require-await
-			return (async () => ({
-				utf8: undefined,
-				hex: undefined,
-				blob: undefined,
-				base64: undefined,
-				base64url: undefined,
-			}))();
 		}
+
+		// eslint-disable-next-line @typescript-eslint/require-await
+		return (async () => ({
+			utf8: undefined,
+			hex: undefined,
+			blob: undefined,
+			base64: undefined,
+			base64url: undefined,
+		}))();
 	}
 }
