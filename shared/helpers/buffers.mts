@@ -91,7 +91,7 @@ export class BufferHelpers {
 				.then(({ Buffer }) => Buffer.from(buffer).toString(urlSafe ? 'base64url' : 'base64'))
 				.catch(() => {
 					// @ts-expect-error `ArrayBufferLike` is actually accepted and fine
-					const raw = btoa(new TextDecoder().decode(buffer));
+					const raw = btoa(new Uint8Array(buffer).reduce((acc, byte) => acc + String.fromCharCode(byte), ''));
 					if (urlSafe) {
 						return raw.replaceAll('+', '-').replaceAll('/', '_').replaceAll('=', '');
 					} else {
