@@ -24,7 +24,7 @@
 		"@hono/zod-openapi": "^0.18.3",
 		"@hono/zod-validator": "^0.4.2",
 		"@mjackson/multipart-parser": "^0.7.2",
-		"@noble/post-quantum": "^0.2.1",
+		"@noble/post-quantum": "^0.3.1",
 		"hono": "^4.6.13",
 		"validator": "^13.12.0",
 		"zod": "^3.24.1"
