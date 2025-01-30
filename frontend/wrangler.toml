@@ -1,6 +1,6 @@
 name = "autosec-eaas"
 pages_build_output_dir = "dist"
-compatibility_date = "2024-12-18"
+compatibility_date = "2025-01-24"
 compatibility_flags = ["nodejs_compat_v2"]
 upload_source_maps = true
 d1_databases = [
@@ -20,7 +20,7 @@ TURNSTILE_SITE_KEY = "0x4AAAAAAAzwYTLxe176o9ss"
 
 
 [env.production]
-compatibility_date = "2024-12-18"
+compatibility_date = "2025-01-24"
 compatibility_flags = ["nodejs_compat_v2"]
 upload_source_maps = false
 d1_databases = [
