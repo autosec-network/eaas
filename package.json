@@ -33,7 +33,7 @@
 		"api"
 	],
 	"dependencies": {
-		"cloudflare": "^3.5.0",
+		"cloudflare": "^4.0.0",
 		"drizzle-orm": "^0.39.0",
 		"jose": "^5.9.6",
 		"uuid": "^11.0.3"
