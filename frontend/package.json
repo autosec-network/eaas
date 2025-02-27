@@ -42,7 +42,7 @@
 	"engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
 	"dependencies": {
 		"@auth/d1-adapter": "^1.7.4",
-		"@auth/qwik": "^0.5.4",
+		"@auth/qwik": "^0.6.0",
 		"@qwikest/icons": "^0.0.13",
 		"@simplewebauthn/browser": "^10.0.0",
 		"@simplewebauthn/server": "^10.0.0",
