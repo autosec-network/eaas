@@ -43,6 +43,7 @@ class CustomLogWriter implements LogWriter {
 
 export class DBManager {
 	protected static isApiDbRef(ref: FlexibleDbRef): ref is ApiDbRef {
+		// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
 		return 'accountId' in ref && ref.accountId !== undefined && 'apiToken' in ref && ref.apiToken !== undefined && 'databaseId' in ref && ref.databaseId !== undefined;
 	}
 
