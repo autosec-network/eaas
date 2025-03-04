@@ -1,109 +1,112 @@
-import { zValidator } from '@hono/zod-validator';
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { Hono } from 'hono';
-import { cors } from 'hono/cors';
-import { csrf } from 'hono/csrf';
-import { etag } from 'hono/etag';
-import { logger } from 'hono/logger';
-import { timing } from 'hono/timing';
-import { z } from 'zod';
-import baseApp from '~/base.mjs';
-import docs from '~/docs.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
-import { Helpers } from '~shared/helpers/index.mjs';
 
 export { DataKeyRotation } from '../../wf/dataKeyRotation.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {
-		const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
-		const secondaryRequest = request.clone();
+		return Promise.all([import('hono'), import('@hono/zod-validator'), import('zod'), import('~/base.mjs'), import('~/docs.mjs')]).then(([{ Hono }, { zValidator }, { z }, { default: baseApp }, { default: docs }]) => {
+			const app = new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();
+			const secondaryRequest = request.clone();
 
-		// Dev debug injection point
-		app.use('*', async (c, next) => {
-			if (c.env.NODE_ENV === 'development') {
-			}
+			// Dev debug injection point
+			app.use('*', async (c, next) => {
+				if (c.env.NODE_ENV === 'development') {
+				}
 
-			await next();
-		});
+				await next();
+			});
 
-		// Security
-		app.use('*', csrf());
-		// Allow only GET on documentation site
-		// app.use('*/docs', cors({ origin: '*', allowMethods: ['GET', 'OPTIONS'], maxAge: 300 }));
-		app.use(
-			'*',
-			cors({
-				origin: '*',
-				allowMethods: ['GET', 'OPTIONS'],
-				maxAge: 300,
-			}),
-		);
+			// Security
+			app.use('*', (c, next) => import('hono/csrf').then(({ csrf }) => csrf()(c, next)));
+			// Allow only GET on documentation site
+			// app.use('*/docs', (c, next) =>
+			// 	import('hono/cors').then(({ cors }) =>
+			// 		cors({
+			// 			origin: '*',
+			// 			allowMethods: ['POST', 'OPTIONS'],
+			// 			maxAge: 300,
+			// 		})(c, next),
+			// 	),
+			// );
+			app.use('*', (c, next) =>
+				import('hono/cors').then(({ cors }) =>
+					cors({
+						origin: '*',
+						allowMethods: ['GET', 'OPTIONS'],
+						maxAge: 300,
+					})(c, next),
+				),
+			);
 
-		// Performance
-		app.use('*', etag());
+			// Performance
+			app.use('*', (c, next) => import('hono/etag').then(({ etag }) => etag()(c, next)));
 
-		// Debug
-		app.use('*', timing());
-		app.use('*', async (c, next) => {
-			if (c.env.NODE_ENV === 'development') {
-				return logger()(c, next);
-			}
+			// Debug
+			app.use('*', (c, next) => import('hono/timing').then(({ timing }) => timing()(c, next)));
+			app.use('*', async (c, next) => {
+				if (c.env.NODE_ENV === 'development') {
+					return import('hono/logger').then(({ logger }) => logger()(c, next));
+				}
 
-			await next();
-		});
+				await next();
+			});
 
-		app.use(
-			'/:version/*',
-			zValidator(
-				'param',
-				z.object({
-					version: z
-						.string()
-						.trim()
-						.min(2)
-						.regex(/^v\d+$/)
-						.refine((version) => z.coerce.number().int().nonnegative().finite().safe().safeParse(version.slice(1)).success),
-				}),
-				// @ts-expect-error we don't want to always return to all passthrough
-				(result, c) => {
-					if (!result.success) {
-						return c.json({ success: false, errors: [{ message: "API version doesn't exist", extensions: { code: 404 } }] }, 404);
+			app.use(
+				'/:version/*',
+				zValidator(
+					'param',
+					z.object({
+						version: z
+							.string()
+							.trim()
+							.min(2)
+							.regex(/^v\d+$/)
+							.refine((version) => z.coerce.number().int().nonnegative().finite().safe().safeParse(version.slice(1)).success),
+					}),
+					// @ts-expect-error we don't want to always return to all passthrough
+					(result, c) => {
+						if (!result.success) {
+							return c.json({ success: false, errors: [{ message: "API version doesn't exist", extensions: { code: 404 } }] }, 404);
+						}
+					},
+				),
+			);
+
+			// Variable Setup
+			app.use('*', async (c, next) => {
+				c.set('bodyClone', secondaryRequest);
+
+				await next();
+			});
+			app.use('*', async (c, next) =>
+				Promise.all([import('~shared/helpers/index.mjs'), import('~shared/db-core/db.mjs')]).then(async ([{ Helpers }, { DBManager }]) => {
+					if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
+						await import('~shared/db-core/db.mjs').then(({ StaticDatabase }) =>
+							c.set(
+								'r_db',
+								DBManager.getDrizzle(
+									{
+										accountId: c.env.CF_ACCOUNT_ID,
+										apiToken: c.env.CF_API_TOKEN,
+										databaseId: c.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
+									},
+									c.env.NODE_ENV !== 'production',
+								),
+							),
+						);
+					} else {
+						c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production'));
 					}
-				},
-			),
-		);
 
-		// Variable Setup
-		app.use('*', async (c, next) => {
-			c.set('bodyClone', secondaryRequest);
+					await next();
+				}),
+			);
 
-			await next();
+			app.route('/:version/docs', docs);
+			app.route('/', baseApp);
+
+			return app.fetch(request, this.env, this.ctx);
 		});
-		app.use('*', async (c, next) => {
-			if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
-				c.set(
-					'r_db',
-					DBManager.getDrizzle(
-						{
-							accountId: c.env.CF_ACCOUNT_ID,
-							apiToken: c.env.CF_API_TOKEN,
-							databaseId: c.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
-						},
-						c.env.NODE_ENV !== 'production',
-					),
-				);
-			} else {
-				c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production'));
-			}
-
-			await next();
-		});
-
-		app.route('/:version/docs', docs);
-		app.route('/', baseApp);
-
-		return app.fetch(request, this.env, this.ctx);
 	}
 }
