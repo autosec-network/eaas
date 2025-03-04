@@ -109,7 +109,7 @@ app.openapi(route, async (c) => {
 		await import('hono/timing').then(({ endTime }) => endTime(c, 'random-lavarand-generate'));
 
 		// Node.JS platform
-		await import('hono/timing').then(({ startTime }) => startTime(c, 'random-platform-encode'));
+		await import('hono/timing').then(({ startTime }) => startTime(c, 'random-platform-generate'));
 		const tempBuffer = await import('node:crypto').then(({ randomBytes }) => randomBytes(byteSize));
 		await import('hono/timing').then(({ endTime, startTime }) => {
 			endTime(c, 'random-platform-generate');
