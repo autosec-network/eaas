@@ -107,7 +107,8 @@ updates:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
           - 'vite-*'
-          - '@rollup/plugin-node-resolve'
+          - '@rollup/plugin-*'
+          - 'rollup-plugin-*'
       typescript-core:
         patterns:
           - 'typescript'
