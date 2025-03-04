@@ -59,8 +59,9 @@ export class DBManager {
 				async (sql, params, method) => {
 					try {
 						const responses = await NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params }));
-						if (responses[0]?.success) {
-							const results = (responses[0].results ?? []) as Record<string, any>[];
+
+						if (responses.result[0]?.success) {
+							const results = (responses.result[0].results ?? []) as Record<string, any>[];
 
 							/**
 							 * Drizzle always waits for {rows: string[][]} or {rows: string[]} for the return value.
@@ -93,7 +94,7 @@ export class DBManager {
 								if (promise.status === 'fulfilled') {
 									const responses = promise.value;
 
-									responses.forEach((response, index) => {
+									responses.result.forEach((response, index) => {
 										if (response.success) {
 											const results = (response.results ?? []) as Record<string, any>[];
 
@@ -129,7 +130,7 @@ export class DBManager {
 
 							const responses = await NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') }));
 
-							responses.forEach((response, index) => {
+							responses.result.forEach((response, index) => {
 								if (response.success) {
 									const results = (response.results ?? []) as Record<string, any>[];
 
