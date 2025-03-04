@@ -57,11 +57,13 @@ yargs(hideBin(process.argv))
 		(args) =>
 			BufferHelpers.generateUuid.then((t_id) =>
 				NetHelpers.cfApi(CICD_CF_API_TOKEN!)
-					.d1.database.create({
-						account_id: CF_ACCOUNT_ID!,
-						name: `t_${t_id.utf8}_p`,
-						...(args.location_hint && { primary_location_hint: args.location_hint as Exclude<DatabaseCreateParams['primary_location_hint'], undefined> }),
-					})
+					.then((cf) =>
+						cf.d1.database.create({
+							account_id: CF_ACCOUNT_ID!,
+							name: `t_${t_id.utf8}_p`,
+							...(args.location_hint && { primary_location_hint: args.location_hint as Exclude<DatabaseCreateParams['primary_location_hint'], undefined> }),
+						}),
+					)
 					.then(async (d1CreateResponse) => {
 						console.log(d1CreateResponse, (await CryptoHelpers.getHash('SHA-256', d1CreateResponse.name!)).toUpperCase());
 						return d1CreateResponse;
@@ -129,7 +131,7 @@ yargs(hideBin(process.argv))
 								})
 								.catch((reason) =>
 									NetHelpers.cfApi(CICD_CF_API_TOKEN!)
-										.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! })
+										.then((cf) => cf.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! }))
 										.catch((d1DeleteReason) => {
 											const message = `Failed to setup, also failed to roll back orphaned D1 ${name} (${d1CreateResponse.uuid})`;
 											console.error(new Error(message, { cause: d1DeleteReason }));

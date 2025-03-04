@@ -57,7 +57,7 @@ export class DBManager {
 			return drizzleRest<TSchema>(
 				async (sql, params, method) => {
 					try {
-						const responses = await NetHelpers.cfApi(dbRef.apiToken).d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params });
+						const responses = await NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params }));
 						if (responses[0]?.success) {
 							const results = (responses[0].results ?? []) as Record<string, any>[];
 
@@ -86,7 +86,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const promises = await Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken).d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params })));
+							const promises = await Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params }))));
 
 							promises.forEach((promise) => {
 								if (promise.status === 'fulfilled') {
@@ -126,7 +126,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const responses = await NetHelpers.cfApi(dbRef.apiToken).d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') });
+							const responses = await NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') }));
 
 							responses.forEach((response, index) => {
 								if (response.success) {

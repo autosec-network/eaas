@@ -1,4 +1,3 @@
-import { Cloudflare } from 'cloudflare';
 import type { CustomLoging } from '../types/index.mjs';
 import { CryptoHelpers } from './crypto.mjs';
 
@@ -24,187 +23,190 @@ export class NetHelpers {
 	}
 
 	public static cfApi(apiKey: string, cacheTtl?: number, logger: CustomLoging = false) {
-		return new Cloudflare({
-			apiToken: apiKey,
-			fetch: (info, init) =>
-				// eslint-disable-next-line @typescript-eslint/no-misused-promises
-				new Promise<Awaited<ReturnType<typeof fetch>>>(async (resolve) => {
-					const cacheKey = new Request(info, { ...init, headers: this.stripSensitiveHeaders(new Headers(init?.headers)) });
-					if (typeof logger === 'boolean') {
-						if (logger) {
-							await import('chalk')
-								.then(({ Chalk }) => {
-									const chalk = new Chalk({ level: 1 });
-									console.debug(chalk.magenta('CF Fetch request'), chalk.magenta(cacheKey.url), JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t'));
-								})
-								.catch(() => console.debug('CF Fetch request', cacheKey.url, JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t')));
-						}
-					} else {
-						logger(`CF Fetch request ${cacheKey.url} ${JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t')}`);
-					}
-
-					if (cacheTtl) {
-						const cfCacheRef: Promise<Cache> | undefined = caches.open('cfApi');
+		return import('cloudflare').then(
+			({ Cloudflare }) =>
+				new Cloudflare({
+					apiToken: apiKey,
+					fetch: (info, init) =>
 						// eslint-disable-next-line @typescript-eslint/no-misused-promises
-						if (cfCacheRef) {
-							await cfCacheRef
-								.then((cfCache) =>
-									cfCache
-										.match(cacheKey)
-										.then(async (cachedResponse) => {
-											if (cachedResponse) {
-												if (typeof logger === 'boolean') {
-													if (logger) {
-														await import('chalk')
-															.then(({ Chalk }) => {
-																const chalk = new Chalk({ level: 1 });
-																console.debug(chalk.green('CF Cache hit'), cacheKey.url);
-															})
-															.catch(() => console.debug('CF Cache hit', cacheKey.url));
-													}
-												} else {
-													logger(`CF Cache hit ${cacheKey.url}`);
-												}
+						new Promise<Awaited<ReturnType<typeof fetch>>>(async (resolve) => {
+							const cacheKey = new Request(info, { ...init, headers: this.stripSensitiveHeaders(new Headers(init?.headers)) });
+							if (typeof logger === 'boolean') {
+								if (logger) {
+									await import('chalk')
+										.then(({ Chalk }) => {
+											const chalk = new Chalk({ level: 1 });
+											console.debug(chalk.magenta('CF Fetch request'), chalk.magenta(cacheKey.url), JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t'));
+										})
+										.catch(() => console.debug('CF Fetch request', cacheKey.url, JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t')));
+								}
+							} else {
+								logger(`CF Fetch request ${cacheKey.url} ${JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t')}`);
+							}
 
-												if (cachedResponse.status < 500) {
-													resolve(cachedResponse);
-												} else {
-													void cfCache.delete(cacheKey).then(() => resolve(cachedResponse));
-												}
-											} else {
-												if (typeof logger === 'boolean') {
-													if (logger) {
-														await import('chalk')
-															.then(({ Chalk }) => {
-																const chalk = new Chalk({ level: 1 });
-																console.warn(chalk.yellow('CF Cache missed'), cacheKey.url);
-															})
-															.catch(() => console.warn('CF Cache missed', cacheKey.url));
-													}
-												} else {
-													logger(`CF Cache missed ${cacheKey.url}`);
-												}
-
-												await this.loggingFetch(info, init, undefined, logger)
-													.then((response) => {
-														resolve(response.clone());
-														return response;
-													})
-													.then((response) => {
-														if (response.status < 500) {
-															response = new Response(response.body, response);
-															response.headers.set('Cache-Control', `s-maxage=${cacheTtl}`);
-
-															if (response.headers.has('ETag')) {
-																return cfCache.put(cacheKey, response).then(async () => {
-																	if (typeof logger === 'boolean') {
-																		if (logger) {
-																			await import('chalk')
-																				.then(({ Chalk }) => {
-																					const chalk = new Chalk({ level: 1 });
-																					console.debug(chalk.gray('CF Cache saved'), cacheKey.url);
-																				})
-																				.catch(() => console.debug('CF Cache saved', cacheKey.url));
-																		}
-																	} else {
-																		logger(`CF Cache saved ${cacheKey.url}`);
-																	}
-																});
-															} else {
-																return (
-																	CryptoHelpers.generateETag(response)
-																		.then((etag) => response.headers.set('ETag', etag))
-																		// eslint-disable-next-line @typescript-eslint/no-misused-promises
-																		.finally(() =>
-																			cfCache.put(cacheKey, response).then(async () => {
-																				if (typeof logger === 'boolean') {
-																					if (logger) {
-																						await import('chalk')
-																							.then(({ Chalk }) => {
-																								const chalk = new Chalk({ level: 1 });
-																								console.debug(chalk.gray('CF Cache saved'), cacheKey.url);
-																							})
-																							.catch(() => console.debug('CF Cache saved', cacheKey.url));
-																					}
-																				} else {
-																					logger(`CF Cache saved ${cacheKey.url}`);
-																				}
-																			}),
-																		)
-																);
+							if (cacheTtl) {
+								const cfCacheRef: Promise<Cache> | undefined = caches.open('cfApi');
+								// eslint-disable-next-line @typescript-eslint/no-misused-promises
+								if (cfCacheRef) {
+									await cfCacheRef
+										.then((cfCache) =>
+											cfCache
+												.match(cacheKey)
+												.then(async (cachedResponse) => {
+													if (cachedResponse) {
+														if (typeof logger === 'boolean') {
+															if (logger) {
+																await import('chalk')
+																	.then(({ Chalk }) => {
+																		const chalk = new Chalk({ level: 1 });
+																		console.debug(chalk.green('CF Cache hit'), cacheKey.url);
+																	})
+																	.catch(() => console.debug('CF Cache hit', cacheKey.url));
 															}
 														} else {
-															return;
+															logger(`CF Cache hit ${cacheKey.url}`);
 														}
-													});
-											}
-										})
+
+														if (cachedResponse.status < 500) {
+															resolve(cachedResponse);
+														} else {
+															void cfCache.delete(cacheKey).then(() => resolve(cachedResponse));
+														}
+													} else {
+														if (typeof logger === 'boolean') {
+															if (logger) {
+																await import('chalk')
+																	.then(({ Chalk }) => {
+																		const chalk = new Chalk({ level: 1 });
+																		console.warn(chalk.yellow('CF Cache missed'), cacheKey.url);
+																	})
+																	.catch(() => console.warn('CF Cache missed', cacheKey.url));
+															}
+														} else {
+															logger(`CF Cache missed ${cacheKey.url}`);
+														}
+
+														await this.loggingFetch(info, init, undefined, logger)
+															.then((response) => {
+																resolve(response.clone());
+																return response;
+															})
+															.then((response) => {
+																if (response.status < 500) {
+																	response = new Response(response.body, response);
+																	response.headers.set('Cache-Control', `s-maxage=${cacheTtl}`);
+
+																	if (response.headers.has('ETag')) {
+																		return cfCache.put(cacheKey, response).then(async () => {
+																			if (typeof logger === 'boolean') {
+																				if (logger) {
+																					await import('chalk')
+																						.then(({ Chalk }) => {
+																							const chalk = new Chalk({ level: 1 });
+																							console.debug(chalk.gray('CF Cache saved'), cacheKey.url);
+																						})
+																						.catch(() => console.debug('CF Cache saved', cacheKey.url));
+																				}
+																			} else {
+																				logger(`CF Cache saved ${cacheKey.url}`);
+																			}
+																		});
+																	} else {
+																		return (
+																			CryptoHelpers.generateETag(response)
+																				.then((etag) => response.headers.set('ETag', etag))
+																				// eslint-disable-next-line @typescript-eslint/no-misused-promises
+																				.finally(() =>
+																					cfCache.put(cacheKey, response).then(async () => {
+																						if (typeof logger === 'boolean') {
+																							if (logger) {
+																								await import('chalk')
+																									.then(({ Chalk }) => {
+																										const chalk = new Chalk({ level: 1 });
+																										console.debug(chalk.gray('CF Cache saved'), cacheKey.url);
+																									})
+																									.catch(() => console.debug('CF Cache saved', cacheKey.url));
+																							}
+																						} else {
+																							logger(`CF Cache saved ${cacheKey.url}`);
+																						}
+																					}),
+																				)
+																		);
+																	}
+																} else {
+																	return;
+																}
+															});
+													}
+												})
+												.catch(async (error) => {
+													if (typeof logger === 'boolean') {
+														if (logger) {
+															await import('chalk')
+																.then(({ Chalk }) => {
+																	const chalk = new Chalk({ level: 1 });
+																	console.error(chalk.red('CF Cache match error'), error);
+																})
+																.catch(() => console.error('CF Cache match error', error));
+														}
+													} else {
+														logger(`CF Cache match error ${error}`);
+													}
+
+													resolve(this.loggingFetch(info, init, undefined, logger));
+												}),
+										)
 										.catch(async (error) => {
 											if (typeof logger === 'boolean') {
 												if (logger) {
 													await import('chalk')
 														.then(({ Chalk }) => {
 															const chalk = new Chalk({ level: 1 });
-															console.error(chalk.red('CF Cache match error'), error);
+															console.error(chalk.red('CF Cache open error'), error);
 														})
-														.catch(() => console.error('CF Cache match error', error));
+														.catch(() => console.error('CF Cache open error', error));
 												}
 											} else {
-												logger(`CF Cache match error ${error}`);
+												logger(`CF Cache open error ${error}`);
 											}
 
 											resolve(this.loggingFetch(info, init, undefined, logger));
-										}),
-								)
-								.catch(async (error) => {
+										});
+								} else {
 									if (typeof logger === 'boolean') {
 										if (logger) {
 											await import('chalk')
 												.then(({ Chalk }) => {
 													const chalk = new Chalk({ level: 1 });
-													console.error(chalk.red('CF Cache open error'), error);
+													console.warn(chalk.yellow('CF Cache not available'));
 												})
-												.catch(() => console.error('CF Cache open error', error));
+												.catch(() => console.warn('CF Cache not available'));
 										}
 									} else {
-										logger(`CF Cache open error ${error}`);
+										logger('CF Cache not available');
 									}
 
 									resolve(this.loggingFetch(info, init, undefined, logger));
-								});
-						} else {
-							if (typeof logger === 'boolean') {
-								if (logger) {
-									await import('chalk')
-										.then(({ Chalk }) => {
-											const chalk = new Chalk({ level: 1 });
-											console.warn(chalk.yellow('CF Cache not available'));
-										})
-										.catch(() => console.warn('CF Cache not available'));
 								}
 							} else {
-								logger('CF Cache not available');
+								if (typeof logger === 'boolean') {
+									if (logger) {
+										await import('chalk')
+											.then(({ Chalk }) => {
+												const chalk = new Chalk({ level: 1 });
+												console.warn(chalk.yellow('CF Cache ignored'), cacheKey.url);
+											})
+											.catch(() => console.warn('CF Cache ignored', cacheKey.url));
+									}
+								} else {
+									logger(`CF Cache ignored ${cacheKey.url}`);
+								}
+								resolve(this.loggingFetch(info, init, undefined, logger));
 							}
-
-							resolve(this.loggingFetch(info, init, undefined, logger));
-						}
-					} else {
-						if (typeof logger === 'boolean') {
-							if (logger) {
-								await import('chalk')
-									.then(({ Chalk }) => {
-										const chalk = new Chalk({ level: 1 });
-										console.warn(chalk.yellow('CF Cache ignored'), cacheKey.url);
-									})
-									.catch(() => console.warn('CF Cache ignored', cacheKey.url));
-							}
-						} else {
-							logger(`CF Cache ignored ${cacheKey.url}`);
-						}
-						resolve(this.loggingFetch(info, init, undefined, logger));
-					}
+						}),
 				}),
-		});
+		);
 	}
 
 	public static loggingFetch(info: Parameters<typeof fetch>[0], init?: Parameters<typeof fetch>[1], body = false, logger: CustomLoging = false) {
