@@ -1,7 +1,6 @@
 import type { RequestHandler } from '@builder.io/qwik-city';
 import { isDev } from '@builder.io/qwik/build';
 import { randomBytes } from 'node:crypto';
-import { runningLocally } from '../extras';
 
 class CSPGenerator {
 	private directives: Record<string, string> = {};
@@ -256,8 +255,8 @@ class CSPGenerator {
 	}
 }
 
-export const onRequest: RequestHandler = ({ platform, sharedMap, headers }) => {
-	if (isDev || runningLocally(platform.request)) return; // Will not return CSP headers in dev mode
+export const onRequest: RequestHandler = ({ url, sharedMap, headers }) => {
+	if (isDev || url.hostname === 'localhost') return; // Will not return CSP headers in dev mode
 
 	const csp = new CSPGenerator();
 	sharedMap.set('@nonce', csp.nonce);
