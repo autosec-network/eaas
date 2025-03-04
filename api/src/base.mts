@@ -1,18 +1,6 @@
-import { eq, sql } from 'drizzle-orm';
-import { bodyLimit } from 'hono/body-limit';
-import { contextStorage } from 'hono/context-storage';
-import { prettyJSON } from 'hono/pretty-json';
-import { endTime, startTime } from 'hono/timing';
-import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import api1 from '~/v0/index.mjs';
-import { DBManager } from '~shared/db-core/db.mjs';
-import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
-import { api_keys, api_keys_keyrings, keyrings } from '~shared/db-preview/schemas/tenant';
-import { BufferHelpers } from '~shared/helpers/buffers.mjs';
-import { CryptoHelpers } from '~shared/helpers/crypto.mjs';
-import { Helpers } from '~shared/helpers/index.mjs';
-import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
+import type { ApiKeyVersions } from '~shared/types/bw/index.mjs';
+import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('hono').then(({ Hono }) => new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -23,39 +11,48 @@ app.use('*', async (c, next) => {
 	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig\.openapi\.json$/i).test(c.req.path)) {
 		await next();
 	} else {
-		return import('hono/bearer-auth').then(({ bearerAuth }) =>
+		return Promise.all([import('hono/bearer-auth'), import('node:crypto')]).then(([{ bearerAuth }, { createHash }]) =>
 			bearerAuth({
 				/**
 				 * Use sha512 (default uses sha256)
 				 * Use node crypto for optimization
 				 */
 				hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
-				verifyToken: (token) => {
+				verifyToken: async (token) => {
 					/**
 					 * @link https://base64.guru/standards/base64url
 					 */
 					const apiTokenFormat = new RegExp(/^\d+\.[a-z\d_-]+\.[a-z\d_-]+$/i);
 
-					startTime(c, 'auth-parse-token');
+					await import('hono/timing').then(({ startTime }) => startTime(c, 'auth-parse-token'));
 					if (apiTokenFormat.test(token)) {
 						const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [`${ApiKeyVersions}`, string, string];
 
-						if (version in ApiKeyVersions) {
-							return BufferHelpers.uuidConvert(ak_id_base64url).then((ak_id) => {
-								endTime(c, 'auth-parse-token');
+						const versionExists = await import('~shared/types/bw/index.mjs').then(({ ApiKeyVersions }) => version in ApiKeyVersions);
 
+						if (versionExists) {
+							const ak_id = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(ak_id_base64url));
+
+							await import('hono/timing').then(({ endTime, startTime }) => {
+								endTime(c, 'auth-parse-token');
 								startTime(c, 'auth-db-fetch-root');
-								return c.var.r_db
-									.select({
-										expires: api_keys_tenants.expires,
-										t_id: tenants.t_id,
-										d1_id: tenants.d1_id,
-									})
-									.from(api_keys_tenants)
-									.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
-									.where(eq(api_keys_tenants.ak_id, sql`unhex(${ak_id.hex})`))
-									.limit(1)
-									.then((rows) =>
+							});
+
+							return Promise.all([import('~shared/db-preview/schemas/root'), import('drizzle-orm')])
+								.then(([{ api_keys_tenants, tenants }, { eq, sql }]) =>
+									c.var.r_db
+										.select({
+											expires: api_keys_tenants.expires,
+											t_id: tenants.t_id,
+											d1_id: tenants.d1_id,
+										})
+										.from(api_keys_tenants)
+										.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
+										.where(eq(api_keys_tenants.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`))
+										.limit(1),
+								)
+								.then((rows) =>
+									import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
 										Promise.all(
 											rows.map((row) =>
 												Promise.all([BufferHelpers.uuidConvert(row.t_id), BufferHelpers.uuidConvert(row.d1_id)]).then(([t_id, d1_id]) => ({
@@ -66,16 +63,18 @@ app.use('*', async (c, next) => {
 												})),
 											),
 										),
-									)
-									.then(async ([row]) => {
-										endTime(c, 'auth-db-fetch-root');
+									),
+								)
+								.then(async ([row]) => {
+									await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-db-fetch-root'));
 
-										if (row) {
-											if (row.expires >= new Date()) {
-												startTime(c, 'auth-db-fetch-tenant');
+									if (row) {
+										if (row.expires >= new Date()) {
+											await import('hono/timing').then(({ startTime }) => startTime(c, 'auth-db-fetch-tenant'));
 
-												c.set('t_id', row.t_id);
-												c.set('t_d1_id', row.d1_id);
+											c.set('t_id', row.t_id);
+											c.set('t_d1_id', row.d1_id);
+											await import('~shared/db-core/db.mjs').then(({ DBManager }) =>
 												c.set(
 													't_db',
 													DBManager.getDrizzle(
@@ -86,38 +85,45 @@ app.use('*', async (c, next) => {
 														},
 														c.env.NODE_ENV !== 'production',
 													),
-												);
+												),
+											);
 
+											await Promise.all([import('~shared/helpers/index.mjs'), import('~shared/helpers/crypto.mjs')]).then(async ([{ Helpers }, { CryptoHelpers }]) => {
 												if (!Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
 													const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}${c.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
 													if (potentialVipBinding in c.env) {
-														c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, c.env.NODE_ENV !== 'production'));
+														await import('~shared/db-core/db.mjs').then(({ DBManager }) => c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, c.env.NODE_ENV !== 'production')));
 													}
 												}
+											});
 
-												return c
-													.get('t_db')
-													.select({
-														hash: api_keys.hash,
-														kr_id: api_keys_keyrings.kr_id,
-														kr_name: keyrings.name,
-														generation_versions: keyrings.generation_versions,
-														retreival_versions: keyrings.retreival_versions,
-														r_encrypt: api_keys_keyrings.r_encrypt,
-														r_decrypt: api_keys_keyrings.r_decrypt,
-														r_rewrap: api_keys_keyrings.r_rewrap,
-														r_sign: api_keys_keyrings.r_sign,
-														r_verify: api_keys_keyrings.r_verify,
-														r_hmac: api_keys_keyrings.r_hmac,
-														r_random: api_keys_keyrings.r_random,
-														r_hash: api_keys_keyrings.r_hash,
-													})
-													.from(api_keys)
-													.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))
-													.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
-													.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
-													.then((rows) =>
+											return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
+												.then(([{ api_keys, keyrings, api_keys_keyrings }, { eq, sql }]) =>
+													c
+														.get('t_db')
+														.select({
+															hash: api_keys.hash,
+															kr_id: api_keys_keyrings.kr_id,
+															kr_name: keyrings.name,
+															generation_versions: keyrings.generation_versions,
+															retreival_versions: keyrings.retreival_versions,
+															r_encrypt: api_keys_keyrings.r_encrypt,
+															r_decrypt: api_keys_keyrings.r_decrypt,
+															r_rewrap: api_keys_keyrings.r_rewrap,
+															r_sign: api_keys_keyrings.r_sign,
+															r_verify: api_keys_keyrings.r_verify,
+															r_hmac: api_keys_keyrings.r_hmac,
+															r_random: api_keys_keyrings.r_random,
+															r_hash: api_keys_keyrings.r_hash,
+														})
+														.from(api_keys)
+														.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))
+														.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
+														.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`)),
+												)
+												.then((rows) =>
+													import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
 														Promise.all(
 															// eslint-disable-next-line @typescript-eslint/no-unused-vars
 															rows.map((row) =>
@@ -127,16 +133,18 @@ app.use('*', async (c, next) => {
 																})),
 															),
 														),
-													)
-													.then(async (rows) => {
-														endTime(c, 'auth-db-fetch-tenant');
-														const hashRow = rows.find((row) => row.hash);
+													),
+												)
+												.then(async (rows) => {
+													await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-db-fetch-tenant'));
+													const hashRow = rows.find((row) => row.hash);
 
-														if (hashRow) {
-															startTime(c, 'auth-verify-token');
-															const receivedSecret = await BufferHelpers.base64ToBuffer(ak_secret_base64url);
-															let calculatedHash: Uint8Array;
+													if (hashRow) {
+														await import('hono/timing').then(({ startTime }) => startTime(c, 'auth-verify-token'));
+														const receivedSecret = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(ak_secret_base64url));
+														let calculatedHash: Uint8Array;
 
+														await Promise.all([import('~shared/types/bw/index.mjs'), import('~shared/helpers/buffers.mjs'), import('~shared/helpers/crypto.mjs')]).then(async ([{ ApiKeyVersions }, { BufferHelpers }, { CryptoHelpers }]) => {
 															switch (parseInt(version)) {
 																case ApiKeyVersions['256base64urlSha256']:
 																	calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
@@ -148,38 +156,40 @@ app.use('*', async (c, next) => {
 																	calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-512', receivedSecret)));
 																	break;
 															}
+														});
 
-															if (timingSafeEqual(calculatedHash!, new Uint8Array(hashRow.hash))) {
-																endTime(c, 'auth-verify-token');
+														const hashCheck = await import('node:crypto').then(({ timingSafeEqual }) => timingSafeEqual(calculatedHash!, new Uint8Array(hashRow.hash)));
 
-																rows.forEach(({ hash, kr_id, ...row }) => {
-																	c.set('permissions', {
-																		...c.var.permissions,
-																		[kr_id.base64url]: row,
-																	});
+														if (hashCheck) {
+															await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-verify-token'));
+
+															rows.forEach(({ hash, kr_id, ...row }) => {
+																c.set('permissions', {
+																	...c.var.permissions,
+																	[kr_id.base64url]: row,
 																});
+															});
 
-																return true;
-															} else {
-																endTime(c, 'auth-verify-token');
-																console.error(new Error('Token hash mismatch'));
-																return false;
-															}
+															return true;
 														} else {
-															console.error(new Error('Token not found in tenant'));
+															await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-verify-token'));
+															console.error(new Error('Token hash mismatch'));
 															return false;
 														}
-													});
-											} else {
-												console.error(new Error('Token expired'));
-												return false;
-											}
+													} else {
+														console.error(new Error('Token not found in tenant'));
+														return false;
+													}
+												});
 										} else {
-											console.error(new Error('Token not found in root'));
+											console.error(new Error('Token expired'));
 											return false;
 										}
-									});
-							});
+									} else {
+										console.error(new Error('Token not found in root'));
+										return false;
+									}
+								});
 						} else {
 							console.error(new Error('Token unknown version '));
 							return false;
@@ -198,21 +208,22 @@ app.use('*', async (c, next) => {
  * Set to just worker memory limit
  * @link https://developers.cloudflare.com/workers/platform/limits/#worker-limits
  */
-app.use(
-	'*',
-	bodyLimit({
-		maxSize: 100 * 1024 * 1024,
-		onError: (c) => c.json({ success: false, errors: [{ message: 'Content size not supported', extensions: { code: 413 } }] }, 413),
-	}),
+app.use('*', (c, next) =>
+	import('hono/body-limit').then(({ bodyLimit }) =>
+		bodyLimit({
+			maxSize: 100 * 1024 * 1024,
+			onError: (c) => c.json({ success: false, errors: [{ message: 'Content size not supported', extensions: { code: 413 } }] }, 413),
+		})(c, next),
+	),
 );
 
 // Shared storage
-app.use('*', contextStorage());
+app.use('*', (c, next) => import('hono/context-storage').then(({ contextStorage }) => contextStorage()(c, next)));
 
 // Debug
-app.use('*', prettyJSON());
+app.use('*', (c, next) => import('hono/pretty-json').then(({ prettyJSON }) => prettyJSON()(c, next)));
 
 // All api versions go here
-app.route('/v0', api1);
+await import('~/v0/index.mjs').then(({ default: api1 }) => app.route('/v0', api1));
 
 export default app;
