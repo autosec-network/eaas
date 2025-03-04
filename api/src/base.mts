@@ -15,6 +15,7 @@ app.use('*', (c, next) =>
 				'/:version/openapi31',
 				// OpenAPI Schema for CF API Gateway
 				'/:version/v0.cf-aig.openapi.json',
+				'/:version/random',
 			],
 			bearerAuth({
 				/**

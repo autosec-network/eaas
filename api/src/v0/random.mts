@@ -6,20 +6,12 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-app.use('*', async (c, next) => {
-	if (Object.values(c.var.permissions).some(({ r_random }) => r_random)) {
-		await next();
-	} else {
-		console.log("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
-	}
-});
-
 const example = new Uint8Array(32);
 
 export const route = createRoute({
 	method: 'post',
 	path: '/',
+	security: [],
 	description: 'This endpoint returns high-quality random bytes of the specified length',
 	request: {
 		body: {
