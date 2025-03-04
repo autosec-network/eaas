@@ -101,8 +101,8 @@ yargs(hideBin(process.argv))
 									)
 										.insert(tenants)
 										.values({
-											t_id: sql`unhex(${t_id.hex})`,
-											d1_id: sql`unhex(${converted_d1_id.hex})`,
+											t_id: sql<D1Blob>`unhex(${t_id.hex})`,
+											d1_id: sql<D1Blob>`unhex(${converted_d1_id.hex})`,
 										})
 										.then(() => converted_d1_id),
 								),
@@ -119,8 +119,8 @@ yargs(hideBin(process.argv))
 										)
 											.insert(properties)
 											.values({
-												t_id: sql`unhex(${t_id.hex})`,
-												d1_id: sql`unhex(${converted_d1_id.value.hex})`,
+												t_id: sql<D1Blob>`unhex(${t_id.hex})`,
+												d1_id: sql<D1Blob>`unhex(${converted_d1_id.value.hex})`,
 												name: args.name,
 												// @ts-expect-error types not yet updated
 												bw_url: (d1CreateResponse['created_in_region'] as 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc').toLowerCase().endsWith('nam') ? BaseBitwardenServer[0] : BaseBitwardenServer[1],
@@ -193,7 +193,7 @@ yargs(hideBin(process.argv))
 						d1_id: tenants.d1_id,
 					})
 					.from(tenants)
-					.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
+					.where(eq(tenants.t_id, sql<D1Blob>`unhex(${t_id.hex})`))
 					.limit(1)
 					.then((rows) =>
 						Promise.all(
@@ -310,13 +310,13 @@ yargs(hideBin(process.argv))
 									d1_id: tenants.d1_id,
 								})
 								.from(tenants)
-								.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
+								.where(eq(tenants.t_id, sql<D1Blob>`unhex(${t_id.hex})`))
 								.limit(1),
 							r_db
 								.insert(api_keys_tenants)
 								.values({
-									ak_id: sql`unhex(${ak_id.hex})`,
-									t_id: sql`unhex(${t_id.hex})`,
+									ak_id: sql<D1Blob>`unhex(${ak_id.hex})`,
+									t_id: sql<D1Blob>`unhex(${t_id.hex})`,
 									expires: args.expires.toISOString(),
 								})
 								.returning(),
@@ -345,9 +345,9 @@ yargs(hideBin(process.argv))
 								return t_db
 									.insert(api_keys)
 									.values({
-										ak_id: sql`unhex(${ak_id.hex})`,
+										ak_id: sql<D1Blob>`unhex(${ak_id.hex})`,
 										name: args.name,
-										hash: sql`unhex(${ak_secret_hash})`,
+										hash: sql<D1Blob>`unhex(${ak_secret_hash})`,
 										expires: args.expires.toISOString(),
 									})
 									.returning()
@@ -356,8 +356,8 @@ yargs(hideBin(process.argv))
 										t_db
 											.insert(api_keys_keyrings)
 											.values({
-												ak_id: sql`unhex(${ak_id.hex})`,
-												kr_id: sql`unhex(${kr_id.hex})`,
+												ak_id: sql<D1Blob>`unhex(${ak_id.hex})`,
+												kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
 												r_encrypt: args.encrypt,
 												r_decrypt: args.decrypt,
 												r_rewrap: args.rewrap,
