@@ -12,7 +12,7 @@ import type { EnvVars } from '~/types';
 /**
  * @link https://developers.cloudflare.com/workers/runtime-apis/nodejs
  */
-const cloudflareNodeRuntimes: `node:${string}`[] = ['node:assert', 'node:async_hooks', 'node:buffer', 'node:crypto', 'node:diagnostics_channel', 'node:events', 'node:path', 'node:process', 'node:stream', 'node:string_decoder', 'node:test', 'node:url', 'node:util', 'node:zlib'];
+const cloudflareNodeRuntimes: `node:${string}`[] = ['node:assert', 'node:async_hooks', 'node:buffer', 'node:crypto', 'node:diagnostics_channel', 'node:dns', 'node:events', 'node:net', 'node:path', 'node:process', 'node:stream', 'node:string_decoder', 'node:test', 'node:timers', 'node:url', 'node:util', 'node:zlib'];
 /**
  * @link https://workers-types.pages.dev/
  */
