@@ -4,7 +4,7 @@ import Passkey from '@auth/qwik/providers/passkey';
 import { DEFAULT_WEBAUTHN_TIMEOUT } from '@auth/qwik/providers/webauthn';
 
 export const { onRequest, useSession, useSignIn, useSignOut } = QwikAuth$(({ platform }) => {
-	const { cf } = platform.request;
+	const { cf } = platform.request ?? platform;
 
 	return {
 		adapter: D1Adapter(platform.env.EAAS_ROOT),

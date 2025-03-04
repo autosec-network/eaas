@@ -11,14 +11,21 @@ import { createQwikCity, type PlatformCloudflarePages } from '@builder.io/qwik-c
 import type { Request } from '@cloudflare/workers-types/experimental';
 import qwikCityPlan from '@qwik-city-plan';
 import { manifest } from '@qwik-client-manifest';
+import type { PlatformProxy } from 'wrangler';
 import render from './entry.ssr';
 import type { EnvVars } from './types';
 
 declare global {
-	interface QwikCityPlatform extends Omit<PlatformCloudflarePages, 'request'> {
+	interface QwikCityPlatformLive extends Omit<PlatformCloudflarePages, 'request'> {
 		request: Request;
 		env: EnvVars;
+		ctx: ExecutionContext;
+		cf: never;
 	}
+	interface QwikCityPlatformLocal extends PlatformProxy<EnvVars> {
+		request?: never;
+	}
+	type QwikCityPlatform = QwikCityPlatformLive | QwikCityPlatformLocal;
 }
 
 const fetch = createQwikCity({ render, qwikCityPlan, manifest });

@@ -2,7 +2,7 @@
  * This is the base config for vite.
  * When building, the adapter config is used which loads this file and extends it.
  */
-import { qwikCity } from '@builder.io/qwik-city/vite';
+import { qwikCity, type QwikCityVitePluginOptions } from '@builder.io/qwik-city/vite';
 import { qwikVite } from '@builder.io/qwik/optimizer';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
 import tailwindcss from '@tailwindcss/vite';
@@ -20,11 +20,24 @@ const cloudflareNodeRuntimes: `node:${string}`[] = ['node:assert', 'node:async_h
  */
 const cloudflareRuntimes: `cloudflare:${string}`[] = ['cloudflare:email', 'cloudflare:workers', 'cloudflare:sockets'];
 
+let platform: QwikCityVitePluginOptions['platform'] = {};
+
+/**
+ * @link https://developers.cloudflare.com/pages/configuration/build-configuration/#environment-variables
+ */
+if (process.env['CF_PAGES'] !== '1') {
+	await import('wrangler').then(({ getPlatformProxy }) =>
+		getPlatformProxy().then((proxy) => {
+			platform = proxy;
+		}),
+	);
+}
+
 export default defineConfig((): UserConfig => {
 	return {
 		plugins: [
 			tailwindcss(),
-			qwikCity(),
+			qwikCity({ platform }),
 			qwikVite(),
 			tsconfigPaths(),
 			nodeResolve({
