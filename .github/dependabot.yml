@@ -82,8 +82,6 @@ updates:
       design:
         patterns:
           - 'tailwind*'
-          - 'postcss'
-          - 'postcss-*'
           - 'flowbite'
           - '@qwikest/icons'
           - 'mermaid'
