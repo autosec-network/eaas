@@ -224,6 +224,6 @@ app.use('*', (c, next) => import('hono/context-storage').then(({ contextStorage 
 app.use('*', (c, next) => import('hono/pretty-json').then(({ prettyJSON }) => prettyJSON()(c, next)));
 
 // All api versions go here
-await import('~/v0/index.mjs').then(({ default: api1 }) => app.route('/v0', api1));
+await import('~/v0/index.mjs').then(({ default: api0 }) => app.route('/v0', api0));
 
 export default app;
