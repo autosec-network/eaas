@@ -414,6 +414,21 @@ export const api_keys = sqliteTable(
 			.notNull()
 			.$type<ISODateString>()
 			.default(sql`(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))`),
+		/**
+		 * 0. Can see all keyrings it has permission linked
+		 * 1. Can see all keyrings
+		 * 2. Can create/edit keyrings
+		 * 3. Can delete keyrings
+		 */
+		r_keyrings: ak.integer({ mode: 'number' }).notNull().$type<Permissions>().default(0),
+		/**
+		 * 0. Can see self api key
+		 * 1. Can see all apikeys
+		 * 2. Can edit or rotate
+		 * 3. Can delete apikeys
+		 * @note Only rotate shows the actual (new) key
+		 */
+		r_apikeys: ak.integer({ mode: 'number' }).notNull().$type<Permissions>().default(0),
 	}),
 	(ak) => [uniqueIndex('case_insensitive_apikey_name').on(lower(ak.name))],
 );
@@ -445,6 +460,13 @@ export const api_keys_keyrings = sqliteTable(
 			.text({ mode: 'text' })
 			.generatedAlwaysAs((): SQL => sql<UuidExport['utf8']>`lower(format('%s-%s-%s-%s-%s', substr(hex(${api_keys_keyrings.kr_id}),1,8), substr(hex(${api_keys_keyrings.kr_id}),9,4), substr(hex(${api_keys_keyrings.kr_id}),13,4), substr(hex(${api_keys_keyrings.kr_id}),17,4), substr(hex(${api_keys_keyrings.kr_id}),21)))`, { mode: 'virtual' })
 			.$type<UuidExport['utf8']>(),
+		/**
+		 * 1. Can see all datakeys
+		 * 2. Can rotate
+		 * 3. Can prune datakeys
+		 * @note None show the actual key
+		 */
+		r_datakeys: kak.integer({ mode: 'number' }).notNull().$type<Permissions>().default(1),
 		/**
 		 * Encrypt data
 		 */

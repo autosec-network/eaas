@@ -1,7 +1,7 @@
 import type { WorkerEntrypoint } from 'cloudflare:workers';
 import type { TimingVariables } from 'hono/timing';
 import type { DBManager } from '~shared/db-core/db.mjs';
-import type { UuidExport } from '~shared/types/d1/index.mjs';
+import type { Permissions, UuidExport } from '~shared/types/d1/index.mjs';
 
 export interface EnvVars extends Secrets, Bindings, VipBindingsProd, VipBindingsPreview, Record<string, any> {
 	CF_ACCOUNT_ID: string;
@@ -41,6 +41,28 @@ export interface ContextVariables extends TimingVariables {
 			kr_name: string;
 			generation_versions: number;
 			retreival_versions: number;
+			/**
+			 * 0. Can see all keyrings it has permission linked
+			 * 1. Can see all keyrings
+			 * 2. Can create/edit keyrings
+			 * 3. Can delete keyrings
+			 */
+			r_keyrings: Permissions;
+			/**
+			 * 0. Can see self api key
+			 * 1. Can see all apikeys
+			 * 2. Can edit or rotate
+			 * 3. Can delete apikeys
+			 * @note Only rotate shows the actual (new) key
+			 */
+			r_apikeys: Permissions;
+			/**
+			 * 1. Can see all datakeys
+			 * 2. Can rotate
+			 * 3. Can prune datakeys
+			 * @note None show the actual key
+			 */
+			r_datakeys: Permissions;
 			r_encrypt: boolean;
 			r_decrypt: boolean;
 			r_rewrap: boolean;
