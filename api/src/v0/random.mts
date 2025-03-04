@@ -163,13 +163,13 @@ app.openapi(route, async (c) => {
 			.then(async (combinedRandom) => {
 				await import('hono/timing').then(({ endTime, startTime }) => {
 					endTime(c, 'random-hkdf');
-					startTime(c, 'random-platform-encode');
+					startTime(c, 'random-combine-encode');
 				});
 
 				return import('node:buffer')
 					.then(({ Buffer }) => Buffer.from(combinedRandom).toString(format))
 					.then(async (result) => {
-						await import('hono/timing').then(({ endTime }) => endTime(c, 'random-platform-encode'));
+						await import('hono/timing').then(({ endTime }) => endTime(c, 'random-combine-encode'));
 
 						return c.json({
 							success: true,
