@@ -34,6 +34,8 @@ updates:
           - 'actions/dependency-review-action'
           - 'step-security/*'
           - 'microsoft/security-devops-action'
+          - 'microsoft/DevSkim-Action'
+          - 'ossf/*'
   - package-ecosystem: 'npm'
     directory: '/'
     schedule:
