@@ -142,6 +142,7 @@ dist
 .mf
 .rollup.cache
 *.tsbuildinfo
+stats.html
 
 .idea
 .DS_Store
