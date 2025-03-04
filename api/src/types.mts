@@ -47,8 +47,6 @@ export interface ContextVariables extends TimingVariables {
 			r_sign: boolean;
 			r_verify: boolean;
 			r_hmac: boolean;
-			r_random: boolean;
-			r_hash: boolean;
 		}
 	>;
 }

@@ -469,14 +469,6 @@ export const api_keys_keyrings = sqliteTable(
 		 * Generate HMAC
 		 */
 		r_hmac: kak.integer({ mode: 'boolean' }).notNull().default(true),
-		/**
-		 * Generate random bytes
-		 */
-		r_random: kak.integer({ mode: 'boolean' }).notNull().default(true),
-		/**
-		 * Hash data
-		 */
-		r_hash: kak.integer({ mode: 'boolean' }).notNull().default(true),
 	}),
 	(kak) => [unique().on(kak.kr_id, kak.ak_id)],
 );

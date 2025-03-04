@@ -120,8 +120,6 @@ app.use('*', (c, next) =>
 															r_sign: api_keys_keyrings.r_sign,
 															r_verify: api_keys_keyrings.r_verify,
 															r_hmac: api_keys_keyrings.r_hmac,
-															r_random: api_keys_keyrings.r_random,
-															r_hash: api_keys_keyrings.r_hash,
 														})
 														.from(api_keys)
 														.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))

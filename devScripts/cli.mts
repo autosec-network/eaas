@@ -286,14 +286,6 @@ yargs(hideBin(process.argv))
 				.option('hmac', {
 					type: 'boolean',
 					default: api_keys_keyrings.r_hmac.default,
-				})
-				.option('random', {
-					type: 'boolean',
-					default: api_keys_keyrings.r_random.default,
-				})
-				.option('hash', {
-					type: 'boolean',
-					default: api_keys_keyrings.r_hash.default,
 				}),
 		(args) =>
 			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid, CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
@@ -372,8 +364,6 @@ yargs(hideBin(process.argv))
 												r_sign: args.sign,
 												r_verify: args.verify,
 												r_hmac: args.hmac,
-												r_random: args.random,
-												r_hash: args.hash,
 											})
 											.returning()
 											.then(console.log),
