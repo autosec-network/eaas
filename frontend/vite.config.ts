@@ -5,6 +5,7 @@
 import { qwikCity } from '@builder.io/qwik-city/vite';
 import { qwikVite } from '@builder.io/qwik/optimizer';
 import { nodeResolve } from '@rollup/plugin-node-resolve';
+import tailwindcss from '@tailwindcss/vite';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { defineConfig, type UserConfig } from 'vite';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -22,6 +23,7 @@ const cloudflareRuntimes: `cloudflare:${string}`[] = ['cloudflare:email', 'cloud
 export default defineConfig((): UserConfig => {
 	return {
 		plugins: [
+			tailwindcss(),
 			qwikCity(),
 			qwikVite(),
 			tsconfigPaths(),

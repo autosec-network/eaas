@@ -81,6 +81,7 @@ updates:
           - '@typescript-eslint/*'
       design:
         patterns:
+          - '@tailwindcss/*'
           - 'tailwind*'
           - 'flowbite'
           - '@qwikest/icons'

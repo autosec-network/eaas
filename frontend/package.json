@@ -1,5 +1,6 @@
 {
 	"name": "frontend",
+	"type": "module",
 	"version": "0.0.0",
 	"scripts": {
 		"build": "qwik build",
@@ -54,6 +55,7 @@
 		"@builder.io/qwik": "^1.11.0",
 		"@builder.io/qwik-city": "^1.11.0",
 		"@rollup/plugin-node-resolve": "^16.0.0",
+		"@tailwindcss/vite": "^4.0.9",
 		"eslint-plugin-qwik": "^1.11.0",
 		"prettier-plugin-tailwindcss": "^0.6.9",
 		"rollup-plugin-visualizer": "^5.14.0",
