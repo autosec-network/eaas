@@ -84,7 +84,6 @@ updates:
           - 'tailwind*'
           - 'postcss'
           - 'postcss-*'
-          - 'autoprefixer'
           - 'flowbite'
           - '@qwikest/icons'
           - 'mermaid'
