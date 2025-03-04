@@ -5,13 +5,17 @@ import type { D1Blob } from '~shared/types/d1/index.mjs';
 const app = await import('hono').then(({ Hono }) => new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
 // Security
-app.use('*', async (c, next) => {
-	if (new RegExp(/^\/v\d+\/openapi(31)?\/?$/i).test(c.req.path)) {
-		await next();
-	} else if (new RegExp(/^\/v\d+\/v\d+\.cf-aig\.openapi\.json$/i).test(c.req.path)) {
-		await next();
-	} else {
-		return Promise.all([import('hono/bearer-auth'), import('node:crypto')]).then(([{ bearerAuth }, { createHash }]) =>
+app.use('*', (c, next) =>
+	Promise.all([import('hono/combine'), import('hono/bearer-auth'), import('node:crypto')]).then(([{ except }, { bearerAuth }, { createHash }]) =>
+		except(
+			[
+				//OpenAPI Schema
+				'/:version/openapi',
+				// OpenApi 3.1 Schema
+				'/:version/openapi31',
+				// OpenAPI Schema for CF API Gateway
+				'/:version/v0.cf-aig.openapi.json',
+			],
 			bearerAuth({
 				/**
 				 * Use sha512 (default uses sha256)
@@ -199,10 +203,11 @@ app.use('*', async (c, next) => {
 						return false;
 					}
 				},
-			})(c, next),
-		);
-	}
-});
+			}),
+		)(c, next),
+	),
+);
+
 /**
  * Measured in kb
  * Set to just worker memory limit
