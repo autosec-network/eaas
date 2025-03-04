@@ -1,0 +1,60 @@
+{
+	"$schema": "../node_modules/wrangler/config-schema.json",
+	"name": "autosec-eaas",
+	"pages_build_output_dir": "dist",
+	"compatibility_date": "2024-12-18",
+	"compatibility_flags": ["nodejs_compat"],
+	"upload_source_maps": true,
+	"d1_databases": [
+		{
+			"binding": "EAAS_ROOT",
+			"database_name": "eaas_root_p",
+			"database_id": "74b7a7fd-18ea-422f-a888-47214742e4cf"
+		}
+	],
+	"services": [
+		{
+			"binding": "SIDECAR_WORKER",
+			// "service": "eaas-sidecar-preview"
+			"service": "eaas-sidecar"
+		}
+	],
+	"vars": {
+		"SKIP_DEPENDENCY_INSTALL": "1",
+		"NODE_ENV": "development",
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+	},
+	"env": {
+		"production": {
+			"compatibility_date": "2024-12-18",
+			"compatibility_flags": ["nodejs_compat"],
+			"upload_source_maps": false,
+			"d1_databases": [
+				{
+					"binding": "EAAS_ROOT",
+					// "database_name": "eaas_root",
+					"database_name": "eaas_root_p",
+					"database_id": "74b7a7fd-18ea-422f-a888-47214742e4cf"
+					// "database_id": "c576d6cf-f202-4845-a971-f95d0e00e95a",
+					// "preview_database_id": "74b7a7fd-18ea-422f-a888-47214742e4cf"
+				}
+			],
+			"services": [
+				{
+					"binding": "SIDECAR_WORKER",
+					"service": "eaas-sidecar"
+				}
+			],
+			"vars": {
+				"SKIP_DEPENDENCY_INSTALL": "1",
+				"NODE_ENV": "production",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+			}
+		}
+	},
+	"dev": {
+		"local_protocol": "http",
+		"ip": "localhost",
+		"port": 7016
+	}
+}
