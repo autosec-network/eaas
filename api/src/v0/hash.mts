@@ -11,15 +11,6 @@ import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalo
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-app.use('*', async (c, next) => {
-	if (Object.values(c.var.permissions).some(({ r_hash }) => r_hash)) {
-		await next();
-	} else {
-		console.log("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
-	}
-});
-
 const example = 'Hello world';
 
 const embededInputBase = z.object({
@@ -79,6 +70,7 @@ const embededOutput = z.object({
 export const embededRoute = createRoute({
 	method: 'post',
 	path: '/',
+	security: [],
 	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
 	request: {
 		body: {
@@ -189,6 +181,7 @@ const uploadedOutput = z.object({
 export const uploadedRoute = createRoute({
 	method: 'post',
 	path: '/{algorithm}',
+	security: [],
 	description: 'This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm',
 	request: {
 		params: z.object({
