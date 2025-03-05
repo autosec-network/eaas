@@ -1,5 +1,5 @@
 import type { ReadableStream } from '@cloudflare/workers-types/experimental';
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { createRoute, z } from '@hono/zod-openapi';
 import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
@@ -9,7 +9,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
-const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
+const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
 const example = 'Hello world';
 
