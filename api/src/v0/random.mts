@@ -146,29 +146,51 @@ app.openapi(route, async (c) => {
 		// Use HKDF to derive down to the requested number of bytes
 		return crypto.subtle
 			.importKey('raw', combined, { name: 'HKDF' }, false, ['deriveBits'])
-			.then((keyMaterial) =>
-				crypto.subtle
-					.deriveBits(
-						{
-							name: 'HKDF',
-							/**
-							 * Speed optimize
-							 * sha256 = 32 bytes
-							 * sha384 = 48 bytes
-							 * sha512 = 64 bytes
-							 */
-							hash: byteSize <= 32 ? 'SHA-256' : byteSize <= 48 ? 'SHA-384' : 'SHA-512',
-							// Salt must be the same length as the output length
-							salt: crypto.getRandomValues(new Uint8Array(byteSize)),
-							// This property is required but may be an empty buffer
-							info: new Uint8Array(),
-						},
-						keyMaterial,
-						// Convert byte length to bits
-						byteSize * 8,
-					)
-					.then((derivedBits) => new Uint8Array(derivedBits)),
-			)
+			.then((keyMaterial) => {
+				/**
+				 * Speed optimize
+				 * sha256 = 32 bytes
+				 * sha384 = 48 bytes
+				 * sha512 = 64 bytes
+				 */
+				const hash = byteSize <= 32 ? 'SHA-256' : byteSize <= 48 ? 'SHA-384' : 'SHA-512';
+
+				/**
+				 * @link https://datatracker.ietf.org/doc/html/rfc5869#section-2.3
+				 * Max byte size = 255 * HashLength
+				 */
+				const maxChunkSize = 255 * { 'SHA-256': 32, 'SHA-384': 48, 'SHA-512': 64 }[hash];
+				const chunkCount = Math.ceil(byteSize / maxChunkSize);
+
+				return Promise.all(
+					Array.from({ length: chunkCount }, (_, i) => {
+						const chunkSize = Math.min(maxChunkSize, byteSize - i * maxChunkSize);
+
+						return crypto.subtle
+							.deriveBits(
+								{
+									name: 'HKDF',
+									hash,
+									salt: crypto.getRandomValues(new Uint8Array(chunkSize)),
+									info: new Uint8Array([i + 1]), // Ensure unique derivation per chunk
+								},
+								keyMaterial,
+								chunkSize * 8, // Convert byte size to bits
+							)
+							.then((bits) => new Uint8Array(bits));
+					}),
+				).then((chunks) => {
+					const derivedKey = new Uint8Array(byteSize);
+
+					chunks.reduce((offset, chunk) => {
+						derivedKey.set(chunk, offset);
+
+						return offset + chunk.length;
+					}, 0);
+
+					return derivedKey;
+				});
+			})
 			.then(async (combinedRandom) => {
 				await import('hono/timing').then(({ endTime, startTime }) => {
 					endTime(c, 'random-hkdf');
