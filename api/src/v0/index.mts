@@ -97,6 +97,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	scheme: 'bearer',
 });
 
+await import('~/v0/keyrings.mjs').then(({ default: keyrings }) => app.route('/keyrings', keyrings));
 await import('~/v0/encrypt.mjs').then(({ default: encrypt }) => app.route('/encrypt', encrypt));
 await import('~/v0/hash.mjs').then(({ default: hash }) => app.route('/hash', hash));
 await import('~/v0/random.mjs').then(({ default: random }) => app.route('/random', random));

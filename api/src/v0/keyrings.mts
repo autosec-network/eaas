@@ -1,0 +1,207 @@
+import type { z } from '@hono/zod-openapi';
+import type { ContextVariables, EnvVars } from '~/types.mjs';
+import type { D1Blob } from '~shared/types/d1/index.mjs';
+
+const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+
+app.use('*', async (c, next) => {
+	/**
+	 * Check if at least one permission has r_encrypt set to true.
+	 * We have to check specifics in the route handler to get the keyring name from fields.
+	 */
+	if (!isNaN(c.var.globalPermissions.r_keyrings)) {
+		await next();
+	} else {
+		console.error("Token doesn't have permissions");
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+	}
+});
+
+export const keyringOutput = await Promise.all([import('@hono/zod-openapi'), import('~shared/types/crypto/index.mjs'), import('~shared/types/crypto/workers-crypto-catalog.mjs')]).then(([{ z }, { KeyAlgorithms }, { workersCryptoCatalog }]) =>
+	z
+		.object({
+			name: z.string(),
+			created: z
+				.string()
+				.datetime({ precision: 3 })
+				.openapi({ example: new Date(0).toISOString() }),
+			lastModified: z
+				.string()
+				.datetime({ precision: 3 })
+				.openapi({ example: new Date(0).toISOString() }),
+			key: z.object({
+				algorithm: z.nativeEnum(KeyAlgorithms),
+				size: z.number().int().nullable(),
+				hash: z.enum(workersCryptoCatalog.hashes),
+			}),
+			rotation: z.object({
+				lastRotation: z
+					.string()
+					.datetime({ precision: 3 })
+					.openapi({ example: new Date(0).toISOString() }),
+				time: z.object({
+					enabled: z.boolean(),
+					cron: z.array(z.string()),
+					next: z
+						.string()
+						.datetime({ precision: 3 })
+						.nullable()
+						.openapi({ example: new Date(0).toISOString() }),
+				}),
+				count: z.object({
+					enabled: z.boolean(),
+					threshold: z
+						.bigint()
+						.nullable()
+						.openapi({ example: BigInt(0).toString() as unknown as bigint }),
+					current: z.bigint().openapi({ example: BigInt(0).toString() as unknown as bigint }),
+				}),
+			}),
+		})
+		.openapi('KeyringsOutput'),
+);
+
+export const route = await import('@hono/zod-openapi').then(({ createRoute, z }) =>
+	createRoute({
+		method: 'get',
+		path: '/',
+		description: 'Get a list of keyrings.',
+		request: {},
+		responses: {
+			200: {
+				content: {
+					'application/json': {
+						schema: z.array(keyringOutput),
+					},
+				},
+				description: 'Depending on key permissions, list all keyrings, or fallback to those the key has access to.',
+			},
+		},
+	}),
+);
+
+app.openapi(route, async (c) => {
+	const kr_ids = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => Promise.all(Object.keys(c.var.permissions).map((kr_id_base64url) => BufferHelpers.uuidConvert(kr_id_base64url))));
+
+	if (c.var.globalPermissions.r_keyrings > 0 || kr_ids.length > 0) {
+		return Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
+			.then(([{ keyrings }, { Permissions }, { inArray, sql }]) =>
+				c.var.t_db
+					.select({
+						kr_id: keyrings.kr_id,
+						name: keyrings.name,
+						b_time: keyrings.b_time,
+						c_time: keyrings.c_time,
+						key_type: keyrings.key_type,
+						key_size: keyrings.key_size,
+						hash: keyrings.hash,
+						m_time: keyrings.m_time,
+						time_rotation: keyrings.time_rotation,
+						count_rotation: keyrings.count_rotation,
+					})
+					.from(keyrings)
+					.where(
+						c.var.globalPermissions.r_keyrings === Permissions.None
+							? // @ts-expect-error map is fine because at least 1 exists
+								inArray(
+									keyrings.kr_id,
+									kr_ids.map((kr_id) => sql<D1Blob>`unhex(${kr_id.hex})`),
+								)
+							: undefined,
+					),
+			)
+			.then((rows) =>
+				import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
+					Promise.all(
+						rows.map((row) =>
+							BufferHelpers.uuidConvert(row.kr_id).then(async (kr_id) => ({
+								...row,
+								kr_id,
+								...(row.count_rotation && { count_rotation: await BufferHelpers.bufferToBigint(row.count_rotation) }),
+							})),
+						),
+					),
+				),
+			)
+			.then((rows) =>
+				Promise.all(
+					rows.map((row) =>
+						Promise.all([
+							import('cron-schedule'),
+							Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ datakeys }, { eq, sql, desc }]) =>
+								c.var.t_db
+									.select({
+										generation_count: datakeys.generation_count,
+									})
+									.from(datakeys)
+									.where(eq(datakeys.kr_id, sql<D1Blob>`unhex(${row.kr_id.hex})`))
+									.orderBy(desc(datakeys.b_time))
+									.limit(1)
+									.then((rows) =>
+										import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
+											Promise.all(
+												// eslint-disable-next-line @typescript-eslint/no-unused-vars
+												rows.map((row) =>
+													BufferHelpers.bufferToBigint(row.generation_count).then((generation_count) => ({
+														...row,
+														generation_count,
+													})),
+												),
+											),
+										),
+									)
+									.then(([row]) => {
+										if (row) {
+											return row.generation_count;
+										} else {
+											return BigInt(0);
+										}
+									})
+									.catch((error) => {
+										console.error(error);
+										return BigInt(0);
+									}),
+							),
+						]).then(
+							([{ parseCronExpression }, generation_count]) =>
+								({
+									name: row.name,
+									created: row.b_time,
+									lastModified: row.c_time,
+									key: {
+										algorithm: row.key_type,
+										size: row.key_size ?? null,
+										hash: row.hash,
+									},
+									rotation: {
+										lastRotation: row.m_time,
+										time: {
+											enabled: row.time_rotation,
+											/**
+											 * @todo Read from DO
+											 */
+											cron: ['0 0 1 1 *'],
+											next:
+												['0 0 1 1 *']
+													.map((cron) => parseCronExpression(cron).getNextDate())
+													.sort((a, b) => a.getTime() - b.getTime())[0]
+													?.toISOString() ?? null,
+										},
+										count: {
+											enabled: row.count_rotation !== null,
+											threshold: ((row.count_rotation as bigint | null)?.toString() as unknown as bigint | null) ?? null,
+											current: generation_count.toString() as unknown as bigint,
+										},
+									},
+								}) satisfies z.infer<typeof keyringOutput>,
+						),
+					),
+				),
+			)
+			.then((json) => c.json(json));
+	} else {
+		return c.json([] satisfies z.infer<typeof keyringOutput>[]);
+	}
+});
+
+export default app;
