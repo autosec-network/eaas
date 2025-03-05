@@ -17,7 +17,16 @@ export const route = await Promise.all([import('validator/es/lib/isHexadecimal')
 					'application/json': {
 						schema: z
 							.object({
-								bytes: z.number().int().positive().finite().safe().describe('Specifies the number of bytes to return').openapi({ example: example.byteLength }),
+								bytes: z
+									.number()
+									.int()
+									.positive()
+									/**
+									 * Max byte size = max uint8array (64k)
+									 */
+									.lte(0x10000)
+									.describe('Specifies the number of bytes to return')
+									.openapi({ example: example.byteLength }),
 								format: z.enum(['hex', 'base64', 'base64url']).describe('Specifies the output encoding'),
 								source: z.enum(['lavarand', 'platform', 'all']).default('lavarand').describe("Specifies the source of the requested bytes. `lavarand`, the default, sources from Cloudflare's physical sources of entropy. `platform` sources bytes from the platform's entropy source. `all` mixes bytes from all available sources."),
 							})
