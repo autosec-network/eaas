@@ -105,47 +105,18 @@ app.use('*', (c, next) =>
 											});
 
 											return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
-												.then(([{ api_keys, keyrings, api_keys_keyrings }, { eq, sql }]) =>
-													c
-														.get('t_db')
+												.then(([{ api_keys }, { eq, sql }]) =>
+													c.var.t_db
 														.select({
 															hash: api_keys.hash,
-															kr_id: api_keys_keyrings.kr_id,
-															kr_name: keyrings.name,
-															generation_versions: keyrings.generation_versions,
-															retreival_versions: keyrings.retreival_versions,
 															r_keyrings: api_keys.r_keyrings,
 															r_apikeys: api_keys.r_apikeys,
-															r_datakeys: api_keys_keyrings.r_datakeys,
-															r_encrypt: api_keys_keyrings.r_encrypt,
-															r_decrypt: api_keys_keyrings.r_decrypt,
-															r_rewrap: api_keys_keyrings.r_rewrap,
-															r_sign: api_keys_keyrings.r_sign,
-															r_verify: api_keys_keyrings.r_verify,
-															r_hmac: api_keys_keyrings.r_hmac,
 														})
 														.from(api_keys)
-														.innerJoin(api_keys_keyrings, eq(api_keys_keyrings.ak_id, api_keys.ak_id))
-														.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
+														.limit(1)
 														.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`)),
 												)
-												.then((rows) =>
-													import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
-														Promise.all(
-															// eslint-disable-next-line @typescript-eslint/no-unused-vars
-															rows.map((row) =>
-																BufferHelpers.uuidConvert(row.kr_id).then((kr_id) => ({
-																	...row,
-																	kr_id,
-																})),
-															),
-														),
-													),
-												)
-												.then(async (rows) => {
-													await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-db-fetch-tenant'));
-													const hashRow = rows.find((row) => row.hash);
-
+												.then(async ([hashRow]) => {
 													if (hashRow) {
 														await import('hono/timing').then(({ startTime }) => startTime(c, 'auth-verify-token'));
 														const receivedSecret = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(ak_secret_base64url));
@@ -166,28 +137,70 @@ app.use('*', (c, next) =>
 														});
 
 														const hashCheck = await import('node:crypto').then(({ timingSafeEqual }) => timingSafeEqual(calculatedHash!, new Uint8Array(hashRow.hash)));
+														await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-verify-token'));
 
-														if (hashCheck) {
-															await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-verify-token'));
+														if (!hashCheck) console.error(new Error('Token hash mismatch'));
 
-															rows.forEach(({ hash, kr_id, ...row }) => {
-																c.set('permissions', {
-																	...c.var.permissions,
-																	[kr_id.base64url]: row,
-																});
-															});
+														c.set('globalPermissions', {
+															r_keyrings: hashRow.r_keyrings,
+															r_apikeys: hashRow.r_apikeys,
+														});
 
-															return true;
-														} else {
-															await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-verify-token'));
-															console.error(new Error('Token hash mismatch'));
-															return false;
-														}
+														return hashCheck;
 													} else {
 														console.error(new Error('Token not found in tenant'));
 														return false;
 													}
-												});
+												})
+												.then((hashCheck) =>
+													Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
+														.then(([{ api_keys, keyrings, api_keys_keyrings }, { eq, sql }]) =>
+															c.var.t_db
+																.select({
+																	kr_id: api_keys_keyrings.kr_id,
+																	kr_name: keyrings.name,
+																	generation_versions: keyrings.generation_versions,
+																	retreival_versions: keyrings.retreival_versions,
+																	r_datakeys: api_keys_keyrings.r_datakeys,
+																	r_encrypt: api_keys_keyrings.r_encrypt,
+																	r_decrypt: api_keys_keyrings.r_decrypt,
+																	r_rewrap: api_keys_keyrings.r_rewrap,
+																	r_sign: api_keys_keyrings.r_sign,
+																	r_verify: api_keys_keyrings.r_verify,
+																	r_hmac: api_keys_keyrings.r_hmac,
+																})
+																.from(api_keys_keyrings)
+																.innerJoin(api_keys, eq(api_keys.ak_id, api_keys_keyrings.ak_id))
+																.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
+																.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`)),
+														)
+														.then((rows) =>
+															import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
+																Promise.all(
+																	// eslint-disable-next-line @typescript-eslint/no-unused-vars
+																	rows.map((row) =>
+																		BufferHelpers.uuidConvert(row.kr_id).then((kr_id) => ({
+																			...row,
+																			kr_id,
+																		})),
+																	),
+																),
+															),
+														)
+														.then((rows) =>
+															rows.forEach(({ kr_id, ...row }) => {
+																c.set('permissions', {
+																	...c.var.permissions,
+																	[kr_id.base64url]: row,
+																});
+															}),
+														)
+														.then(async () => {
+															await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-db-fetch-tenant'));
+
+															return hashCheck;
+														}),
+												);
 										} else {
 											console.error(new Error('Token expired'));
 											return false;

@@ -35,27 +35,29 @@ export interface ContextVariables extends TimingVariables {
 	t_d1_id: UuidExport;
 	t_db: ReturnType<typeof DBManager.getDrizzle>;
 
+	globalPermissions: {
+		/**
+		 * 0. Can see all keyrings it has permission linked
+		 * 1. Can see all keyrings
+		 * 2. Can create/edit keyrings
+		 * 3. Can delete keyrings
+		 */
+		r_keyrings: Permissions;
+		/**
+		 * 0. Can see self api key
+		 * 1. Can see all apikeys
+		 * 2. Can edit or rotate
+		 * 3. Can delete apikeys
+		 * @note Only rotate shows the actual (new) key
+		 */
+		r_apikeys: Permissions;
+	};
 	permissions: Record<
 		UuidExport['base64url'],
 		{
 			kr_name: string;
 			generation_versions: number;
 			retreival_versions: number;
-			/**
-			 * 0. Can see all keyrings it has permission linked
-			 * 1. Can see all keyrings
-			 * 2. Can create/edit keyrings
-			 * 3. Can delete keyrings
-			 */
-			r_keyrings: Permissions;
-			/**
-			 * 0. Can see self api key
-			 * 1. Can see all apikeys
-			 * 2. Can edit or rotate
-			 * 3. Can delete apikeys
-			 * @note Only rotate shows the actual (new) key
-			 */
-			r_apikeys: Permissions;
 			/**
 			 * 1. Can see all datakeys
 			 * 2. Can rotate
