@@ -1,11 +1,10 @@
-import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 
-const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
+const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
 const example = new Uint8Array(32);
 
-export const route = await Promise.all([import('validator/es/lib/isHexadecimal'), import('node:buffer')]).then(([{ default: isHexadecimal }, { Buffer }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('validator/es/lib/isHexadecimal'), import('node:buffer')]).then(([{ createRoute, z }, { default: isHexadecimal }, { Buffer }]) =>
 	createRoute({
 		method: 'post',
 		path: '/',
