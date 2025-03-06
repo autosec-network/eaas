@@ -1,4 +1,6 @@
+import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -45,7 +47,20 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 );
 
 app.openapi(route, (c) => {
-	return c.json({});
+	// Needs to be set to a variable or else type isn't inferred
+	const json = c.req.valid('json');
+
+	return c.json({
+		...json,
+		rotation: {
+			...json.rotation,
+			count: {
+				...json.rotation.count,
+				threshold: json.rotation.count.threshold?.toString() as unknown as bigint,
+				current: BigInt(0).toString() as unknown as bigint,
+			},
+		},
+	} satisfies z.infer<typeof keyringOutput>);
 });
 
 export default app;
