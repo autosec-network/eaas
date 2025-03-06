@@ -8,11 +8,11 @@ const timeEditable = await import('cron-validate').then(({ default: cron }) =>
 				.string()
 				.trim()
 				.nonempty()
+				.default('0 0 1 1 *')
 				/**
 				 * @link https://github.com/P4sca1/cron-schedule?tab=readme-ov-file#cron-validation
 				 */
-				.refine((value) => cron(value, { preset: 'npm-cron-schedule' }).isValid())
-				.default('0 0 1 1 *'),
+				.refine((value) => cron(value).isValid()),
 		),
 	}),
 );
