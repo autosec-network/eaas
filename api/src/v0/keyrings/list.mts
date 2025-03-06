@@ -5,19 +5,6 @@ import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
-app.use('*', async (c, next) => {
-	/**
-	 * Check if at least one permission has r_encrypt set to true.
-	 * We have to check specifics in the route handler to get the keyring name from fields.
-	 */
-	if (!isNaN(c.var.globalPermissions.r_keyrings)) {
-		await next();
-	} else {
-		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
-	}
-});
-
 export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
 	createRoute({
 		method: 'get',
