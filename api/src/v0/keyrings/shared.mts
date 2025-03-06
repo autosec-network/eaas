@@ -21,7 +21,7 @@ const countEditable = z.object({
 	threshold: z.coerce
 		.bigint()
 		.nullable()
-		.openapi({ example: BigInt(0).toString() as unknown as bigint }),
+		.default((BigInt(2) ** BigInt(32)).toString() as unknown as bigint),
 });
 const rotationEditable = z.object({
 	time: timeEditable,
