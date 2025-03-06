@@ -18,7 +18,7 @@ const timeEditable = await import('cron-validate').then(({ default: cron }) =>
 );
 const countEditable = z.object({
 	enabled: z.boolean(),
-	threshold: z
+	threshold: z.coerce
 		.bigint()
 		.nullable()
 		.openapi({ example: BigInt(0).toString() as unknown as bigint }),
@@ -135,7 +135,7 @@ export const keyringOutput = keyringEditable
 					.openapi({ example: new Date(0).toISOString() }),
 			}),
 			count: countEditable.extend({
-				current: z.bigint().openapi({ example: BigInt(0).toString() as unknown as bigint }),
+				current: z.coerce.bigint().openapi({ example: BigInt(0).toString() as unknown as bigint }),
 			}),
 		}),
 	})
