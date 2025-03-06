@@ -1,5 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import type { keyringOutput } from '~/v0/keyrings/index.mjs';
 import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
@@ -17,51 +18,7 @@ app.use('*', async (c, next) => {
 	}
 });
 
-export const keyringOutput = await Promise.all([import('@hono/zod-openapi'), import('~shared/types/crypto/index.mjs'), import('~shared/types/crypto/workers-crypto-catalog.mjs')]).then(([{ z }, { KeyAlgorithms }, { workersCryptoCatalog }]) =>
-	z
-		.object({
-			name: z.string(),
-			created: z
-				.string()
-				.datetime({ precision: 3 })
-				.openapi({ example: new Date(0).toISOString() }),
-			lastModified: z
-				.string()
-				.datetime({ precision: 3 })
-				.openapi({ example: new Date(0).toISOString() }),
-			key: z.object({
-				algorithm: z.nativeEnum(KeyAlgorithms),
-				size: z.number().int().nullable(),
-				hash: z.enum(workersCryptoCatalog.hashes),
-			}),
-			rotation: z.object({
-				lastRotation: z
-					.string()
-					.datetime({ precision: 3 })
-					.openapi({ example: new Date(0).toISOString() }),
-				time: z.object({
-					enabled: z.boolean(),
-					cron: z.array(z.string()),
-					next: z
-						.string()
-						.datetime({ precision: 3 })
-						.nullable()
-						.openapi({ example: new Date(0).toISOString() }),
-				}),
-				count: z.object({
-					enabled: z.boolean(),
-					threshold: z
-						.bigint()
-						.nullable()
-						.openapi({ example: BigInt(0).toString() as unknown as bigint }),
-					current: z.bigint().openapi({ example: BigInt(0).toString() as unknown as bigint }),
-				}),
-			}),
-		})
-		.openapi('KeyringsOutput'),
-);
-
-export const route = await import('@hono/zod-openapi').then(({ createRoute, z }) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
 	createRoute({
 		method: 'get',
 		path: '/',
