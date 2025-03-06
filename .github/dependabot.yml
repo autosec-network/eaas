@@ -59,6 +59,9 @@ updates:
       - dependency-name: '@simplewebauthn/*'
         versions:
           - '>=10.0.0'
+      - dependency-name: '@mjackson/multipart-parser'
+        versions:
+          - '>=0.8.0'
     groups:
       auth:
         patterns:
