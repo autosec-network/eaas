@@ -16,13 +16,18 @@ const rotationEditable = z.object({
 	count: countEditable,
 });
 
-export const keyringEditable = await Promise.all([import('~shared/types/crypto/index.mjs'), import('~shared/types/crypto/workers-crypto-catalog.mjs')]).then(([{ KeyAlgorithms }, { workersCryptoCatalog }]) => {
+const keyringAlgorithm = await import('~shared/types/crypto/index.mjs').then(({ KeyAlgorithms }) => {
+	return z.object({
+		algorithm: z.nativeEnum(KeyAlgorithms),
+		size: z.number().int().nullable(),
+	});
+});
+
+export const keyringEditable = await import('~shared/types/crypto/workers-crypto-catalog.mjs').then(({ workersCryptoCatalog }) => {
 	return z
 		.object({
 			name: z.string(),
-			key: z.object({
-				algorithm: z.nativeEnum(KeyAlgorithms),
-				size: z.number().int().nullable(),
+			key: keyringAlgorithm.extend({
 				hash: z.enum(workersCryptoCatalog.hashes),
 			}),
 			rotation: rotationEditable,
