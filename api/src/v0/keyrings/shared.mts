@@ -1,9 +1,20 @@
 import { z } from '@hono/zod-openapi';
 
-const timeEditable = z.object({
-	enabled: z.boolean(),
-	cron: z.array(z.string()),
-});
+const timeEditable = await import('cron-validate').then(({ default: cron }) =>
+	z.object({
+		enabled: z.boolean(),
+		cron: z.array(
+			z
+				.string()
+				.trim()
+				.nonempty()
+				/**
+				 * @link https://github.com/P4sca1/cron-schedule?tab=readme-ov-file#cron-validation
+				 */
+				.refine((value) => cron(value, { preset: 'npm-cron-schedule' }).isValid()),
+		),
+	}),
+);
 const countEditable = z.object({
 	enabled: z.boolean(),
 	threshold: z
