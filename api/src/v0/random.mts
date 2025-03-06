@@ -6,6 +6,7 @@ const example = new Uint8Array(32);
 
 export const route = await Promise.all([import('@hono/zod-openapi'), import('validator/es/lib/isHexadecimal'), import('node:buffer')]).then(([{ createRoute, z }, { default: isHexadecimal }, { Buffer }]) =>
 	createRoute({
+		tags: ['free'],
 		method: 'post',
 		path: '/',
 		security: [],

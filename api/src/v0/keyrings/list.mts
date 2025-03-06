@@ -7,6 +7,7 @@ const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new Open
 
 export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
 	createRoute({
+		tags: ['keyring management'],
 		method: 'get',
 		path: '/',
 		description: 'Get a list of keyrings.',

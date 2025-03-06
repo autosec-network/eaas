@@ -68,6 +68,7 @@ const embededOutput = z.object({
 });
 
 export const embededRoute = createRoute({
+	tags: ['free'],
 	method: 'post',
 	path: '/',
 	security: [],
@@ -179,6 +180,7 @@ const uploadedOutput = z.object({
 });
 
 export const uploadedRoute = createRoute({
+	tags: ['free'],
 	method: 'post',
 	path: '/{algorithm}',
 	security: [],
