@@ -31,13 +31,43 @@ const rotationEditable = z.object({
 const keyringAlgorithm = await Promise.all([import('~shared/types/crypto/index.mjs'), import('~shared/types/crypto/workers-crypto-catalog.mjs')]).then(([{ KeyAlgorithms }, { workersCryptoCatalog }]) => {
 	const rsaBase = z.object({
 		algorithm: z.enum([KeyAlgorithms['RSASSA-PKCS1-v1_5'], KeyAlgorithms['RSA-PSS'], KeyAlgorithms['RSA-OAEP']]),
+		size: z
+			.number()
+			.int()
+			.gte(256)
+			.lte(16 * 1024)
+			.multipleOf(8),
+		hash: z.enum(workersCryptoCatalog.hashes),
 	});
 	const ecBase = z.object({
 		algorithm: z.enum([KeyAlgorithms.ECDSA, KeyAlgorithms.ECDH]),
+		size: z.union([z.literal(256), z.literal(384), z.literal(521)]),
+		hash: z.enum(workersCryptoCatalog.hashes),
+	});
+	const aesBase = z.object({
+		algorithm: z.enum([KeyAlgorithms['AES-CTR'], KeyAlgorithms['AES-CBC'], KeyAlgorithms['AES-GCM'], KeyAlgorithms['AES-KW']]),
+		size: z.union([z.literal(128), z.literal(192), z.literal(256)]),
+		hash: z.enum(workersCryptoCatalog.hashes),
+	});
+	const mlkemBase = z.object({
+		algorithm: z.literal(KeyAlgorithms['ML-KEM']),
+		size: z.union([z.literal(512), z.literal(768), z.literal(1024)]),
+		hash: z.enum(workersCryptoCatalog.hashes),
+	});
+	const mldsaBase = z.object({
+		algorithm: z.literal(KeyAlgorithms['ML-DSA']),
+		size: z.union([z.literal(44), z.literal(65), z.literal(87)]),
+		hash: z.enum(workersCryptoCatalog.hashes),
+	});
+	const slhdsaBase = z.object({
+		algorithm: z.enum([KeyAlgorithms['SLH-DSA-SHA2-S'], KeyAlgorithms['SLH-DSA-SHA2-F'], KeyAlgorithms['SLH-DSA-SHAKE-S'], KeyAlgorithms['SLH-DSA-SHAKE-F']]),
+		size: z.union([z.literal(128), z.literal(192), z.literal(256)]),
+		hash: z.enum(workersCryptoCatalog.hashes),
 	});
 
 	return z.union([
 		z.union([
+			rsaBase,
 			rsaBase.extend({
 				size: z
 					.number()
@@ -84,16 +114,17 @@ const keyringAlgorithm = await Promise.all([import('~shared/types/crypto/index.m
 			}),
 		]),
 		z.union([
+			ecBase,
 			ecBase.extend({
-				size: z.literal(256),
+				size: z.union([z.literal(256), z.literal(384), z.literal(521)]).default(256),
 				hash: z.enum(['sha256', 'RSA-SHA256'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
 			}),
 			ecBase.extend({
-				size: z.literal(384),
+				size: z.union([z.literal(256), z.literal(384), z.literal(521)]).default(384),
 				hash: z.enum(['sha384', 'RSA-SHA384'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
 			}),
 			ecBase.extend({
-				size: z.literal(521),
+				size: z.union([z.literal(256), z.literal(384), z.literal(521)]).default(521),
 				hash: z.enum(['sha512', 'RSA-SHA512'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
 			}),
 		]),
@@ -101,6 +132,70 @@ const keyringAlgorithm = await Promise.all([import('~shared/types/crypto/index.m
 			algorithm: z.literal(KeyAlgorithms.HMAC),
 			hash: z.enum(workersCryptoCatalog.hashes),
 		}),
+		z.union([
+			aesBase,
+			aesBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(128),
+				hash: z.enum(['sha256', 'RSA-SHA256'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			aesBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(192),
+				hash: z.enum(['sha384', 'RSA-SHA384'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			aesBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(256),
+				hash: z.enum(['sha512', 'RSA-SHA512'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+		]),
+		z.object({
+			algorithm: z.enum([KeyAlgorithms.Ed25519, KeyAlgorithms.X25519]),
+			hash: z.enum(workersCryptoCatalog.hashes),
+		}),
+		z.union([
+			mlkemBase,
+			mlkemBase.extend({
+				size: z.union([z.literal(512), z.literal(768), z.literal(1024)]).default(512),
+				hash: z.enum(['sha256', 'RSA-SHA256'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			mlkemBase.extend({
+				size: z.union([z.literal(512), z.literal(768), z.literal(1024)]).default(768),
+				hash: z.enum(['sha384', 'RSA-SHA384'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			mlkemBase.extend({
+				size: z.union([z.literal(512), z.literal(768), z.literal(1024)]).default(1024),
+				hash: z.enum(['sha512', 'RSA-SHA512'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+		]),
+		z.union([
+			mldsaBase,
+			mldsaBase.extend({
+				size: z.union([z.literal(44), z.literal(65), z.literal(87)]).default(44),
+				hash: z.enum(['sha256', 'RSA-SHA256'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			mldsaBase.extend({
+				size: z.union([z.literal(44), z.literal(65), z.literal(87)]).default(65),
+				hash: z.enum(['sha384', 'RSA-SHA384'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			mldsaBase.extend({
+				size: z.union([z.literal(44), z.literal(65), z.literal(87)]).default(87),
+				hash: z.enum(['sha512', 'RSA-SHA512'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+		]),
+		z.union([
+			slhdsaBase,
+			slhdsaBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(128),
+				hash: z.enum(['sha256', 'RSA-SHA256'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			slhdsaBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(192),
+				hash: z.enum(['sha384', 'RSA-SHA384'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+			slhdsaBase.extend({
+				size: z.union([z.literal(128), z.literal(192), z.literal(256)]).default(256),
+				hash: z.enum(['sha512', 'RSA-SHA512'] satisfies (typeof workersCryptoCatalog.hashes)[number][]),
+			}),
+		]),
 	]);
 });
 
