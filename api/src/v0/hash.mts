@@ -216,7 +216,7 @@ app.openapi(uploadedRoute, async (c) => {
 	const result: z.infer<typeof uploadedOutput>[] = [];
 
 	// Type cast because of CF's implementation of Request vs w3c Request
-	for await (const part of parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0])) {
+	return parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0], async (part) => {
 		const hash = createHash(c.req.valid('param').algorithm);
 
 		// Type cast because of CF's implementation of ReadableStream is async iterable
@@ -228,14 +228,14 @@ app.openapi(uploadedRoute, async (c) => {
 			value: hash.digest('hex'),
 			filename: part.filename!,
 		});
-	}
-
-	return c.json(
-		{
-			success: true,
-			result: result,
-		},
-		200,
+	}).then(() =>
+		c.json(
+			{
+				success: true,
+				result: result,
+			},
+			200,
+		),
 	);
 });
 
