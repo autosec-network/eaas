@@ -18,6 +18,7 @@ interface Secrets {
 interface Bindings {
 	EAAS_ROOT: D1Database;
 	CF_VERSION_METADATA: WorkerVersionMetadata;
+	DATA_KEY_ROTATION: Workflow;
 }
 
 interface VipBindingsProd {}
