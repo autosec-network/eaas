@@ -18,10 +18,7 @@ const timeEditable = await import('cron-validate').then(({ default: cron }) =>
 );
 const countEditable = z.object({
 	enabled: z.boolean(),
-	threshold: z.coerce
-		.bigint()
-		.nullable()
-		.default((BigInt(2) ** BigInt(32)).toString() as unknown as bigint),
+	threshold: z.coerce.bigint().default((BigInt(2) ** BigInt(32)).toString() as unknown as bigint),
 });
 const rotationEditable = z.object({
 	time: timeEditable,
