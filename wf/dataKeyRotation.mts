@@ -21,8 +21,6 @@ export const workflowParams = z.object({
 	kr_id: ZodUuidExportInput,
 });
 
-export type WorkflowParams = z.infer<typeof workflowParams>;
-
 export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 	override async run(event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep) {
 		const parsedPayload = await step.do('zod parse payload', () =>
