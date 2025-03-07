@@ -16,8 +16,8 @@ interface Secrets {
 }
 
 interface Bindings {
-	CF_VERSION_METADATA: WorkerVersionMetadata;
 	EAAS_ROOT: D1Database;
+	CF_VERSION_METADATA: WorkerVersionMetadata;
 }
 
 interface VipBindingsProd {}
