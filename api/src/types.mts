@@ -47,7 +47,7 @@ export interface ContextVariables extends TimingVariables {
 		 * 0. Can see self api key
 		 * 1. Can see all apikeys
 		 * 2. Can edit or rotate
-		 * 3. Can delete apikeys
+		 * 3. Can create/delete apikeys
 		 * @note Only rotate shows the actual (new) key
 		 */
 		r_apikeys: Permissions;
@@ -61,7 +61,7 @@ export interface ContextVariables extends TimingVariables {
 			/**
 			 * 1. Can see all datakeys
 			 * 2. Can rotate
-			 * 3. Can prune datakeys
+			 * 3. Can prune/delete datakeys
 			 * @note None show the actual key
 			 */
 			r_datakeys: Permissions;
