@@ -1,6 +1,9 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
+import type { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
+import type { D1Blob } from '~shared/types/d1/index.mjs';
+import type { workflowParams } from '~wf/dataKeyRotation.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -49,17 +52,66 @@ app.openapi(route, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 
-	return c.json({
-		...json,
-		rotation: {
-			...json.rotation,
-			count: {
-				...json.rotation.count,
-				threshold: json.rotation.count.threshold?.toString() as unknown as bigint,
-				current: BigInt(0).toString() as unknown as bigint,
-			},
-		},
-	} satisfies z.infer<typeof keyringOutput>);
+	return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm'), import('~shared/helpers/buffers.mjs')]).then(([{ keyrings }, { sql }, { BufferHelpers }]) =>
+		BufferHelpers.generateUuid.then((kr_id) =>
+			c.var.t_db
+				.insert(keyrings)
+				.values({
+					kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
+					name: json.name,
+					key_type: json.key.algorithm,
+					// @ts-expect-error size does sometimes exist
+					key_size: (json.key.size as number | undefined) ?? null,
+					hash: json.key.hash as (typeof workersCryptoCatalog.hashes)[number],
+					time_rotation: json.rotation.time.enabled,
+					count_rotation: json.rotation.count.enabled ? sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(BigInt(json.rotation.count.threshold))})` : null,
+				})
+				.returning({
+					b_time: keyrings.b_time,
+					c_time: keyrings.c_time,
+					m_time: keyrings.m_time,
+				})
+				.then(([row]) => {
+					if (row) {
+						return Promise.all([
+							import('cron-schedule'),
+							c.env.DATA_KEY_ROTATION.create({
+								params: {
+									t_id: c.var.t_id.utf8,
+									kr_id: kr_id.utf8,
+								} satisfies z.infer<typeof workflowParams>,
+							}),
+						]).then(([{ parseCronExpression }]) =>
+							c.json({
+								...json,
+								created: row.b_time,
+								lastModified: row.c_time,
+								rotation: {
+									...json.rotation,
+									lastRotation: row.m_time,
+									time: {
+										...json.rotation.time,
+										next:
+											json.rotation.time.cron
+												.map((cron) => parseCronExpression(cron).getNextDate())
+												.sort((a, b) => a.getTime() - b.getTime())[0]
+												?.toISOString() ?? null,
+									},
+									count: {
+										...json.rotation.count,
+										threshold: json.rotation.count.threshold.toString() as unknown as bigint,
+										current: BigInt(0).toString() as unknown as bigint,
+									},
+								},
+							} satisfies z.infer<typeof keyringOutput>),
+						);
+					} else {
+						c.json({ success: false });
+					}
+				})
+				.catch(() => c.json({ success: false })),
+		),
+	);
 });
 
 export default app;
