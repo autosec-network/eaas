@@ -4,7 +4,6 @@ import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
-// @ts-expect-error this is how hono routes work
 app.use('*', async (c, next) => {
 	/**
 	 * Check if at least one permission has r_encrypt set to true.
