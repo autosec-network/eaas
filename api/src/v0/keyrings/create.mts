@@ -17,7 +17,7 @@ app.use('*', async (c, next) => {
 	}
 });
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringEditable, keyringOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute }, { keyringEditable, keyringOutput }]) =>
 	createRoute({
 		tags: ['keyring management'],
 		method: 'post',
