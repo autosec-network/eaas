@@ -53,8 +53,8 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - [ ] Up to the last `TBA` (in-use: has been used for a generation op at least once) datakeys are stored per keyring.
     - [x] PQC key generation - current NIST forerunner(s)
     - [ ] PQC encryption - current NIST forerunner(s)
-- [ ] (`$TBA`/month) Paid (`TBA` support) managed version
-    - [x] Everything in free
+- [ ] ~~(`$TBA`/month) Paid (`TBA` support) managed version~~ paid version fully on indefinite hold
+    - [ ] Everything in free
     - [ ] `TBA` logging (operation metadata only)
     - [ ] `Unlimited free` external log push
     - [ ] Other vendors BYO key vault
@@ -66,7 +66,7 @@ Breaking api changes will use a new api version and a depreciation schedule for 
     - [ ] (`$TBA`/`TBA` in-use datakeys) per keyring
         - [ ] Base price already includes `TBA` datakeys per keyring
 
-> We pledge that retreival operations will always be free and accessible. We never want to be in a situation where we're keeping your data hostage.
+> We forever pledge that retreival operations will always be free and accessible. We never want to be in a situation where we're keeping your data hostage.
 
 [Full terminology](https://github.com/autosec-network/eaas/wiki/Terminology)
 
