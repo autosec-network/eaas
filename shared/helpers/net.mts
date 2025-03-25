@@ -1,5 +1,4 @@
 import type { CustomLoging } from '../types/index.mjs';
-import { CryptoHelpers } from './crypto.mjs';
 
 export class NetHelpers {
 	/**
@@ -113,7 +112,8 @@ export class NetHelpers {
 																		});
 																	} else {
 																		return (
-																			CryptoHelpers.generateETag(response)
+																			import('./crypto.mjs')
+																				.then(({ CryptoHelpers }) => CryptoHelpers.generateETag(response))
 																				.then((etag) => response.headers.set('ETag', etag))
 																				// eslint-disable-next-line @typescript-eslint/no-misused-promises
 																				.finally(() =>
