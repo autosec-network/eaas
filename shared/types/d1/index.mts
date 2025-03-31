@@ -4,12 +4,11 @@ import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import { z } from 'zod';
 
 export type PrefixedUuid = `${'t_'}${UuidExport['utf8']}${'' | '_p'}`;
-export type D1Blob = [number, ...number[]];
 export interface UuidExport {
 	utf8: UUID;
 	hex: string;
 	// eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
-	blob: (typeof Uint8Array)['prototype']['buffer'] | Buffer['buffer'];
+	blob: Buffer | Buffer['buffer'] | (typeof Uint8Array)['prototype']['buffer'];
 	base64: string;
 	base64url: string;
 }

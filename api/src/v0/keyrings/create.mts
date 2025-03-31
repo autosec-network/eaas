@@ -2,7 +2,6 @@ import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
 import type { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
-import type { D1Blob } from '~shared/types/d1/index.mjs';
 import type { workflowParams } from '~wf/dataKeyRotation.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
@@ -57,14 +56,14 @@ app.openapi(route, (c) => {
 			c.var.t_db
 				.insert(keyrings)
 				.values({
-					kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
+					kr_id: sql`unhex(${kr_id.hex})`,
 					name: json.name,
 					key_type: json.key.algorithm,
 					// @ts-expect-error size does sometimes exist
 					key_size: (json.key.size as number | undefined) ?? null,
 					hash: json.key.hash as (typeof workersCryptoCatalog.hashes)[number],
 					time_rotation: json.rotation.time.enabled,
-					count_rotation: json.rotation.count.enabled ? sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(BigInt(json.rotation.count.threshold))})` : null,
+					count_rotation: json.rotation.count.enabled ? sql`unhex(${BufferHelpers.bigintToHex(BigInt(json.rotation.count.threshold))})` : null,
 				})
 				.returning({
 					b_time: keyrings.b_time,

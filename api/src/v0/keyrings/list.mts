@@ -1,7 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
-import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -50,7 +49,7 @@ app.openapi(route, async (c) => {
 							? // @ts-expect-error map is fine because at least 1 exists
 								inArray(
 									keyrings.kr_id,
-									kr_ids.map((kr_id) => sql<D1Blob>`unhex(${kr_id.hex})`),
+									kr_ids.map((kr_id) => sql`unhex(${kr_id.hex})`),
 								)
 							: undefined,
 					),
@@ -79,7 +78,7 @@ app.openapi(route, async (c) => {
 										generation_count: datakeys.generation_count,
 									})
 									.from(datakeys)
-									.where(eq(datakeys.kr_id, sql<D1Blob>`unhex(${row.kr_id.hex})`))
+									.where(eq(datakeys.kr_id, sql`unhex(${row.kr_id.hex})`))
 									.orderBy(desc(datakeys.b_time))
 									.limit(1)
 									.then((rows) =>

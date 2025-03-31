@@ -14,7 +14,7 @@ import { CryptoHelpers } from '../shared/helpers/crypto.mjs';
 import { Helpers } from '../shared/helpers/index.mjs';
 import type { SecretNote } from '../shared/types/bw/index.mjs';
 import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
-import { ZodUuidExportInput, type D1Blob } from '../shared/types/d1/index.mjs';
+import { ZodUuidExportInput } from '../shared/types/d1/index.mjs';
 
 export const workflowParams = z.object({
 	t_id: ZodUuidExportInput,
@@ -72,7 +72,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						d1_id: tenants.d1_id,
 					})
 					.from(tenants)
-					.where(eq(tenants.t_id, sql<D1Blob>`unhex(${t_id.hex})`))
+					.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
 					.limit(1)
 					.then((rows) =>
 						Promise.all(
@@ -139,7 +139,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						retreival_versions: keyrings.retreival_versions,
 					})
 					.from(keyrings)
-					.where(eq(keyrings.kr_id, sql<D1Blob>`unhex(${kr_id.hex})`))
+					.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
 					.limit(1)
 					.then(([row]) => {
 						if (row) {
@@ -729,9 +729,9 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				t_db()
 					.insert(datakeys)
 					.values({
-						dk_id: sql<D1Blob>`unhex(${dk_id.hex})`,
-						kr_id: sql<D1Blob>`unhex(${kr_id.hex})`,
-						bw_id: sql<D1Blob>`unhex(${(await BufferHelpers.uuidConvert(uploadedSecret.id)).hex})`,
+						dk_id: sql`unhex(${dk_id.hex})`,
+						kr_id: sql`unhex(${kr_id.hex})`,
+						bw_id: sql`unhex(${(await BufferHelpers.uuidConvert(uploadedSecret.id)).hex})`,
 					})
 					.then(() => {}),
 		);

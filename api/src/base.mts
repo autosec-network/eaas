@@ -1,7 +1,6 @@
 import type { Context } from 'hono';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { ApiKeyVersions } from '~shared/types/bw/index.mjs';
-import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('hono').then(({ Hono }) => new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -37,7 +36,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 						})
 						.from(api_keys_tenants)
 						.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
-						.where(eq(api_keys_tenants.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`))
+						.where(eq(api_keys_tenants.ak_id, sql`unhex(${c.var.ak_id.hex})`))
 						.limit(1),
 				)
 				.then((rows) =>
@@ -102,7 +101,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 										})
 										.from(api_keys)
 										.limit(1)
-										.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`)),
+										.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`)),
 								)
 								.then(async ([hashRow]) => {
 									if (hashRow) {
@@ -166,7 +165,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 													.from(api_keys_keyrings)
 													.innerJoin(api_keys, eq(api_keys.ak_id, api_keys_keyrings.ak_id))
 													.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
-													.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`)),
+													.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`)),
 											)
 											.then((rows) =>
 												import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>

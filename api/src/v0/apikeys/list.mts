@@ -1,7 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { apikeyOutput } from '~/v0/apikeys/shared.mjs';
-import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -50,7 +49,7 @@ app.openapi(route, async (c) =>
 					c_time: api_keys.c_time,
 				})
 				.from(api_keys)
-				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`) : undefined),
+				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`) : undefined),
 		)
 		.then((rows) =>
 			import('~shared/types/d1/index.mjs').then(({ Permissions }) =>

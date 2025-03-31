@@ -11,7 +11,6 @@ import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { cipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
 import { EncryptionAlgorithms, KeyAlgorithms } from '~shared/types/crypto/index.mjs';
-import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
@@ -490,7 +489,7 @@ app.openapi(embededRoute, async (c) => {
 					// @ts-expect-error drizzle expects guarantee of atleast one element
 					inArray(
 						keyrings.kr_id,
-						keyringPermissions.map(({ kr_id }) => sql<D1Blob>`unhex(${kr_id.hex})`),
+						keyringPermissions.map(({ kr_id }) => sql`unhex(${kr_id.hex})`),
 					),
 				)
 				.orderBy(desc(datakeys.b_time))
@@ -604,7 +603,7 @@ app.openapi(embededRoute, async (c) => {
 											c.var.t_db
 												.select({ generation_count: datakeys.generation_count })
 												.from(datakeys)
-												.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+												.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 												.limit(1)
 												.then((rows) =>
 													Promise.all(
@@ -619,9 +618,9 @@ app.openapi(embededRoute, async (c) => {
 														return c.var.t_db
 															.update(datakeys)
 															.set({
-																generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+																generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
 															})
-															.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+															.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 															.limit(1);
 													} else {
 														throw new Error('Datakey not found');
@@ -681,7 +680,7 @@ app.openapi(embededRoute, async (c) => {
 				})
 				.from(datakeys)
 				.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
-				.where(eq(keyrings.kr_id, sql<D1Blob>`unhex(${kr_id.hex})`))
+				.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
 				.orderBy(desc(datakeys.b_time))
 				// versions is 0 based
 				.limit(keyring_permission.generation_versions + 1)
@@ -787,7 +786,7 @@ app.openapi(embededRoute, async (c) => {
 									c.var.t_db
 										.select({ generation_count: datakeys.generation_count })
 										.from(datakeys)
-										.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+										.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 										.limit(1)
 										.then((rows) =>
 											Promise.all(
@@ -802,9 +801,9 @@ app.openapi(embededRoute, async (c) => {
 												return c.var.t_db
 													.update(datakeys)
 													.set({
-														generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+														generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
 													})
-													.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 													.limit(1);
 											} else {
 												throw new Error('Datakey not found');
@@ -932,7 +931,7 @@ app.openapi(uploadedRoute, async (c) => {
 			})
 			.from(datakeys)
 			.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
-			.where(eq(keyrings.kr_id, sql<D1Blob>`unhex(${kr_id.hex})`))
+			.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
 			.orderBy(desc(datakeys.b_time))
 			// versions is 0 based
 			.limit(keyring_permission.generation_versions + 1)
@@ -1058,7 +1057,7 @@ app.openapi(uploadedRoute, async (c) => {
 					c.var.t_db
 						.select({ generation_count: datakeys.generation_count })
 						.from(datakeys)
-						.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+						.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 						.limit(1)
 						.then((rows) =>
 							Promise.all(
@@ -1073,9 +1072,9 @@ app.openapi(uploadedRoute, async (c) => {
 								return c.var.t_db
 									.update(datakeys)
 									.set({
-										generation_count: sql<D1Blob>`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
+										generation_count: sql`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
 									})
-									.where(eq(datakeys.dk_id, sql<D1Blob>`unhex(${bwKey.dk_id.hex})`))
+									.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 									.limit(1);
 							} else {
 								throw new Error('Datakey not found');
