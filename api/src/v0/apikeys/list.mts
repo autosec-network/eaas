@@ -15,7 +15,7 @@ app.use('*', (c, next) =>
 	),
 );
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }]) =>
 	createRoute({
 		tags: ['apikey management'],
 		method: 'get',
