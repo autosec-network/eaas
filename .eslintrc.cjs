@@ -34,5 +34,6 @@ module.exports = {
 		'@typescript-eslint/no-unnecessary-condition': 'warn',
 		'@typescript-eslint/no-import-type-side-effects': 'error',
 		'@typescript-eslint/consistent-type-imports': 'error',
+		'no-async-promise-executor': 'off',
 	},
 };
