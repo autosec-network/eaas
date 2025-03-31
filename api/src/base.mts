@@ -147,7 +147,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 								.then(async (hashCheck) => {
 									// Don't even try to fetch on bad hash
 									if (!expired && hashCheck) {
-										return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
+										await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
 											.then(([{ api_keys, keyrings, api_keys_keyrings }, { eq, sql }]) =>
 												c.var.t_db
 													.select({
