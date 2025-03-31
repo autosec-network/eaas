@@ -9,8 +9,8 @@
 		"clean": "npm -w frontend run clean",
 		"cli:pre": "tsx shared/db-preview/cli.mts",
 		"dev": "tsx --env-file-if-exists=devScripts/.dev.vars devScripts/cli.mts",
-		"generate:pre:root": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/root/index.ts\" --out=\"shared/db-preview/schemas/root\"",
-		"generate:pre:tenant": "npm exec -- drizzle-kit generate --dialect=sqlite --casing=snake_case --schema=\"shared/db-preview/schemas/tenant/index.ts\" --out=\"shared/db-preview/schemas/tenant\""
+		"generate:pre:root": "npm exec -- drizzle-kit generate --dialect=sqlite --driver d1-http --casing=snake_case --schema=\"shared/db-preview/schemas/root/index.ts\" --out=\"shared/db-preview/schemas/root\"",
+		"generate:pre:tenant": "npm exec -- drizzle-kit generate --dialect=sqlite --driver d1-http --casing=snake_case --schema=\"shared/db-preview/schemas/tenant/index.ts\" --out=\"shared/db-preview/schemas/tenant\""
 	},
 	"repository": {
 		"type": "git",
