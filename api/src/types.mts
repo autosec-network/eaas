@@ -36,6 +36,7 @@ export interface ContextVariables extends TimingVariables {
 	t_d1_id: UuidExport;
 	t_db: ReturnType<typeof DBManager.getDrizzle>;
 
+	ak_id: UuidExport;
 	globalPermissions?: {
 		/**
 		 * 0. Can see all keyrings it has permission linked

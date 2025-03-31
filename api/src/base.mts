@@ -20,7 +20,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 		const versionExists = await import('~shared/types/bw/index.mjs').then(({ ApiKeyVersions }) => version in ApiKeyVersions);
 
 		if (versionExists) {
-			const ak_id = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(ak_id_base64url));
+			c.set('ak_id', await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(ak_id_base64url)));
 
 			await import('hono/timing').then(({ endTime, startTime }) => {
 				endTime(c, 'auth-parse-token');
@@ -37,7 +37,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 						})
 						.from(api_keys_tenants)
 						.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
-						.where(eq(api_keys_tenants.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`))
+						.where(eq(api_keys_tenants.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`))
 						.limit(1),
 				)
 				.then((rows) =>
@@ -102,7 +102,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 										})
 										.from(api_keys)
 										.limit(1)
-										.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`)),
+										.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`)),
 								)
 								.then(async ([hashRow]) => {
 									if (hashRow) {
@@ -166,7 +166,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 													.from(api_keys_keyrings)
 													.innerJoin(api_keys, eq(api_keys.ak_id, api_keys_keyrings.ak_id))
 													.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
-													.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${ak_id.hex})`)),
+													.where(eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`)),
 											)
 											.then((rows) =>
 												import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
