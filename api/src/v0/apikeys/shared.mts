@@ -21,7 +21,9 @@ export const apikeyOutput = z
 			.string()
 			.datetime({ precision: 3 })
 			.openapi({ example: new Date(0).toISOString() }),
-		keyringsPermission: z.nativeEnum(Permissions),
-		apikeysPermission: z.nativeEnum(Permissions),
+		// @ts-expect-error First half of `enum` object is the nice name
+		keyringsPermission: z.enum(Object.values(Permissions).slice(0, Math.ceil(Object.values(Permissions).length / 2))),
+		// @ts-expect-error First half of `enum` object is the nice name
+		apikeysPermission: z.enum(Object.values(Permissions).slice(0, Math.ceil(Object.values(Permissions).length / 2))),
 	})
 	.openapi('ApikeyOutput');
