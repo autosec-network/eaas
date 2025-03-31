@@ -189,6 +189,8 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 													});
 												}),
 											);
+									} else {
+										c.set('permissions', {});
 									}
 
 									await import('hono/timing').then(({ endTime }) => endTime(c, 'auth-db-fetch-tenant'));
