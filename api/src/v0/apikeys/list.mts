@@ -1,6 +1,6 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import type { apikeyOutput } from '~/v0/keyrings/shared.mjs';
+import type { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
