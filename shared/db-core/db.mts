@@ -81,7 +81,7 @@ export class DBManager {
 						return { rows: [] };
 					}
 				},
-				async (queries: { sql: string; params: any[]; method: 'all' | 'run' | 'get' | 'values' }[]) => {
+				async (queries: { sql: string; params?: any[]; method: 'all' | 'run' | 'get' | 'values' }[]) => {
 					const hasParams = queries.some((query) => (query.params ?? []).length > 0);
 					if (hasParams) {
 						// params with multiple statements is not supported

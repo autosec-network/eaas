@@ -35,7 +35,7 @@ export class NetHelpers {
 									await import('chalk')
 										.then(({ Chalk }) => {
 											const chalk = new Chalk({ level: 1 });
-											console.debug(chalk.magenta('CF Fetch request'), chalk.magenta(cacheKey.url), JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t'));
+											console.debug(chalk.magenta('CF Fetch request'), chalk.magenta(cacheKey.url), JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers ?? {})).entries()) }), null, '\t'));
 										})
 										.catch(() => console.debug('CF Fetch request', cacheKey.url, JSON.stringify(this.initBodyTrimmer({ ...init, headers: Object.fromEntries(this.stripSensitiveHeaders(new Headers(init?.headers)).entries()) }), null, '\t')));
 								}
