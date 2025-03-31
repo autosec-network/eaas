@@ -1,4 +1,7 @@
+import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import type { apikeyOutput } from '~/v0/keyrings/shared.mjs';
+import type { D1Blob } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -35,10 +38,38 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 	}),
 );
 
-app.openapi(route, async (c) => {
-	console.debug(c.var.globalPermissions);
-
-	return c.json({});
-});
+app.openapi(route, async (c) =>
+	Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
+		.then(([{ api_keys }, { Permissions }, { eq, sql }]) =>
+			c.var.t_db
+				.select({
+					name: api_keys.name,
+					b_time: api_keys.b_time,
+					m_time: api_keys.m_time,
+					expires: api_keys.expires,
+					c_time: api_keys.c_time,
+				})
+				.from(api_keys)
+				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys.ak_id, sql<D1Blob>`unhex(${c.var.ak_id.hex})`) : undefined),
+		)
+		.then((rows) =>
+			import('~shared/types/d1/index.mjs').then(({ Permissions }) =>
+				rows.map(
+					(row) =>
+						({
+							name: row.name,
+							created: row.b_time,
+							lastRotation: row.m_time,
+							expires: row.expires,
+							expired: new Date(row.expires) < new Date(),
+							lastModified: row.c_time,
+							keyringsPermission: Permissions[c.var.globalPermissions!.r_keyrings],
+							apikeysPermission: Permissions[c.var.globalPermissions!.r_apikeys],
+						}) satisfies z.infer<typeof apikeyOutput>,
+				),
+			),
+		)
+		.then((json) => c.json(json)),
+);
 
 export default app;
