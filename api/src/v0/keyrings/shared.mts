@@ -202,7 +202,7 @@ export const keyringEditable = z
 		key: keyringAlgorithm,
 		rotation: rotationEditable,
 	})
-	.openapi('KeyringsEditable');
+	.openapi('KeyringEditable');
 
 export const keyringOutput = keyringEditable
 	.extend({
@@ -231,4 +231,4 @@ export const keyringOutput = keyringEditable
 			}),
 		}),
 	})
-	.openapi('KeyringsOutput');
+	.openapi('KeyringOutput');
