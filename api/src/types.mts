@@ -36,9 +36,10 @@ export interface ContextVariables extends TimingVariables {
 	t_d1_id: UuidExport;
 	t_db: ReturnType<typeof DBManager.getDrizzle>;
 
-	globalPermissions: {
+	globalPermissions?: {
 		/**
 		 * 0. Can see all keyrings it has permission linked
+		 * @note If key is expired, it will always return 0 regardless of actual permission
 		 * 1. Can see all keyrings
 		 * 2. Can create/edit keyrings
 		 * 3. Can delete keyrings
@@ -46,6 +47,7 @@ export interface ContextVariables extends TimingVariables {
 		r_keyrings: Permissions;
 		/**
 		 * 0. Can see self api key
+		 * @note If key is expired, it will always return 0 regardless of actual permission
 		 * 1. Can see all apikeys
 		 * 2. Can edit or rotate
 		 * 3. Can create/delete apikeys
@@ -53,7 +55,7 @@ export interface ContextVariables extends TimingVariables {
 		 */
 		r_apikeys: Permissions;
 	};
-	permissions: Record<
+	permissions?: Record<
 		UuidExport['base64url'],
 		{
 			kr_name: string;
