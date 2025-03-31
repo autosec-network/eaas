@@ -2,6 +2,23 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
+app.use('*', (c, next) =>
+	Promise.all([import('hono/bearer-auth'), import('node:crypto')]).then(([{ bearerAuth }, { createHash }]) =>
+		bearerAuth({
+			/**
+			 * Use sha512 (default uses sha256)
+			 * Use node crypto for optimization
+			 */
+			hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
+			verifyToken: (token, c) => {
+				console.debug('called');
+
+				return import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false));
+			},
+		})(c, next),
+	),
+);
+
 export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
 	createRoute({
 		tags: ['apikey management'],
