@@ -19,7 +19,7 @@ app.use('*', (c, next) =>
 	),
 );
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }]) =>
 	createRoute({
 		tags: ['apikey management'],
 		method: 'get',
@@ -30,7 +30,7 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 			200: {
 				content: {
 					'application/json': {
-						schema: z.array(keyringOutput),
+						schema: z.array(apikeyOutput),
 					},
 				},
 				description: 'Depending on key permissions, list all api keys, or fallback to itself.',
