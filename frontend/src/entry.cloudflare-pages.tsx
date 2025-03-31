@@ -8,7 +8,7 @@
  *
  */
 import { createQwikCity, type PlatformCloudflarePages } from '@builder.io/qwik-city/middleware/cloudflare-pages';
-import type { Request } from '@cloudflare/workers-types/experimental';
+import type { Request as CfRequest } from '@cloudflare/workers-types/experimental';
 import qwikCityPlan from '@qwik-city-plan';
 import { manifest } from '@qwik-client-manifest';
 import type { PlatformProxy } from 'wrangler';
@@ -17,7 +17,7 @@ import type { EnvVars } from './types';
 
 declare global {
 	interface QwikCityPlatformLive extends Omit<PlatformCloudflarePages, 'request'> {
-		request: Request;
+		request: CfRequest;
 		env: EnvVars;
 		ctx: ExecutionContext;
 		cf: never;
