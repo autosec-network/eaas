@@ -12,7 +12,7 @@ app.use('*', async (c, next) => {
 	 * Check if at least one permission has r_encrypt set to true.
 	 * We have to check specifics in the route handler to get the keyring name from fields.
 	 */
-	if (c.var.globalPermissions.r_keyrings >= 2) {
+	if (c.var.globalPermissions && c.var.globalPermissions.r_keyrings >= 2) {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");

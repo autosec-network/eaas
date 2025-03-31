@@ -28,7 +28,7 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 app.openapi(route, async (c) => {
 	const kr_ids = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => Promise.all(Object.keys(c.var.permissions).map((kr_id_base64url) => BufferHelpers.uuidConvert(kr_id_base64url))));
 
-	if (c.var.globalPermissions.r_keyrings > 0 || kr_ids.length > 0) {
+	if ((c.var.globalPermissions && c.var.globalPermissions.r_keyrings > 0) || kr_ids.length > 0) {
 		return Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
 			.then(([{ keyrings }, { Permissions }, { inArray, sql }]) =>
 				c.var.t_db
@@ -46,7 +46,7 @@ app.openapi(route, async (c) => {
 					})
 					.from(keyrings)
 					.where(
-						c.var.globalPermissions.r_keyrings === Permissions.None
+						c.var.globalPermissions?.r_keyrings === Permissions.None
 							? // @ts-expect-error map is fine because at least 1 exists
 								inArray(
 									keyrings.kr_id,
