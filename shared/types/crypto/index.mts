@@ -20,7 +20,7 @@ export enum KeyAlgorithms {
 }
 
 export enum EncryptionAlgorithms {
-	'AES-GCM' = 'aes-gcm',
 	'AES-CBC' = 'aes-cbc',
 	'AES-CTR' = 'aes-ctr',
+	'AES-GCM' = 'aes-gcm',
 }
