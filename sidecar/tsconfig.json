@@ -7,6 +7,6 @@
 			"~shared/*": ["../shared/*"]
 		}
 	},
-	"files": ["./.eslintrc.cjs", "prettier.config.mjs"],
+	"files": ["./eslint.config.mjs", "prettier.config.mjs"],
 	"include": ["src", "../shared"]
 }

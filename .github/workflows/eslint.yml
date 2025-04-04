@@ -4,16 +4,16 @@ on:
   push:
     paths:
       - '.github/workflows/eslint.yml'
-      - '.eslintrc.cjs'
-      - '**/.eslintrc.cjs'
+      - 'eslint.config.mjs'
+      - '**/eslint.config.mjs'
       - 'package*.json'
       - '**/package*.json'
       - '**/*.ts*'
   pull_request:
     paths:
       - '.github/workflows/eslint.yml'
-      - '.eslintrc.cjs'
-      - '**/.eslintrc.cjs'
+      - 'eslint.config.mjs'
+      - '**/eslint.config.mjs'
       - 'package*.json'
       - '**/package*.json'
       - '**/*.ts*'
