@@ -3,7 +3,7 @@ import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
-import { timingSafeEqual } from 'node:crypto';
+import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
@@ -159,7 +159,7 @@ export const embededRoute = createRoute({
 	},
 });
 
-async function generateKey({ key_type, key_size, hash, privateKey, publicKey, salt, macInfo, algorithm, algorithmSize }: { key_type: KeyAlgorithms; key_size?: number; hash: typeof keyrings.$inferSelect.hash; privateKey: JsonWebKey; publicKey?: JsonWebKey; salt: ArrayBufferLike; macInfo: ArrayBufferLike; algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength'] }): Promise<{ key: CryptoKey; mac: CryptoKey }> {
+async function generateKey({ key_type, key_size, hash, privateKey, publicKey, salt, macInfo, algorithm, algorithmSize }: { key_type: KeyAlgorithms; key_size?: number; hash: typeof keyrings.$inferSelect.hash; privateKey: JsonWebKey; publicKey?: JsonWebKey; salt: Buffer; macInfo: Buffer; algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength'] }): Promise<{ key: CipherKey; mac: CipherKey }> {
 	let normalizedHashName: 'SHA-1' | 'SHA-256' | 'SHA-384' | 'SHA-512';
 	switch (hash) {
 		case 'sha1':
@@ -186,7 +186,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			throw new Error('Unsupported hash type');
 	}
 
-	let keyMaterial: CryptoKey;
+	let keyMaterial: CipherKey;
 
 	/**
 	 * If key has native derive key, we'll use it.
@@ -195,19 +195,19 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 	switch (key_type) {
 		case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 		case KeyAlgorithms['RSA-PSS']:
-		case KeyAlgorithms['RSA-OAEP']:
-			let rsaNormalizedUsages: readonly KeyUsage[];
+		case KeyAlgorithms['RSA-OAEP']: {
+			let normalizedUsages: readonly KeyUsage[];
 			switch (key_type) {
 				case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 				case KeyAlgorithms['RSA-PSS']:
-					rsaNormalizedUsages = ['sign'];
+					normalizedUsages = ['sign'];
 					break;
 				case KeyAlgorithms['RSA-OAEP']:
-					rsaNormalizedUsages = ['encrypt'];
+					normalizedUsages = ['encrypt'];
 			}
 
 			// Guaranteed private key import
-			const rsaImportPromises = [
+			const importPromises = [
 				crypto.subtle.importKey(
 					'jwk',
 					privateKey,
@@ -216,13 +216,13 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 						hash: normalizedHashName,
 					} satisfies RsaHashedImportParams,
 					true,
-					rsaNormalizedUsages,
+					normalizedUsages,
 				),
 			];
 
 			// Optional public key import
 			if (publicKey)
-				rsaImportPromises.push(
+				importPromises.push(
 					crypto.subtle.importKey(
 						'jwk',
 						publicKey,
@@ -231,45 +231,43 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 							hash: normalizedHashName,
 						} satisfies RsaHashedImportParams,
 						true,
-						rsaNormalizedUsages,
+						normalizedUsages,
 					),
 				);
 
 			// Merge keys
-			const rsaRawKeys = (await Promise.all(rsaImportPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => new Uint8Array(rawKey));
+			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			const rsaCombinedRawKeys = new Uint8Array(rsaRawKeys.reduce((sum, buf) => sum + buf.byteLength, 0));
-			// Insert each one into combined
-			rsaRawKeys.forEach((rawKey, index) => {
-				rsaCombinedRawKeys.set(rawKey, index === 0 ? 0 : rsaRawKeys[index - 1]!.byteLength);
-			});
-
-			keyMaterial = await crypto.subtle.importKey('raw', rsaCombinedRawKeys, { name: 'HKDF' }, false, ['deriveKey']);
+			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
+				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
+				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
+				.then((key) => Buffer.from(key));
 			break;
-		case KeyAlgorithms.ECDSA:
-			let normalizedEccCurve: undefined | 'P-256' | 'P-384' | 'P-521';
+		}
+		case KeyAlgorithms.ECDSA: {
+			let normalizedCurve: undefined | 'P-256' | 'P-384' | 'P-521';
 			switch (key_size) {
 				case 256:
-					normalizedEccCurve = 'P-256';
+					normalizedCurve = 'P-256';
 					break;
 				case 384:
-					normalizedEccCurve = 'P-384';
+					normalizedCurve = 'P-384';
 					break;
 				case 521:
-					normalizedEccCurve = 'P-521';
+					normalizedCurve = 'P-521';
 					break;
 
 				default:
 					// Lets try to infer some defaults
 					switch (normalizedHashName) {
 						case 'SHA-256':
-							normalizedEccCurve = 'P-256';
+							normalizedCurve = 'P-256';
 							break;
 						case 'SHA-384':
-							normalizedEccCurve = 'P-384';
+							normalizedCurve = 'P-384';
 							break;
 						case 'SHA-512':
-							normalizedEccCurve = 'P-521';
+							normalizedCurve = 'P-521';
 							break;
 						default:
 							throw new Error('Unsupported curve');
@@ -278,13 +276,13 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			}
 
 			// Guaranteed private key import
-			const ecdsaImportPromises = [
+			const importPromises = [
 				crypto.subtle.importKey(
 					'jwk',
 					privateKey,
 					{
 						name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
-						namedCurve: normalizedEccCurve,
+						namedCurve: normalizedCurve,
 					} satisfies EcKeyImportParams,
 					false,
 					['sign'],
@@ -293,13 +291,13 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 
 			// Optional public key import
 			if (publicKey)
-				ecdsaImportPromises.push(
+				importPromises.push(
 					crypto.subtle.importKey(
 						'jwk',
 						publicKey,
 						{
 							name: Object.entries(KeyAlgorithms).find((algo) => algo[1] === key_type)![0],
-							namedCurve: normalizedEccCurve,
+							namedCurve: normalizedCurve,
 						} satisfies EcKeyImportParams,
 						false,
 						['sign'],
@@ -307,79 +305,69 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 				);
 
 			// Merge keys
-			const ecdsaRawKeys = (await Promise.all(ecdsaImportPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => new Uint8Array(rawKey));
+			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			const ecdsaCombinedRawKeys = new Uint8Array(ecdsaRawKeys.reduce((sum, buf) => sum + buf.byteLength, 0));
-			// Insert each one into combined
-			ecdsaRawKeys.forEach((rawKey, index) => {
-				ecdsaCombinedRawKeys.set(rawKey, index === 0 ? 0 : ecdsaRawKeys[index - 1]!.byteLength);
-			});
-
-			keyMaterial = await crypto.subtle.importKey('raw', ecdsaCombinedRawKeys, { name: 'HKDF' }, false, ['deriveKey']);
+			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
+				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
+				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
+				.then((key) => Buffer.from(key));
 			break;
-		/**
-		 * @todo
-		 */
+		}
 		case KeyAlgorithms['ML-KEM']:
 		case KeyAlgorithms['ML-DSA']:
 		case KeyAlgorithms['SLH-DSA-SHA2-S']:
 		case KeyAlgorithms['SLH-DSA-SHA2-F']:
 		case KeyAlgorithms['SLH-DSA-SHAKE-S']:
-		case KeyAlgorithms['SLH-DSA-SHAKE-F']:
+		case KeyAlgorithms['SLH-DSA-SHAKE-F']: {
 			// Guaranteed private key import
-			const pqcRawKeys = [new Uint8Array(Buffer.from(privateKey.d!, 'base64url'))];
+			const rawKeys = [Buffer.from(privateKey.d!, 'base64url')];
 
 			// Optional public key import
-			if (publicKey) pqcRawKeys.push(new Uint8Array(Buffer.from(publicKey.x!, 'base64url')));
+			if (publicKey?.x) rawKeys.push(Buffer.from(publicKey.x, 'base64url'));
 
 			// Merge keys
-			const pqcCombinedRawKeys = new Uint8Array(pqcRawKeys.reduce((sum, buf) => sum + buf.byteLength, 0));
-			// Insert each one into combined
-			pqcRawKeys.forEach((rawKey, index) => {
-				pqcCombinedRawKeys.set(rawKey, index === 0 ? 0 : pqcRawKeys[index - 1]!.byteLength);
-			});
+			const combinedRawKeys = Buffer.concat(rawKeys);
 
-			keyMaterial = await crypto.subtle.importKey('raw', pqcCombinedRawKeys, { name: 'HKDF' }, false, ['deriveKey']);
+			keyMaterial = createSecretKey(combinedRawKeys);
 			break;
+		}
 		default:
 			throw new Error('Unsupported key type');
 	}
 
-	return Promise.all([
-		crypto.subtle.deriveKey(
-			{
-				name: 'HKDF',
-				salt: new Uint8Array(salt),
-				hash: normalizedHashName,
-				info: new Uint8Array(),
-			} satisfies HkdfParams,
-			keyMaterial,
-			{
-				name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
-				length: parseInt(algorithmSize),
-			} satisfies AesDerivedKeyParams,
-			true,
-			['encrypt'],
-		),
-		crypto.subtle.deriveKey(
-			{
-				name: 'HKDF',
-				salt: new Uint8Array(salt),
-				hash: normalizedHashName,
-				info: new Uint8Array(macInfo),
-			} satisfies HkdfParams,
-			keyMaterial,
-			{
-				name: 'HMAC',
-				hash: normalizedHashName,
-			} satisfies HmacKeyGenParams,
-			false,
-			['sign'],
-		),
-	]).then(([key, mac]) => ({ key, mac }));
+	return Promise.all([import('node:util'), import('node:crypto')])
+		.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
+		.then((hkdfAsync) =>
+			Promise.all([
+				hkdfAsync(
+					//
+					hash,
+					keyMaterial,
+					salt,
+					Buffer.from(new Uint8Array()),
+					parseInt(algorithmSize) / 8,
+				),
+				import('node:crypto')
+					.then(({ createHash }) => createHash(hash).digest().byteLength)
+					.then((byteLength) =>
+						hkdfAsync(
+							//
+							hash,
+							keyMaterial,
+							salt,
+							macInfo,
+							byteLength,
+						),
+					),
+			]),
+		)
+		.then(([key, mac]) => ({
+			key: Buffer.from(key),
+			mac: Buffer.from(mac),
+		}));
 }
 
-async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CryptoKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
+async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
 	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? ((await BufferHelpers.base64ToBuffer(input as string)) as Buffer) : Buffer.from(input as string, inputFormat);
 
 	switch (algorithm) {
@@ -387,8 +375,8 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const gcmIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
-				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-gcm`, Buffer.from(key), gcmIv))
+			return import('node:crypto')
+				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-gcm`, key, gcmIv))
 				.then(async (cipher) => {
 					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 					const authTag = cipher.getAuthTag();
@@ -403,8 +391,8 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-CBC uses a 128-bit iv
 			const cbcIv = crypto.getRandomValues(new Uint8Array(128 / 8));
 
-			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
-				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-cbc`, Buffer.from(key), cbcIv))
+			return import('node:crypto')
+				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-cbc`, key, cbcIv))
 				.then(async (cipher) => {
 					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 
@@ -418,8 +406,8 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-CTR uses a 128-bit counter
 			const ctrCounter = crypto.getRandomValues(new Uint8Array(128 / 8));
 
-			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
-				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-ctr`, Buffer.from(key), ctrCounter))
+			return import('node:crypto')
+				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-ctr`, key, ctrCounter))
 				.then(async (cipher) => {
 					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 
@@ -433,8 +421,8 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
-				.then(([{ createCipheriv }, key]) => createCipheriv('chacha20-poly1305', Buffer.from(key), chaIv))
+			return import('node:crypto')
+				.then(({ createCipheriv }) => createCipheriv('chacha20-poly1305', key, chaIv))
 				.then(async (cipher) => {
 					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 					const authTag = cipher.getAuthTag();
@@ -578,8 +566,8 @@ app.openapi(embededRoute, async (c) => {
 								hash: bwKey.hash,
 								key_type: bwKey.key_type,
 								key_size: bwKey.key_size ?? undefined,
-								salt: bwKey.salt,
-								macInfo: bwKey.macInfo,
+								salt: Buffer.from(bwKey.salt),
+								macInfo: Buffer.from(bwKey.macInfo),
 								privateKey: bwKey.private,
 								publicKey: bwKey.public,
 							}).then(({ key, mac }) => {
@@ -602,57 +590,60 @@ app.openapi(embededRoute, async (c) => {
 									mergedBuffer.set(preamble, 0);
 									mergedBuffer.set(cipherBuffer, preamble.length);
 
-									return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
-										endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
+									return import('node:crypto')
+										.then(({ createHmac }) => createHmac(bwKey.hash, key))
+										.then((hmac) => hmac.update(mergedBuffer).digest())
+										.then((signature) => {
+											endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 
-										/**
-										 * Update encryption counter
-										 *
-										 * Potential inconsistency, but can't be resolved until D1 supports transactions
-										 * @link https://github.com/cloudflare/workers-sdk/issues/2733
-										 */
-										c.executionCtx.waitUntil(
-											c.var.t_db
-												.select({ generation_count: datakeys.generation_count })
-												.from(datakeys)
-												.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-												.limit(1)
-												.then((rows) =>
-													Promise.all(
-														rows.map(async (row) => ({
-															...row,
-															generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-														})),
-													),
-												)
-												.then(([row]) => {
-													if (row) {
-														return c.var.t_db
-															.update(datakeys)
-															.set({
-																generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-															})
-															.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-															.limit(1);
-													} else {
-														throw new Error('Datakey not found');
-													}
+											/**
+											 * Update encryption counter
+											 *
+											 * Potential inconsistency, but can't be resolved until D1 supports transactions
+											 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+											 */
+											c.executionCtx.waitUntil(
+												c.var.t_db
+													.select({ generation_count: datakeys.generation_count })
+													.from(datakeys)
+													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+													.limit(1)
+													.then((rows) =>
+														Promise.all(
+															rows.map(async (row) => ({
+																...row,
+																generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+															})),
+														),
+													)
+													.then(([row]) => {
+														if (row) {
+															return c.var.t_db
+																.update(datakeys)
+																.set({
+																	generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+																})
+																.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+																.limit(1);
+														} else {
+															throw new Error('Datakey not found');
+														}
+													}),
+											);
+
+											// Append back
+											returningCiphertexts.push({
+												value: cipherText0(allowedInput.outputFormat, {
+													dk_id: bwKey.dk_id,
+													algorithm: allowedInput.algorithm,
+													bitStrength: allowedInput.bitStrength,
+													preamble,
+													cipherBuffer,
+													signature: signature,
 												}),
-										);
-
-										// Append back
-										returningCiphertexts.push({
-											value: cipherText0(allowedInput.outputFormat, {
-												dk_id: bwKey.dk_id,
-												algorithm: allowedInput.algorithm,
-												bitStrength: allowedInput.bitStrength,
-												preamble,
-												cipherBuffer,
-												signature: new Uint8Array(signature),
-											}),
-											reference: allowedInput.reference,
+												reference: allowedInput.reference,
+											});
 										});
-									});
 								});
 							});
 						} else {
@@ -762,8 +753,8 @@ app.openapi(embededRoute, async (c) => {
 						hash: bwKey.hash,
 						key_type: bwKey.key_type,
 						key_size: bwKey.key_size ?? undefined,
-						salt: bwKey.salt,
-						macInfo: bwKey.macInfo,
+						salt: Buffer.from(bwKey.salt),
+						macInfo: Buffer.from(bwKey.macInfo),
 						privateKey: bwKey.private,
 						publicKey: bwKey.public,
 					}).then(({ key, mac }) => {
@@ -786,62 +777,65 @@ app.openapi(embededRoute, async (c) => {
 							mergedBuffer.set(preamble, 0);
 							mergedBuffer.set(cipherBuffer, preamble.length);
 
-							return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
-								endTime(c, 'encrypt-sign');
+							return import('node:crypto')
+								.then(({ createHmac }) => createHmac(bwKey.hash, key))
+								.then((hmac) => hmac.update(mergedBuffer).digest())
+								.then((signature) => {
+									endTime(c, 'encrypt-sign');
 
-								/**
-								 * Update encryption counter
-								 *
-								 * Potential inconsistency, but can't be resolved until D1 supports transactions
-								 * @link https://github.com/cloudflare/workers-sdk/issues/2733
-								 */
-								c.executionCtx.waitUntil(
-									c.var.t_db
-										.select({ generation_count: datakeys.generation_count })
-										.from(datakeys)
-										.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-										.limit(1)
-										.then((rows) =>
-											Promise.all(
-												rows.map(async (row) => ({
-													...row,
-													generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-												})),
-											),
-										)
-										.then(([row]) => {
-											if (row) {
-												return c.var.t_db
-													.update(datakeys)
-													.set({
-														generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-													})
-													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-													.limit(1);
-											} else {
-												throw new Error('Datakey not found');
-											}
-										}),
-								);
-
-								return c.json(
-									{
-										success: true,
-										result: {
-											value: cipherText0(json.outputFormat, {
-												dk_id: bwKey.dk_id,
-												algorithm: json.algorithm,
-												bitStrength: json.bitStrength,
-												preamble,
-												cipherBuffer,
-												signature: new Uint8Array(signature),
+									/**
+									 * Update encryption counter
+									 *
+									 * Potential inconsistency, but can't be resolved until D1 supports transactions
+									 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+									 */
+									c.executionCtx.waitUntil(
+										c.var.t_db
+											.select({ generation_count: datakeys.generation_count })
+											.from(datakeys)
+											.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+											.limit(1)
+											.then((rows) =>
+												Promise.all(
+													rows.map(async (row) => ({
+														...row,
+														generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+													})),
+												),
+											)
+											.then(([row]) => {
+												if (row) {
+													return c.var.t_db
+														.update(datakeys)
+														.set({
+															generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+														})
+														.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+														.limit(1);
+												} else {
+													throw new Error('Datakey not found');
+												}
 											}),
-											reference: json.reference,
+									);
+
+									return c.json(
+										{
+											success: true,
+											result: {
+												value: cipherText0(json.outputFormat, {
+													dk_id: bwKey.dk_id,
+													algorithm: json.algorithm,
+													bitStrength: json.bitStrength,
+													preamble,
+													cipherBuffer,
+													signature: signature,
+												}),
+												reference: json.reference,
+											},
 										},
-									},
-									200,
-								);
-							});
+										200,
+									);
+								});
 						});
 					});
 				} else {
@@ -1014,8 +1008,8 @@ app.openapi(uploadedRoute, async (c) => {
 					hash: bwKey.hash,
 					key_type: bwKey.key_type,
 					key_size: bwKey.key_size ?? undefined,
-					salt: bwKey.salt,
-					macInfo: bwKey.macInfo,
+					salt: Buffer(bwKey.salt),
+					macInfo: Buffer.from(bwKey.macInfo),
 					privateKey: bwKey.private,
 					publicKey: bwKey.public,
 				}).then(async ({ key, mac }) => {
@@ -1041,22 +1035,25 @@ app.openapi(uploadedRoute, async (c) => {
 							mergedBuffer.set(preamble, 0);
 							mergedBuffer.set(cipherBuffer, preamble.length);
 
-							return crypto.subtle.sign({ name: 'HMAC' }, mac, mergedBuffer).then((signature) => {
-								endTime(c, `${part.filename}|encrypt-sign`);
+							return import('node:crypto')
+								.then(({ createHmac }) => createHmac(bwKey.hash, key))
+								.then((hmac) => hmac.update(mergedBuffer).digest())
+								.then((signature) => {
+									endTime(c, `${part.filename}|encrypt-sign`);
 
-								// Append back
-								returningCiphertexts.push({
-									value: cipherText0('base64', {
-										dk_id: bwKey.dk_id,
-										algorithm: param.algorithm,
-										bitStrength: param.bitStrength,
-										preamble,
-										cipherBuffer,
-										signature: new Uint8Array(signature),
-									}),
-									filename: part.filename!,
+									// Append back
+									returningCiphertexts.push({
+										value: cipherText0('base64', {
+											dk_id: bwKey.dk_id,
+											algorithm: param.algorithm,
+											bitStrength: param.bitStrength,
+											preamble,
+											cipherBuffer,
+											signature: signature,
+										}),
+										filename: part.filename!,
+									});
 								});
-							});
 						});
 					});
 				});
