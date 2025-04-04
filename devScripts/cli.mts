@@ -123,7 +123,7 @@ yargs(hideBin(process.argv))
 												d1_id: sql`unhex(${converted_d1_id.value.hex})`,
 												name: args.name,
 												// @ts-expect-error types not yet updated
-												bw_url: (d1CreateResponse['created_in_region'] as 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc').toLowerCase().endsWith('nam') ? BaseBitwardenServer[0] : BaseBitwardenServer[1],
+												bw_url: (d1CreateResponse.created_in_region as 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc').toLowerCase().endsWith('nam') ? BaseBitwardenServer[0] : BaseBitwardenServer[1],
 											});
 									} else {
 										return;

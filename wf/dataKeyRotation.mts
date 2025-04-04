@@ -221,7 +221,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						}
 
 						if (normalizedRsaKeySize) {
-							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							let normalizedUsages: readonly KeyUsage[];
 							switch (key_type) {
 								case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 								case KeyAlgorithms['RSA-PSS']:
@@ -281,7 +281,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						}
 
 						if (normalizedEccCurve) {
-							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							let normalizedUsages: readonly KeyUsage[];
 							switch (key_type) {
 								case KeyAlgorithms.ECDSA:
 									normalizedUsages = ['sign', 'verify'];
@@ -355,7 +355,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						}
 
 						if (normalizedAesSize) {
-							let normalizedUsages: ReadonlyArray<KeyUsage>;
+							let normalizedUsages: readonly KeyUsage[];
 							switch (key_type) {
 								case KeyAlgorithms['AES-CTR']:
 								case KeyAlgorithms['AES-CBC']:

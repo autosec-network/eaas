@@ -170,7 +170,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 											.then((rows) =>
 												import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
 													Promise.all(
-														// eslint-disable-next-line @typescript-eslint/no-unused-vars
+														 
 														rows.map((row) =>
 															BufferHelpers.uuidConvert(row.kr_id).then((kr_id) => ({
 																...row,

@@ -193,7 +193,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 		case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 		case KeyAlgorithms['RSA-PSS']:
 		case KeyAlgorithms['RSA-OAEP']:
-			let rsaNormalizedUsages: ReadonlyArray<KeyUsage>;
+			let rsaNormalizedUsages: readonly KeyUsage[];
 			switch (key_type) {
 				case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 				case KeyAlgorithms['RSA-PSS']:

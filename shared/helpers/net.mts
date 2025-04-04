@@ -227,7 +227,7 @@ export class NetHelpers {
 					};
 					if (body) {
 						if (response.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) {
-							// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+							 
 							loggingContent['body'] = await response.json();
 						} else {
 							loggingContent['body'] = await response.text();

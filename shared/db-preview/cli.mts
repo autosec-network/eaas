@@ -23,9 +23,9 @@ yargs(hideBin(process.argv))
 		(args) => {
 			const promises: Promise<void>[] = [];
 
-			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'generate' })['generate']());
+			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'generate' }).generate());
 
-			if (args.type.includes('tenant')) promises.push(new TenantMigrator({ type: 'generate' })['generate']());
+			if (args.type.includes('tenant')) promises.push(new TenantMigrator({ type: 'generate' }).generate());
 
 			return Promise.allSettled(promises).then(() => {});
 		},
@@ -48,9 +48,9 @@ yargs(hideBin(process.argv))
 		(args) => {
 			const promises: Promise<void>[] = [];
 
-			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'migrate', remote: args.remote })['migrate']());
+			if (args.type.includes('root')) promises.push(new RootMigrator({ type: 'migrate', remote: args.remote }).migrate());
 
-			if (args.type.includes('tenant')) promises.push(new TenantMigrator({ type: 'migrate', remote: args.remote })['migrate']());
+			if (args.type.includes('tenant')) promises.push(new TenantMigrator({ type: 'migrate', remote: args.remote }).migrate());
 
 			return Promise.allSettled(promises).then(() => {});
 		},

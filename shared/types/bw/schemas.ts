@@ -1247,7 +1247,7 @@ function transform(val: any, typ: any, getProps: any, key: any = '', parent: any
 	}
 
 	function transformEnum(cases: string[], val: any): any {
-		if (cases.indexOf(val) !== -1) return val;
+		if (cases.includes(val)) return val;
 		return invalidValue(
 			cases.map((a) => {
 				return l(a);
@@ -1275,7 +1275,7 @@ function transform(val: any, typ: any, getProps: any, key: any = '', parent: any
 		return d;
 	}
 
-	function transformObject(props: { [k: string]: any }, additional: any, val: any): any {
+	function transformObject(props: Record<string, any>, additional: any, val: any): any {
 		if (val === null || typeof val !== 'object' || Array.isArray(val)) {
 			return invalidValue(l(ref || 'object'), val, key, parent);
 		}

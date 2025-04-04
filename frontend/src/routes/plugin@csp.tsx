@@ -27,7 +27,7 @@ class CSPGenerator {
 
 	private addSource(directive: string, all: boolean = false, none: boolean = false, self: boolean = false, data: boolean = false, blob: boolean = false, domains: string[] = [], unsafeInline: boolean = false, unsafeEval: boolean = false, nonce: boolean = false, strictDynamic: boolean = false, unsafeHashes: boolean = false): void {
 		const flagsToAdd: string[] = [];
-		const domainsToAdd: Set<string> = new Set();
+		const domainsToAdd = new Set<string>();
 
 		if (all) flagsToAdd.push('https:');
 		if (none) flagsToAdd.push("'none'");
