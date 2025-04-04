@@ -42,6 +42,9 @@ const exampleOutput: Parameters<typeof cipherText0>[1] = {
 	signature: new Uint8Array(512 / 8),
 };
 
+/**
+ * @todo reine to restrict bit strentch to certain algorithms
+ */
 const embededInputBase = z.object({
 	keyringName: z.string().trim().min(1).toLowerCase().describe('Specifies the name of the key ring to use, case insensitive'),
 	algorithm: z.nativeEnum(EncryptionAlgorithms).describe('Specifies the encryption algorithm to use').openapi({ example: EncryptionAlgorithms['AES-GCM'] }),
@@ -423,6 +426,22 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 					return {
 						cipherBuffer: new Uint8Array(cipherText),
 						preamble: ctrCounter,
+					};
+				});
+		}
+		case EncryptionAlgorithms['ChaCha20-Poly1305']: {
+			// AES-GCM uses a 96-bit iv
+			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
+
+			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
+				.then(([{ createCipheriv }, key]) => createCipheriv('chacha20-poly1305', Buffer.from(key), chaIv))
+				.then(async (cipher) => {
+					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+					const authTag = cipher.getAuthTag();
+
+					return {
+						cipherBuffer: new Uint8Array(Buffer.concat([cipherText, authTag])),
+						preamble: chaIv,
 					};
 				});
 		}
