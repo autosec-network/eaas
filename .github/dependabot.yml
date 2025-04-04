@@ -47,10 +47,6 @@ updates:
       - dependency-name: '@types/node'
         versions:
           - '>=23.0.0'
-      # Currently not supported by plugins
-      - dependency-name: 'eslint'
-        versions:
-          - '>=9.0.0'
       # Currently not supported by qwik
       - dependency-name: 'vite-tsconfig-paths'
         versions:
