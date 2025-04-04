@@ -126,7 +126,7 @@ export class BufferHelpers {
 	public static uuidConvert(input: UuidExport['base64']): Promise<UuidExport>;
 	public static uuidConvert(input: UuidExport['base64url']): Promise<UuidExport>;
 	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
-	public static uuidConvert(input?: PrefixedUuid | UuidExport['utf8'] | UuidExport['hex'] | UuidExport['blob']    ): Promise<UuidExport | UndefinedProperties<UuidExport>> {
+	public static uuidConvert(input?: PrefixedUuid | UuidExport['utf8'] | UuidExport['hex'] | UuidExport['blob']): Promise<UuidExport | UndefinedProperties<UuidExport>> {
 		if (input) {
 			if (typeof input === 'string') {
 				if (this.utf8Regex.test(input)) {

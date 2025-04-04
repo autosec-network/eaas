@@ -227,7 +227,6 @@ export class NetHelpers {
 					};
 					if (body) {
 						if (response.headers.get('Content-Type')?.toLowerCase().startsWith('application/json')) {
-							 
 							loggingContent['body'] = await response.json();
 						} else {
 							loggingContent['body'] = await response.text();

@@ -84,7 +84,6 @@ app.openapi(route, async (c) => {
 									.then((rows) =>
 										import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
 											Promise.all(
-												 
 												rows.map((row) =>
 													BufferHelpers.bufferToBigint(row.generation_count).then((generation_count) => ({
 														...row,
