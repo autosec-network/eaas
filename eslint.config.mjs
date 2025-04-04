@@ -1,19 +1,27 @@
-module.exports = {
-	root: true,
-	env: {
-		node: true,
-		// https://eslint.org/docs/head/use/configure/language-options-deprecated#specifying-environments
-		es2024: true,
+import eslint from '@eslint/js';
+import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import tseslint from 'typescript-eslint';
+
+export default tseslint.config({
+	// config with just ignores is the replacement for `.eslintignore`
+	ignores: ['dist/*', 'server/*', 'tmp/*'],
+	extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked, eslintConfigPrettier],
+	plugins: {
+		'@typescript-eslint': tseslint.plugin,
 	},
-	extends: ['eslint:recommended', 'plugin:@typescript-eslint/recommended'],
-	parser: '@typescript-eslint/parser',
-	parserOptions: {
-		tsconfigRootDir: __dirname,
-		project: ['./tsconfig.json'],
-		ecmaVersion: 'latest',
-		sourceType: 'module',
+	languageOptions: {
+		parser: tseslint.parser,
+		parserOptions: {
+			ecmaVersion: 'latest',
+			jsDocParsingMode: 'type-info',
+			lib: ['esnext'],
+			projectService: {
+				allowDefaultProject: ['eslint.config.mjs'],
+				defaultProject: 'tsconfig.json',
+			},
+			tsconfigRootDir: import.meta.dirname,
+		},
 	},
-	plugins: ['@typescript-eslint'],
 	rules: {
 		'@typescript-eslint/no-explicit-any': 'off',
 		'@typescript-eslint/explicit-module-boundary-types': 'off',
@@ -36,4 +44,4 @@ module.exports = {
 		'@typescript-eslint/consistent-type-imports': 'error',
 		'no-async-promise-executor': 'off',
 	},
-};
+});
