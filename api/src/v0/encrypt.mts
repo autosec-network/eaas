@@ -355,7 +355,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 				name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
 				length: parseInt(algorithmSize),
 			} satisfies AesDerivedKeyParams,
-			false,
+			true,
 			['encrypt'],
 		),
 		crypto.subtle.deriveKey(
@@ -376,64 +376,56 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 	]).then(([key, mac]) => ({ key, mac }));
 }
 
-async function encryptContent({ algorithm, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; key: CryptoKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
+async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CryptoKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
+	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? ((await BufferHelpers.base64ToBuffer(input as string)) as Buffer) : Buffer.from(input as string, inputFormat);
+
 	switch (algorithm) {
-		case EncryptionAlgorithms['AES-GCM']:
+		case EncryptionAlgorithms['AES-GCM']: {
 			// AES-GCM uses a 96-bit iv
 			const gcmIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return crypto.subtle
-				.encrypt(
-					{
-						name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
-						iv: gcmIv,
-					} satisfies AesGcmParams,
-					key,
-					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
-				)
-				.then((cipherBuffer) => ({
-					cipherBuffer: new Uint8Array(cipherBuffer),
-					preamble: gcmIv,
-				}));
-		case EncryptionAlgorithms['AES-CBC']:
+			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
+				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-gcm`, Buffer.from(key), gcmIv))
+				.then(async (cipher) => {
+					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+					const authTag = cipher.getAuthTag();
+
+					return {
+						cipherBuffer: new Uint8Array(Buffer.concat([cipherText, authTag])),
+						preamble: gcmIv,
+					};
+				});
+		}
+		case EncryptionAlgorithms['AES-CBC']: {
 			// AES-CBC uses a 128-bit iv
 			const cbcIv = crypto.getRandomValues(new Uint8Array(128 / 8));
 
-			return crypto.subtle
-				.encrypt(
-					{
-						name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
-						iv: cbcIv,
-					} satisfies AesCbcParams,
-					key,
-					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
-				)
-				.then((cipherBuffer) => ({
-					cipherBuffer: new Uint8Array(cipherBuffer),
-					preamble: cbcIv,
-				}));
-		case EncryptionAlgorithms['AES-CTR']:
+			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
+				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-cbc`, Buffer.from(key), cbcIv))
+				.then(async (cipher) => {
+					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+
+					return {
+						cipherBuffer: new Uint8Array(cipherText),
+						preamble: cbcIv,
+					};
+				});
+		}
+		case EncryptionAlgorithms['AES-CTR']: {
 			// AES-CTR uses a 128-bit counter
 			const ctrCounter = crypto.getRandomValues(new Uint8Array(128 / 8));
 
-			return crypto.subtle
-				.encrypt(
-					{
-						name: Object.entries(EncryptionAlgorithms).find((algo) => algo[1] === algorithm)![0],
-						counter: ctrCounter,
-						/**
-						 * The NIST SP800-38A standard, which defines CTR, suggests that the counter should occupy half of the counter block
-						 * @link https://csrc.nist.gov/pubs/sp/800/38/a/final
-						 */
-						length: (ctrCounter.byteLength * 8) / 2,
-					} satisfies AesCtrParams,
-					key,
-					inputFormat === 'buffer' ? new Uint8Array(input as ArrayBufferLike) : inputFormat === 'base64' ? new Uint8Array(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat),
-				)
-				.then((cipherBuffer) => ({
-					cipherBuffer: new Uint8Array(cipherBuffer),
-					preamble: ctrCounter,
-				}));
+			return Promise.all([import('node:crypto'), crypto.subtle.exportKey('raw', key)])
+				.then(([{ createCipheriv }, key]) => createCipheriv(`aes-${algorithmSize}-ctr`, Buffer.from(key), ctrCounter))
+				.then(async (cipher) => {
+					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+
+					return {
+						cipherBuffer: new Uint8Array(cipherText),
+						preamble: ctrCounter,
+					};
+				});
+		}
 	}
 }
 
@@ -578,6 +570,7 @@ app.openapi(embededRoute, async (c) => {
 								// Actually encrypt
 								return encryptContent({
 									algorithm: allowedInput.algorithm,
+									algorithmSize: allowedInput.bitStrength,
 									key,
 									input: allowedInput.input,
 									inputFormat: allowedInput.inputFormat,
@@ -761,6 +754,7 @@ app.openapi(embededRoute, async (c) => {
 						// Actually encrypt
 						return encryptContent({
 							algorithm: json.algorithm,
+							algorithmSize: json.bitStrength,
 							key,
 							input: json.input,
 							inputFormat: json.inputFormat,
@@ -1015,6 +1009,7 @@ app.openapi(uploadedRoute, async (c) => {
 						// Actually encrypt
 						await encryptContent({
 							algorithm: param.algorithm,
+							algorithmSize: param.bitStrength,
 							key,
 							input,
 							inputFormat: 'buffer',
