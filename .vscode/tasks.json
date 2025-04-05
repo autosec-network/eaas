@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"dependsOn": ["Lint", "Qwik Types"],
+			"dependsOn": ["Qwik Types", "PQC Container Types"],
 			"isBackground": true,
 			"group": {
 				"kind": "build",
@@ -27,9 +27,18 @@
 			"option": "watch",
 			"problemMatcher": ["$tsc-watch"],
 			"isBackground": true,
-			"presentation": {
-				"group": "frontend.compile"
-			},
+			"icon": {
+				"id": "symbol-type-parameter",
+				"color": "terminal.ansiBlue"
+			}
+		},
+		{
+			"label": "PQC Container Types",
+			"type": "typescript",
+			"tsconfig": "api/pqc/container/tsconfig.json",
+			"option": "watch",
+			"problemMatcher": ["$tsc-watch"],
+			"isBackground": true,
 			"icon": {
 				"id": "symbol-type-parameter",
 				"color": "terminal.ansiBlue"

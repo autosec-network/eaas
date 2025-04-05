@@ -46,9 +46,16 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
+      - run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+      - run: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+      - run: sudo apt update
+      - uses: awalsh128/cache-apt-pkgs-action@7ca5f46d061ad9aa95863cd9b214dd48edef361d # v1.5.0
+        with:
+          packages: docker-ce
       - run: npm ci --include-workspace-root --workspace api
       - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
         id: npm_wrangler_version
+      - run: npm -w api run build:pqc
       - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         id: wrangler
         with:

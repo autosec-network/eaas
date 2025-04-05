@@ -1,5 +1,6 @@
 import type { WorkerEntrypoint } from 'cloudflare:workers';
 import type { TimingVariables } from 'hono/timing';
+import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
 import type { DBManager } from '~shared/db-core/db.mjs';
 import type { Permissions, UuidExport } from '~shared/types/d1/index.mjs';
 
@@ -17,6 +18,7 @@ interface Secrets {
 
 interface Bindings {
 	EAAS_ROOT: D1Database;
+	PQC_CONTAINER_SIDECAR: DurableObjectNamespace<PqcContainerSidecar>;
 	CF_VERSION_METADATA: WorkerVersionMetadata;
 	DATA_KEY_ROTATION: Workflow;
 }
