@@ -105,12 +105,14 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			),
 		);
 
-		await import('~/docs.mjs').then(({ default: docs }) => app.route('/:version/docs', docs));
 		await import('@scalar/hono-api-reference').then(({ Scalar }) =>
-			app.get('/:version/scalar', (c, next) => {
+			app.get('/:version/docs', (c, next) => {
 				const pathSegments = c.req.path.split('/');
 
-				return Scalar({ url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi31'].join('/') })(c, next);
+				return Scalar({
+					url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi31'].join('/'),
+					theme: 'bluePlanet',
+				})(c, next);
 			}),
 		);
 		await import('~/base.mjs').then(({ default: baseApp }) => app.route('/', baseApp));
