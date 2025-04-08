@@ -44,7 +44,7 @@ export async function proxyFetch(container: Container, request: Request, portNum
 }
 
 export async function loadBalance(containerBinding: DurableObjectNamespace, count: number) {
-	let randomID = Math.floor(Math.random() * count);
-	let id = containerBinding.idFromName('lb-' + randomID);
+	const randomID = Math.floor(Math.random() * count);
+	const id = containerBinding.idFromName('lb-' + randomID);
 	return containerBinding.get(id);
 }
