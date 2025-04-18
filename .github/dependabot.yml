@@ -80,6 +80,7 @@ updates:
           - 'prettier-plugin-*'
           - '@demosjarco/prettier-config'
           - 'eslint'
+          - '@eslint/*'
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
