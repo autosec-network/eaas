@@ -24,6 +24,7 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/tree/production/api#readme",
 	"dependencies": {
+		"@hono/node-server": "^1.14.1",
 		"@hono/zod-openapi": "^0.19.5",
 		"@hono/zod-validator": "^0.4.2",
 		"@mjackson/multipart-parser": "^0.8.2",
