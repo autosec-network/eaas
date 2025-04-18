@@ -17,15 +17,15 @@ updates:
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 999
+    ignore:
+      - dependency-name: 'node'
+        versions:
+          - '>=23'
   - package-ecosystem: 'github-actions'
     directory: '/'
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 999
-    ignore:
-      - dependency-name: 'node'
-        versions:
-          - '>=23'
     groups:
       artifacts:
         patterns:
