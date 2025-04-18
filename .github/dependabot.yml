@@ -43,6 +43,7 @@ updates:
     schedule:
       # interval: 'weekly'
       interval: 'daily'
+    versioning-strategy: increase
     open-pull-requests-limit: 999
     ignore:
       # Match lts/*
