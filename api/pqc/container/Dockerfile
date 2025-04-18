@@ -23,12 +23,8 @@ LABEL org.opencontainers.image.source="https://github.com/autosec-network/eaas.g
 COPY --link package*.json ./
 COPY --link api/package*.json ./api/
 
-# Copy secrets
-COPY --link ./api/pqc/container/.npmrc ./.npmrc
 # Install only production dependencies phase with access to secrets
 RUN --mount=type=cache,target=/root/.npm npm ci --include-workspace-root -w pqc --ignore-scripts --omit=dev
-# Delete secrets
-RUN rm -rfv ./.npmrc
 # Build phase with no access to secrets
 RUN --mount=type=cache,target=/root/.npm npm run-script install --if-present
 # Slim down image
