@@ -76,6 +76,7 @@ updates:
           - '@demosjarco/prettier-config'
           - 'eslint'
           - 'eslint-plugin-*'
+          - 'eslint-config-*'
           - '@typescript-eslint/*'
       design:
         patterns:
@@ -91,6 +92,7 @@ updates:
         patterns:
           - 'hono'
           - '@hono/*'
+          - '@scalar/hono-api-reference'
       internal:
         patterns:
           - '@autosec/*'
