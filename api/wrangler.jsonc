@@ -22,7 +22,7 @@
 					"mode": "private"
 				}
 			},
-			"image": "./pqc/container/Dockerfile",
+			"image": "./api/pqc/container/Dockerfile",
 			"instances": 20,
 			"name": "eaas-pqc-preview"
 		}
