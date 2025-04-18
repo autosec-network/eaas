@@ -137,6 +137,7 @@ dist
 
 # Development
 *.local
+.npmrc
 
 # Cache
 .mf
