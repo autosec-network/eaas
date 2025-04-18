@@ -77,7 +77,7 @@ updates:
           - 'eslint'
           - 'eslint-plugin-*'
           - 'eslint-config-*'
-          - '@typescript-eslint/*'
+          - 'typescript-eslint'
       design:
         patterns:
           - '@tailwindcss/*'
