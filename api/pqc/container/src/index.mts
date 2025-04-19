@@ -19,7 +19,7 @@ class HTTPResponder {
 			return c.text('Hello world');
 		});
 
-		this.server.get(
+		this.server.post(
 			'/encrypt/:algo',
 			zValidator(
 				'param',
