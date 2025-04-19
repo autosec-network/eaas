@@ -67,6 +67,19 @@
 			"upload_source_maps": false,
 			"observability": { "enabled": true },
 			"placement": { "mode": "smart" },
+			"containers": [
+				{
+					"class_name": "PqcContainerSidecar",
+					"configuration": {
+						"network": {
+							"mode": "private"
+						}
+					},
+					"image": "./Dockerfile",
+					"instances": 20,
+					"name": "eaas-pqc"
+				}
+			],
 			"d1_databases": [
 				{
 					"binding": "EAAS_ROOT",
@@ -79,6 +92,9 @@
 					"database_id": "b55a31ba-b382-4f53-b204-2d730ee6c3aa"
 				}
 			],
+			"durable_objects": {
+				"bindings": [{ "name": "PQC_CONTAINER_SIDECAR", "class_name": "PqcContainerSidecar" }]
+			},
 			"version_metadata": { "binding": "CF_VERSION_METADATA" },
 			"workflows": [
 				{
