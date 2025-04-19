@@ -367,7 +367,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 		}));
 }
 
-async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike }) {
+async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike; containerDo: DurableObjectNamespace<any>; url: string | URL }) {
 	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? ((await BufferHelpers.base64ToBuffer(input as string)) as Buffer) : Buffer.from(input as string, inputFormat);
 
 	switch (algorithm) {
@@ -421,17 +421,29 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return import('node:crypto')
-				.then(({ createCipheriv }) => createCipheriv('chacha20-poly1305', key, chaIv))
-				.then(async (cipher) => {
-					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
-					const authTag = cipher.getAuthTag();
-
-					return {
-						cipherBuffer: new Uint8Array(Buffer.concat([cipherText, authTag])),
-						preamble: chaIv,
-					};
-				});
+			return import('~pqc/do/containerHelpers.mjs')
+				.then(({ loadBalance }) => loadBalance(containerDo, 20))
+				.then((container) =>
+					container.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), url), {
+						method: 'POST',
+						body: JSON.stringify({
+							key: Buffer.from(key).toString('base64'),
+							chaIv: Buffer.from(chaIv).toString('base64'),
+							plainText: Buffer.from(resolvedInput).toString('base64'),
+						}),
+					}),
+				)
+				.then((response) => {
+					if (response.ok) {
+						return response.arrayBuffer();
+					} else {
+						throw new Error(`Error: ${response.status} ${response.statusText}`);
+					}
+				})
+				.then((arrayBuffer) => ({
+					cipherBuffer: new Uint8Array(arrayBuffer),
+					preamble: chaIv,
+				}));
 		}
 	}
 }
@@ -581,6 +593,8 @@ app.openapi(embededRoute, async (c) => {
 									key,
 									input: allowedInput.input,
 									inputFormat: allowedInput.inputFormat,
+									containerDo: c.env.PQC_CONTAINER_SIDECAR,
+									url: c.req.url,
 								}).then(({ preamble, cipherBuffer }) => {
 									endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-cipher`);
 
@@ -768,6 +782,8 @@ app.openapi(embededRoute, async (c) => {
 							key,
 							input: json.input,
 							inputFormat: json.inputFormat,
+							containerDo: c.env.PQC_CONTAINER_SIDECAR,
+							url: c.req.url,
 						}).then(({ preamble, cipherBuffer }) => {
 							endTime(c, 'encrypt-cipher');
 
@@ -1026,6 +1042,8 @@ app.openapi(uploadedRoute, async (c) => {
 							key,
 							input,
 							inputFormat: 'buffer',
+							containerDo: c.env.PQC_CONTAINER_SIDECAR,
+							url: c.req.url,
 						}).then(({ preamble, cipherBuffer }) => {
 							endTime(c, `${part.filename}|encrypt-cipher`);
 
