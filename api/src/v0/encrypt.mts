@@ -426,7 +426,7 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			return import('~pqc/do/containerHelpers.mjs')
 				.then(({ loadBalance }) => loadBalance(containerDo, 20))
 				.then((stub) => {
-					console.debug('Got lb stub', stub.id.toString());
+					console.debug('Got lb stub', stub.id.name, stub.id.toString());
 
 					console.debug('container request', new URL(['encrypt', 'chacha20-poly1305'].join('/'), url).toString());
 
