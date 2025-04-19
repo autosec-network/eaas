@@ -23,7 +23,7 @@
 				}
 			},
 			"image": "./Dockerfile",
-			"instances": 20,
+			"instances": 10,
 			"name": "eaas-pqc-preview"
 		}
 	],
@@ -76,7 +76,7 @@
 						}
 					},
 					"image": "./Dockerfile",
-					"instances": 20,
+					"instances": 10,
 					"name": "eaas-pqc"
 				}
 			],
