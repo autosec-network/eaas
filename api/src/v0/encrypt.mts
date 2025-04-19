@@ -430,6 +430,9 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 
 					return stub.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), new URL(url).origin), {
 						method: 'POST',
+						headers: {
+							'Content-Type': 'application/json',
+						},
 						body: JSON.stringify({
 							key: Buffer.from(key).toString('base64'),
 							chaIv: Buffer.from(chaIv).toString('base64'),
