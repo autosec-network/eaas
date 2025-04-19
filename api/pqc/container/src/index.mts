@@ -1,11 +1,11 @@
-import type { Http2Bindings } from '@hono/node-server';
+import type { HttpBindings } from '@hono/node-server';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import type { TimingVariables } from 'hono/timing';
 import { z } from 'zod';
 
 class HTTPResponder {
-	private server = new Hono<{ Bindings: Http2Bindings; Variables: TimingVariables }>();
+	private server = new Hono<{ Bindings: HttpBindings; Variables: TimingVariables }>();
 
 	constructor() {
 		// Performance
@@ -66,12 +66,11 @@ class HTTPResponder {
 	}
 
 	public listen(port: number = 8080) {
-		return Promise.all([import('@hono/node-server'), import('node:http2')]).then(([{ serve }, { createServer }]) =>
+		return Promise.all([import('@hono/node-server')]).then(([{ serve }]) =>
 			serve(
 				{
 					fetch: this.server.fetch,
 					port,
-					createServer,
 				},
 				(info) => console.log(`Server running at http://${info.address}:${info.port}`),
 			),
