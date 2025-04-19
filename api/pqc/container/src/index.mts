@@ -66,7 +66,7 @@ class HTTPResponder {
 	}
 
 	public listen(port: number = 8080) {
-		return Promise.all([import('@hono/node-server')]).then(([{ serve }]) =>
+		return import('@hono/node-server').then(({ serve }) =>
 			serve(
 				{
 					fetch: this.server.fetch,
