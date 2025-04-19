@@ -421,8 +421,6 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			console.debug('made chaIv');
-
 			return import('~pqc/do/containerHelpers.mjs')
 				.then(({ loadBalance }) => loadBalance(containerDo, 20))
 				.then(async (stub) => {
