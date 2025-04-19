@@ -428,9 +428,9 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 				.then((stub) => {
 					console.debug('Got lb stub', stub.id.name, stub.id.toString());
 
-					console.debug('container request', new URL(['encrypt', 'chacha20-poly1305'].join('/'), url).toString());
+					console.debug('container request', new URL(['encrypt', 'chacha20-poly1305'].join('/'), new URL(url).origin).toString());
 
-					return stub.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), url), {
+					return stub.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), new URL(url).origin), {
 						method: 'POST',
 						body: JSON.stringify({
 							key: Buffer.from(key).toString('base64'),
