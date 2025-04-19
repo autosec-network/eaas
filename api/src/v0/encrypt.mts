@@ -421,19 +421,27 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
+			console.debug('made chaIv');
+
 			return import('~pqc/do/containerHelpers.mjs')
 				.then(({ loadBalance }) => loadBalance(containerDo, 20))
-				.then((container) =>
-					container.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), url), {
+				.then((stub) => {
+					console.debug('Got lb stub', stub.id.toString());
+
+					console.debug('container request', new URL(['encrypt', 'chacha20-poly1305'].join('/'), url).toString());
+
+					return stub.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), url), {
 						method: 'POST',
 						body: JSON.stringify({
 							key: Buffer.from(key).toString('base64'),
 							chaIv: Buffer.from(chaIv).toString('base64'),
 							plainText: Buffer.from(resolvedInput).toString('base64'),
 						}),
-					}),
-				)
+					});
+				})
 				.then((response) => {
+					console.debug('container response', response.status, response.statusText);
+
 					if (response.ok) {
 						return response.arrayBuffer();
 					} else {
