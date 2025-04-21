@@ -12,7 +12,7 @@ updates:
     open-pull-requests-limit: 999
   - package-ecosystem: 'docker'
     directories:
-      - '/api/pqc/container'
+      - '/'
     schedule:
       interval: 'weekly'
     open-pull-requests-limit: 999
