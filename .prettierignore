@@ -1,1 +1,2 @@
 **/*.svg
+api/dist/*/*.json
