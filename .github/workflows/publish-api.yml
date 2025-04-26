@@ -55,6 +55,7 @@ jobs:
       - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
         id: npm_wrangler_version
       - run: npm -w api run build:pqc
+      - run: npm -w api run build:static
       - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         id: wrangler
         with:

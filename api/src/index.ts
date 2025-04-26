@@ -110,7 +110,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 				const pathSegments = c.req.path.split('/');
 
 				return Scalar({
-					url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi31'].join('/'),
+					url: [...pathSegments.splice(0, pathSegments.length - 1), 'openapi31.json'].join('/'),
 					theme: 'bluePlanet',
 				})(c, next);
 			}),

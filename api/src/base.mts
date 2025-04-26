@@ -215,9 +215,9 @@ app.use('*', (c, next) =>
 		except(
 			[
 				//OpenAPI Schema
-				'/:version/openapi',
+				'/:version/generate/openapi',
 				// OpenApi 3.1 Schema
-				'/:version/openapi31',
+				'/:version/generate/openapi31',
 				// OpenAPI Schema for CF API Gateway
 				'/:version/v0.cf-aig.openapi.json',
 				// Has it's own auth check

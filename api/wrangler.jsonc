@@ -14,6 +14,10 @@
 	"upload_source_maps": true,
 	"observability": { "enabled": true },
 	"placement": { "mode": "smart" },
+	"assets": {
+		"directory": "./dist",
+		"run_worker_first": false
+	},
 	"containers": [
 		{
 			"class_name": "PqcContainerSidecar",
@@ -67,6 +71,10 @@
 			"upload_source_maps": false,
 			"observability": { "enabled": true },
 			"placement": { "mode": "smart" },
+			"assets": {
+				"directory": "./dist",
+				"run_worker_first": false
+			},
 			"containers": [
 				{
 					"class_name": "PqcContainerSidecar",

@@ -22,7 +22,7 @@ const contact: oas31.ContactObject = {
 
 // Before auth or api routes
 await import('~/../package.json').then(({ version }) => {
-	app.doc31('/openapi31', (c) => ({
+	app.doc31('/generate/openapi31', (c) => ({
 		openapi: '3.1.0',
 		info: {
 			title,
@@ -43,7 +43,7 @@ await import('~/../package.json').then(({ version }) => {
 			},
 		],
 	}));
-	app.doc('/openapi', (c) => ({
+	app.doc('/generate/openapi', (c) => ({
 		openapi: '3.0.0',
 		info: {
 			title,

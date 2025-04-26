@@ -9,6 +9,6 @@
 			"~wf/*": ["../wf/*"]
 		}
 	},
-	"files": ["./eslint.config.mjs", "prettier.config.mjs"],
+	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs"],
 	"include": ["src", "../shared"]
 }
