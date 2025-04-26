@@ -10,5 +10,5 @@
 		}
 	},
 	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs"],
-	"include": ["src", "../shared"]
+	"include": ["src", "dist", "../shared"]
 }
