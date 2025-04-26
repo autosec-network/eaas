@@ -12,8 +12,10 @@ on:
       - 'shared/**'
       - 'api/package*.json'
       - 'api/src/**'
+      - 'api/dist/**'
       - 'api/tsconfig.json'
       - 'api/wrangler.jsonc'
+      - 'api/staticApi.mts'
       - 'wf/**'
   workflow_dispatch:
     inputs:
