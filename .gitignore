@@ -157,3 +157,5 @@ stats.html
 functions/**/*.js
 .wrangler
 .dev.vars
+!api/dist
+api/dist/**
