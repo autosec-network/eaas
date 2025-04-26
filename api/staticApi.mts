@@ -13,7 +13,12 @@ await Promise.all([
 				.map((dir) => dir.name),
 		),
 	),
-	unstable_startWorker({ config: 'wrangler.jsonc' }),
+	unstable_startWorker({
+		config: 'wrangler.jsonc',
+		dev: {
+			remote: false,
+		},
+	}),
 ]).then(([apiVersions, worker]) => {
 	// Get the OpenAPI versions
 	const openapiVersions = [
