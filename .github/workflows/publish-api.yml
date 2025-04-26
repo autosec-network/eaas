@@ -58,6 +58,13 @@ jobs:
         id: npm_wrangler_version
       - run: npm -w api run build:pqc
       - run: npm -w api run build:static
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git add api/dist/**
+      - run: git commit -m "Generated static assets" || echo "static assets not touched"
+      - run: git push
       - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
         id: wrangler
         with:
