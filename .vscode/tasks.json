@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"dependsOn": ["Qwik Types", "PQC Container Types"],
+			"dependsOn": ["Qwik Types", "PQC Container Types", "API Static Content"],
 			"isBackground": true,
 			"group": {
 				"kind": "build",
@@ -42,6 +42,17 @@
 			"icon": {
 				"id": "symbol-type-parameter",
 				"color": "terminal.ansiBlue"
+			}
+		},
+		{
+			"label": "API Static Content",
+			"type": "npm",
+			"script": "build:static",
+			"options": {
+				"cwd": "${workspaceFolder}/api"
+			},
+			"icon": {
+				"id": "files"
 			}
 		}
 	]
