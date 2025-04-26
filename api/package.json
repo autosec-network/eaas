@@ -8,7 +8,8 @@
 		"build:pqc": "tsc --project pqc/container/tsconfig.json",
 		"build:static": "tsx watch staticApi.mts",
 		"base": "node --disallow-code-generation-from-strings --enable-source-maps --experimental-websocket --tls-min-v1.3 --trace-warnings --use-largepages=silent",
-		"start:pqc": "npm run base -- ./pqc/container/dist/index.mjs"
+		"start:pqc": "npm run base -- ./pqc/container/dist/index.mjs",
+		"publish": "npx https://prerelease-registry.devprod.cloudflare.dev/workers-sdk/runs/14180338760/npm-package-wrangler-8740 deploy"
 	},
 	"repository": {
 		"type": "git",
@@ -38,7 +39,6 @@
 		"zod": "^3.24.3"
 	},
 	"devDependencies": {
-		"@types/validator": "^13.12.2",
-		"wrangler": "https://prerelease-registry.devprod.cloudflare.dev/workers-sdk/runs/14180338760/npm-package-wrangler-8740"
+		"@types/validator": "^13.12.2"
 	}
 }
