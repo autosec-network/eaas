@@ -41,11 +41,13 @@ await Promise.all([
 				.then((folderPath) =>
 					Promise.allSettled(
 						// Get each OpenAPI version
-						openapiVersions.map((oV) => {
-							const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), 'http://localhost:8787');
+						openapiVersions.map(async (oV) => {
+							await worker.ready;
+
+							const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), (await worker.url).origin);
 							console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
 
-							return worker.fetch(new URL([aV, 'generate', `openapi${oV}`].join('/'), 'http://localhost:8787')).then(async (response) => {
+							return worker.fetch(url).then(async (response) => {
 								console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
 
 								if (response.ok && response.body) {
