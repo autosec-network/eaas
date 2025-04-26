@@ -22,6 +22,8 @@ await Promise.all([
 		'31',
 	];
 
+	console.info({ apiVersions, openapiVersions });
+
 	return Promise.allSettled(
 		// Loop through the API versions
 		apiVersions.map((aV) =>
@@ -30,13 +32,22 @@ await Promise.all([
 				.then(({ mkdir }) => {
 					const folderPath = ['dist', aV];
 
-					return mkdir(folderPath.join('/'), { recursive: true }).then(() => folderPath);
+					return mkdir(folderPath.join('/'), { recursive: true }).then((folder) => {
+						console.log('Created folder', folder);
+
+						return folderPath;
+					});
 				})
 				.then((folderPath) =>
 					Promise.allSettled(
 						// Get each OpenAPI version
-						openapiVersions.map((oV) =>
-							worker.fetch(new URL([aV, 'generate', `openapi${oV}`].join('/'), 'http://localhost:8787')).then(async (response) => {
+						openapiVersions.map((oV) => {
+							const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), 'http://localhost:8787');
+							console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
+
+							return worker.fetch(new URL([aV, 'generate', `openapi${oV}`].join('/'), 'http://localhost:8787')).then(async (response) => {
+								console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
+
 								if (response.ok && response.body) {
 									// Write the file to the asset directory
 									return import('node:fs').then(async ({ createWriteStream }) => {
@@ -48,12 +59,12 @@ await Promise.all([
 										}
 
 										writeStream.end();
+
+										console.log('Wrote', aV, 'OpenAPI', oV === '' ? '30' : oV, 'to', response.status);
 									});
-								} else {
-									console.error(response.status, 'No response for ', aV, 'OpenAPI', oV === '' ? '30' : oV);
 								}
-							}),
-						),
+							});
+						}),
 					),
 				),
 		),
