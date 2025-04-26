@@ -34,6 +34,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     environment:
       name: ${{ inputs.environment || github.ref_name }}
       url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.eaas.autosec.network
