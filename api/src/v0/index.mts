@@ -33,7 +33,7 @@ await import('~/../package.json').then(({ version }) => {
 			{
 				url: c.req.path
 					.split('/')
-					.splice(0, c.req.path.split('/').length - 1)
+					.splice(0, c.req.path.split('/').length - 2)
 					.join('/'),
 			},
 		],
@@ -54,7 +54,7 @@ await import('~/../package.json').then(({ version }) => {
 			{
 				url: c.req.path
 					.split('/')
-					.splice(0, c.req.path.split('/').length - 1)
+					.splice(0, c.req.path.split('/').length - 2)
 					.join('/'),
 			},
 		],
