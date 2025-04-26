@@ -38,7 +38,7 @@ const exampleOutput: Parameters<typeof cipherText0>[1] = {
 	algorithm: EncryptionAlgorithms['AES-GCM'],
 	bitStrength: '256',
 	preamble: new Uint8Array(96 / 8),
-	cipherBuffer: new Uint8Array(Math.floor(Math.random() * 100)),
+	cipherBuffer: new Uint8Array(256 / 8),
 	signature: new Uint8Array(512 / 8),
 };
 
