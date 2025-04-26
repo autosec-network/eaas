@@ -6,7 +6,7 @@
 		"clean": "npx -y rimraf@latest ./pqc/container/dist",
 		"start": "wrangler dev --live-reload --persist-to ../.wrangler/state",
 		"build:pqc": "tsc --project pqc/container/tsconfig.json",
-		"build:static": "tsx watch staticApi.mts",
+		"build:static": "tsx staticApi.mts",
 		"base": "node --disallow-code-generation-from-strings --enable-source-maps --experimental-websocket --tls-min-v1.3 --trace-warnings --use-largepages=silent",
 		"start:pqc": "npm run base -- ./pqc/container/dist/index.mjs",
 		"publish": "npx https://prerelease-registry.devprod.cloudflare.dev/workers-sdk/runs/14180338760/npm-package-wrangler-8740 deploy"
