@@ -22,6 +22,8 @@ export enum KeyAlgorithms {
 export enum EncryptionAlgorithms {
 	'AES-CBC' = 'aes-cbc',
 	'AES-CTR' = 'aes-ctr',
+	// 'AES-ECB' = 'aes-ecb',
 	'AES-GCM' = 'aes-gcm',
+	// 'AES-OFB' = 'aes-ofb',
 	'ChaCha20-Poly1305' = 'chacha20-poly1305',
 }
