@@ -14,61 +14,63 @@ await Promise.all([
 		),
 	),
 	unstable_startWorker({ config: 'wrangler.jsonc', dev: { remote: false, liveReload: false, watch: false } }),
-]).then(([apiVersions, worker]) => {
-	// Get the OpenAPI versions
-	const openapiVersions = [
-		// 3.0 has no version number
-		'',
-		'31',
-	];
+])
+	.then(([apiVersions, worker]) => {
+		// Get the OpenAPI versions
+		const openapiVersions = [
+			// 3.0 has no version number
+			'',
+			'31',
+		];
 
-	console.info({ apiVersions, openapiVersions });
+		console.info({ apiVersions, openapiVersions });
 
-	return Promise.allSettled(
-		// Loop through the API versions
-		apiVersions.map((aV) =>
-			// Create the folder for the API version
-			import('node:fs/promises')
-				.then(({ mkdir }) => {
-					const folderPath = ['dist', aV];
+		return Promise.allSettled(
+			// Loop through the API versions
+			apiVersions.map((aV) =>
+				// Create the folder for the API version
+				import('node:fs/promises')
+					.then(({ mkdir }) => {
+						const folderPath = ['dist', aV];
 
-					return mkdir(folderPath.join('/'), { recursive: true }).then((folder) => {
-						console.log('Created folder', folder);
+						return mkdir(folderPath.join('/'), { recursive: true }).then((folder) => {
+							console.log('Created folder', folder);
 
-						return folderPath;
-					});
-				})
-				.then((folderPath) =>
-					Promise.allSettled(
-						// Get each OpenAPI version
-						openapiVersions.map(async (oV) => {
-							await worker.ready;
+							return folderPath;
+						});
+					})
+					.then((folderPath) =>
+						Promise.allSettled(
+							// Get each OpenAPI version
+							openapiVersions.map(async (oV) => {
+								await worker.ready;
 
-							const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), (await worker.url).origin);
-							console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
+								const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), (await worker.url).origin);
+								console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
 
-							return worker.fetch(url).then(async (response) => {
-								console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
+								return worker.fetch(url).then(async (response) => {
+									console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
 
-								if (response.ok && response.body) {
-									// Write the file to the asset directory
-									return import('node:fs').then(async ({ createWriteStream }) => {
-										// Use streaming to optimize memory usage
-										const writeStream = createWriteStream([...folderPath, `openapi${oV}.json`].join('/'), { encoding: 'utf-8' });
+									if (response.ok && response.body) {
+										// Write the file to the asset directory
+										return import('node:fs').then(async ({ createWriteStream }) => {
+											// Use streaming to optimize memory usage
+											const writeStream = createWriteStream([...folderPath, `openapi${oV}.json`].join('/'), { encoding: 'utf-8' });
 
-										for await (const chunk of response.body) {
-											writeStream.write(chunk);
-										}
+											for await (const chunk of response.body) {
+												writeStream.write(chunk);
+											}
 
-										writeStream.end();
+											writeStream.end();
 
-										console.log('Wrote', aV, 'OpenAPI', oV === '' ? '30' : oV, 'to', response.status);
-									});
-								}
-							});
-						}),
+											console.log('Wrote', aV, 'OpenAPI', oV === '' ? '30' : oV, 'to', response.status);
+										});
+									}
+								});
+							}),
+						),
 					),
-				),
-		),
-	).finally(() => worker.dispose());
-});
+			),
+		).finally(() => worker.dispose());
+	})
+	.then(() => process.exit(0));
