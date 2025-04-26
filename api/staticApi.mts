@@ -70,5 +70,5 @@ await Promise.all([
 					),
 				),
 		),
-	).finally(() => worker.dispose());
+	);
 });
