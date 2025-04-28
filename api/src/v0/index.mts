@@ -64,7 +64,7 @@ await import('~/../package.json').then(({ version }) => {
 			},
 		],
 	}));
-	app.doc('/v0.cf-aig.openapi.json', {
+	app.doc('/generate/v0.cf-aig.openapi', {
 		openapi: '3.0.0',
 		info: {
 			title,

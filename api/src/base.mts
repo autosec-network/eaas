@@ -219,7 +219,7 @@ app.use('*', (c, next) =>
 				// OpenApi 3.1 Schema
 				'/:version/generate/openapi31',
 				// OpenAPI Schema for CF API Gateway
-				'/:version/v0.cf-aig.openapi.json',
+				'/:version/generate/v0.cf-aig.openapi',
 				// Has it's own auth check
 				'/:version/apikeys',
 				// Free (non-gated)

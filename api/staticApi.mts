@@ -16,14 +16,7 @@ await Promise.all([
 	unstable_startWorker({ config: 'wrangler.jsonc', dev: { remote: false, liveReload: false, watch: false } }),
 ])
 	.then(([apiVersions, worker]) => {
-		// Get the OpenAPI versions
-		const openapiVersions = [
-			// 3.0 has no version number
-			'',
-			'31',
-		];
-
-		console.info({ apiVersions, openapiVersions });
+		console.info({ apiVersions });
 
 		return Promise.allSettled(
 			// Loop through the API versions
@@ -39,13 +32,22 @@ await Promise.all([
 							return folderPath;
 						});
 					})
-					.then((folderPath) =>
-						Promise.allSettled(
+					.then((folderPath) => {
+						const openapiVersions = [
+							// Get the OpenAPI versions
+							'openapi',
+							'openapi31',
+							`v0.cf-aig.openapi`,
+						];
+
+						console.info({ openapiVersions });
+
+						return Promise.allSettled(
 							// Get each OpenAPI version
 							openapiVersions.map(async (oV) => {
 								await worker.ready;
 
-								const url = new URL([aV, 'generate', `openapi${oV}`].join('/'), (await worker.url).origin);
+								const url = new URL([aV, 'generate', oV].join('/'), (await worker.url).origin);
 								console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
 
 								return worker.fetch(url).then(async (response) => {
@@ -55,7 +57,7 @@ await Promise.all([
 										// Write the file to the asset directory
 										return import('node:fs').then(async ({ createWriteStream }) => {
 											// Use streaming to optimize memory usage
-											const writeStream = createWriteStream([...folderPath, `openapi${oV}.json`].join('/'), { encoding: 'utf-8' });
+											const writeStream = createWriteStream([...folderPath, `${oV}.json`].join('/'), { encoding: 'utf-8' });
 
 											for await (const chunk of response.body) {
 												writeStream.write(chunk);
@@ -68,8 +70,8 @@ await Promise.all([
 									}
 								});
 							}),
-						),
-					),
+						);
+					}),
 			),
 		).finally(() => worker.dispose());
 	})
