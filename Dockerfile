@@ -3,7 +3,7 @@
 # https://gist.github.com/demosjarco/875db677712636c09b79dc7a47f05231
 
 # ---------- Production Stage ----------
-FROM --platform=linux/amd64 node:22.13.1-alpine@sha256:e2b39f7b64281324929257d0f8004fb6cb4bf0fdfb9aa8cedb235a766aec31da
+FROM --platform=linux/amd64 node:22.15.0-alpine@sha256:ad1aedbcc1b0575074a91ac146d6956476c1f9985994810e4ee02efd932a68fd
 
 RUN --mount=type=cache,target=/var/cache/apk apk update
 RUN --mount=type=cache,target=/var/cache/apk apk upgrade
