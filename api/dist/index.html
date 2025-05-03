@@ -19,7 +19,13 @@
 			Scalar.createApiReference(
 				'#app',
 				/** @type {ApiReferenceConfiguration} */ {
-					url: '/v0/openapi31.json',
+					sources: [
+						{
+							title: 'v0',
+							url: '/v0/openapi31.json',
+							default: true,
+						},
+					],
 					theme: 'bluePlanet',
 				},
 			);

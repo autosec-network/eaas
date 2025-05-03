@@ -19,16 +19,6 @@ export default class extends WorkerEntrypoint<EnvVars> {
 
 		// Security
 		app.use('*', (c, next) => import('hono/csrf').then(({ csrf }) => csrf()(c, next)));
-		// Allow only GET on documentation site
-		// app.use('*/docs', (c, next) =>
-		// 	import('hono/cors').then(({ cors }) =>
-		// 		cors({
-		// 			origin: '*',
-		// 			allowMethods: ['POST', 'OPTIONS'],
-		// 			maxAge: 300,
-		// 		})(c, next),
-		// 	),
-		// );
 		app.use('*', (c, next) =>
 			import('hono/cors').then(({ cors }) =>
 				cors({
