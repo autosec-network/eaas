@@ -427,18 +427,16 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 				import('hono/client'),
 				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 1)),
 			])
-				.then(async ([{ hc }, stub]) => {
-					console.debug('Got lb stub', stub.id.name, stub.id.toString());
-
-					return hc<encryptRoute>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
+				.then(([{ hc }, stub]) =>
+					hc<encryptRoute>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
 						param: { algo: 'chacha20-poly1305' },
 						json: {
 							key: Buffer.from(key).toString('base64'),
 							chaIv: Buffer.from(chaIv).toString('base64'),
 							plainText: Buffer.from(resolvedInput).toString('base64'),
 						},
-					});
-				})
+					}),
+				)
 				.then((response) => {
 					console.debug('container response', response.status, response.statusText);
 
