@@ -425,7 +425,7 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			return Promise.all([
 				//
 				import('hono/client'),
-				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 20)),
+				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 1)),
 			])
 				.then(async ([{ hc }, stub]) => {
 					console.debug('Got lb stub', stub.id.name, stub.id.toString());
