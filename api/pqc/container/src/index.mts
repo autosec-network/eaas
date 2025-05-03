@@ -17,7 +17,7 @@ app.get('/', (c) => {
 	return c.text('Hello world');
 });
 
-app.post(
+const encrypt = app.post(
 	'/encrypt/:algo',
 	zValidator(
 		'param',
@@ -61,5 +61,6 @@ app.post(
 			// );
 		}),
 );
+export type encryptRoute = typeof encrypt;
 
 serve({ fetch: app.fetch, port: 8080 }, (info) => console.log(`Server running at http://${info.address}:${info.port}`));

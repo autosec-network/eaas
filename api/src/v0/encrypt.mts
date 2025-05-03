@@ -6,6 +6,7 @@ import { Buffer } from 'node:buffer';
 import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import type { encryptRoute } from '~pqc/container/src/index.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { BufferHelpers } from '~shared/helpers/buffers.mjs';
@@ -421,23 +422,21 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return import('~pqc/do/containerHelpers.mjs')
-				.then(({ loadBalance }) => loadBalance(containerDo, 20))
-				.then(async (stub) => {
+			return Promise.all([
+				//
+				import('hono/client'),
+				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 20)),
+			])
+				.then(async ([{ hc }, stub]) => {
 					console.debug('Got lb stub', stub.id.name, stub.id.toString());
 
-					console.debug('container request', new URL(['encrypt', 'chacha20-poly1305'].join('/'), new URL(url).origin).toString());
-
-					return stub.fetch(new URL(['encrypt', 'chacha20-poly1305'].join('/'), new URL(url).origin), {
-						method: 'POST',
-						headers: {
-							'Content-Type': 'application/json',
-						},
-						body: JSON.stringify({
+					return hc<encryptRoute>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
+						param: { algo: 'chacha20-poly1305' },
+						json: {
 							key: Buffer.from(key).toString('base64'),
 							chaIv: Buffer.from(chaIv).toString('base64'),
 							plainText: Buffer.from(resolvedInput).toString('base64'),
-						}),
+						},
 					});
 				})
 				.then((response) => {
