@@ -22,9 +22,9 @@
 		{
 			"class_name": "PqcContainerSidecar",
 			"configuration": {
-				"network": {
-					"mode": "private"
-				}
+				"network": { "mode": "private" },
+				"vcpu": 2,
+				"memory": "4GB"
 			},
 			"image": "./Dockerfile",
 			"instances": 0,
@@ -79,9 +79,9 @@
 				{
 					"class_name": "PqcContainerSidecar",
 					"configuration": {
-						"network": {
-							"mode": "private"
-						}
+						"network": { "mode": "private" },
+						"vcpu": 2,
+						"memory": "4GB"
 					},
 					"image": "./Dockerfile",
 					"instances": 20,
