@@ -10,7 +10,7 @@
 		"base": "node --disallow-code-generation-from-strings --enable-source-maps --experimental-websocket --tls-min-v1.3 --trace-warnings --use-largepages=silent",
 		"start:pqc": "npm run base -- ./pqc/container/dist/index.mjs",
 		"wrangler": "npx --yes https://prerelease-registry.devprod.cloudflare.dev/workers-sdk/runs/14180338760/npm-package-wrangler-8740",
-		"publish": "npm run wrangler -- deploy"
+		"publish": "npm run wrangler -- deploy --env production"
 	},
 	"repository": {
 		"type": "git",
