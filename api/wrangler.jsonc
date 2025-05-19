@@ -2,7 +2,7 @@
 	"$schema": "../node_modules/wrangler/config-schema.json",
 	"name": "eaas-api-preview",
 	"main": "src/index.ts",
-	"compatibility_date": "2025-04-28",
+	"compatibility_date": "2025-05-08",
 	"compatibility_flags": ["nodejs_compat"],
 	"route": { "pattern": "preview.api.eaas.autosec.network", "custom_domain": true },
 	"workers_dev": false,
@@ -59,7 +59,7 @@
 	"env": {
 		"production": {
 			"name": "eaas-api",
-			"compatibility_date": "2025-04-28",
+			"compatibility_date": "2025-05-08",
 			"compatibility_flags": ["nodejs_compat"],
 			"route": { "pattern": "api.eaas.autosec.network", "custom_domain": true },
 			"workers_dev": false,
