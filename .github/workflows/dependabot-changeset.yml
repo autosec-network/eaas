@@ -16,7 +16,7 @@ permissions:
 jobs:
   changeset:
     runs-on: ubuntu-latest
-    if: github.actor == 'dependabot[bot]'
+    if: startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/') && github.actor == 'dependabot[bot]'
     permissions:
       contents: write
       pull-requests: write
