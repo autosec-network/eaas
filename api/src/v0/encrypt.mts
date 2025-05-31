@@ -9,7 +9,6 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { encryptRoute } from '~pqc/container/src/index.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
-import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { cipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
 import { EncryptionAlgorithms, KeyAlgorithms } from '~shared/types/crypto/index.mjs';
 
@@ -369,7 +368,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 }
 
 async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike; containerDo: DurableObjectNamespace<any>; url: string | URL }) {
-	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? ((await BufferHelpers.base64ToBuffer(input as string)) as Buffer) : Buffer.from(input as string, inputFormat);
+	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(input as string)).then((arrayBuffer) => Buffer.from(arrayBuffer)) : Buffer.from(input as string, inputFormat);
 
 	switch (algorithm) {
 		case EncryptionAlgorithms['AES-GCM']: {
@@ -481,7 +480,7 @@ app.openapi(embededRoute, async (c) => {
 
 					return {
 						// Get the base64url encoded keyring id (the key of the permission object)
-						kr_id: await BufferHelpers.uuidConvert(kr_id_base64url),
+						kr_id: await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url)),
 						// Carry over the name for lookup
 						name,
 					};
@@ -514,17 +513,19 @@ app.openapi(embededRoute, async (c) => {
 				.then((rows) =>
 					Promise.all(
 						rows.map(({ key_type, key_size, hash, ...row }) =>
-							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-								dk_id,
-								kr_id,
-								generation_count,
-								key_type,
-								key_size,
-								hash,
-								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-								// Merge back name for lookup
-								name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
-							})),
+							import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+									dk_id,
+									kr_id,
+									generation_count,
+									key_type,
+									key_size,
+									hash,
+									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+									// Merge back name for lookup
+									name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
+								})),
+							),
 						),
 					),
 				);
@@ -547,12 +548,12 @@ app.openapi(embededRoute, async (c) => {
 				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
-							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
+							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(([key, value, note]) => {
 								const [, kr_id_utf8] = key.split('/');
 								const { dk_id, name, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return {
+								return import('@chainfuse/helpers').then(async ({ BufferHelpers }) => ({
 									name,
 									key_type,
 									key_size,
@@ -563,7 +564,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								};
+								}));
 							}),
 						),
 					),
@@ -629,22 +630,26 @@ app.openapi(embededRoute, async (c) => {
 													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 													.limit(1)
 													.then((rows) =>
-														Promise.all(
-															rows.map(async (row) => ({
-																...row,
-																generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-															})),
+														import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+															Promise.all(
+																rows.map(async (row) => ({
+																	...row,
+																	generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+																})),
+															),
 														),
 													)
 													.then(([row]) => {
 														if (row) {
-															return c.var.t_db
-																.update(datakeys)
-																.set({
-																	generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-																})
-																.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-																.limit(1);
+															return import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+																c.var.t_db
+																	.update(datakeys)
+																	.set({
+																		generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+																	})
+																	.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+																	.limit(1),
+															);
 														} else {
 															throw new Error('Datakey not found');
 														}
@@ -688,7 +693,7 @@ app.openapi(embededRoute, async (c) => {
 
 		if (keyring_permissions) {
 			const [kr_id_base64url, keyring_permission] = keyring_permissions;
-			const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
+			const kr_id = await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
 
 			startTime(c, 'db-fetch-datakeys');
 			const receivedDatakeys = await c.var.t_db
@@ -708,17 +713,19 @@ app.openapi(embededRoute, async (c) => {
 				// versions is 0 based
 				.limit(keyring_permission.generation_versions + 1)
 				.then((rows) =>
-					Promise.all(
-						rows.map(({ key_type, key_size, hash, ...row }) =>
-							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-								dk_id,
-								kr_id,
-								generation_count,
-								key_type,
-								key_size,
-								hash,
-								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-							})),
+					import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+						Promise.all(
+							rows.map(({ key_type, key_size, hash, ...row }) =>
+								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+									dk_id,
+									kr_id,
+									generation_count,
+									key_type,
+									key_size,
+									hash,
+									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+								})),
+							),
 						),
 					),
 				);
@@ -744,7 +751,7 @@ app.openapi(embededRoute, async (c) => {
 								const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return {
+								return import('@chainfuse/helpers').then(async ({ BufferHelpers }) => ({
 									key_type,
 									key_size,
 									hash,
@@ -754,7 +761,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								};
+								}));
 							}),
 						),
 					),
@@ -818,22 +825,26 @@ app.openapi(embededRoute, async (c) => {
 											.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 											.limit(1)
 											.then((rows) =>
-												Promise.all(
-													rows.map(async (row) => ({
-														...row,
-														generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-													})),
+												import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+													Promise.all(
+														rows.map(async (row) => ({
+															...row,
+															generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+														})),
+													),
 												),
 											)
 											.then(([row]) => {
 												if (row) {
-													return c.var.t_db
-														.update(datakeys)
-														.set({
-															generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-														})
-														.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-														.limit(1);
+													return import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+														c.var.t_db
+															.update(datakeys)
+															.set({
+																generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
+															})
+															.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+															.limit(1),
+													);
 												} else {
 													throw new Error('Datakey not found');
 												}
@@ -945,7 +956,7 @@ app.openapi(uploadedRoute, async (c) => {
 		const returningCiphertexts: z.infer<typeof uploadedOutput>[] = [];
 
 		const [kr_id_base64url, keyring_permission] = keyring_permissions;
-		const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
+		const kr_id = await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
 
 		startTime(c, 'db-fetch-datakeys');
 		const receivedDatakeys = await c.var.t_db
@@ -965,17 +976,19 @@ app.openapi(uploadedRoute, async (c) => {
 			// versions is 0 based
 			.limit(keyring_permission.generation_versions + 1)
 			.then((rows) =>
-				Promise.all(
-					rows.map(({ key_type, key_size, hash, ...row }) =>
-						Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-							dk_id,
-							kr_id,
-							generation_count,
-							key_type,
-							key_size,
-							hash,
-							...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-						})),
+				import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+					Promise.all(
+						rows.map(({ key_type, key_size, hash, ...row }) =>
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+							})),
+						),
 					),
 				),
 			);
@@ -1001,7 +1014,7 @@ app.openapi(uploadedRoute, async (c) => {
 							const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 							const jsonNote = JSON.parse(note) as SecretNote;
 
-							return {
+							return import('@chainfuse/helpers').then(async ({ BufferHelpers }) => ({
 								key_type,
 								key_size,
 								hash,
@@ -1011,7 +1024,7 @@ app.openapi(uploadedRoute, async (c) => {
 								...jsonNote,
 								salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 								macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-							};
+							}));
 						}),
 					),
 				),
@@ -1095,22 +1108,26 @@ app.openapi(uploadedRoute, async (c) => {
 						.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 						.limit(1)
 						.then((rows) =>
-							Promise.all(
-								rows.map(async (row) => ({
-									...row,
-									generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-								})),
+							import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+								Promise.all(
+									rows.map(async (row) => ({
+										...row,
+										generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+									})),
+								),
 							),
 						)
 						.then(([row]) => {
 							if (row) {
-								return c.var.t_db
-									.update(datakeys)
-									.set({
-										generation_count: sql`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
-									})
-									.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-									.limit(1);
+								return import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+									c.var.t_db
+										.update(datakeys)
+										.set({
+											generation_count: sql`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
+										})
+										.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+										.limit(1),
+								);
 							} else {
 								throw new Error('Datakey not found');
 							}

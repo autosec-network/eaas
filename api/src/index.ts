@@ -49,7 +49,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			await next();
 		});
 		app.use('*', async (c, next) =>
-			Promise.all([import('~shared/helpers/index.mjs'), import('~shared/db-core/db.mjs')]).then(async ([{ Helpers }, { DBManager }]) => {
+			Promise.all([import('@chainfuse/helpers'), import('~shared/db-core/db.mjs')]).then(async ([{ Helpers }, { DBManager }]) => {
 				if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
 					await import('~shared/db-core/db.mjs').then(({ StaticDatabase }) =>
 						c.set(

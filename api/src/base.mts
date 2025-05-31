@@ -19,7 +19,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 		const versionExists = await import('~shared/types/bw/index.mjs').then(({ ApiKeyVersions }) => version in ApiKeyVersions);
 
 		if (versionExists) {
-			c.set('ak_id', await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(ak_id_base64url)));
+			c.set('ak_id', await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(ak_id_base64url)));
 
 			await import('hono/timing').then(({ endTime, startTime }) => {
 				endTime(c, 'auth-parse-token');
@@ -40,7 +40,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 						.limit(1),
 				)
 				.then((rows) =>
-					import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
+					import('@chainfuse/helpers').then(({ BufferHelpers }) =>
 						Promise.all(
 							rows.map((row) =>
 								Promise.all([BufferHelpers.uuidConvert(row.t_id), BufferHelpers.uuidConvert(row.d1_id)]).then(([t_id, d1_id]) => ({
@@ -81,7 +81,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 								),
 							);
 
-							await Promise.all([import('~shared/helpers/index.mjs'), import('~shared/helpers/crypto.mjs')]).then(async ([{ Helpers }, { CryptoHelpers }]) => {
+							await import('@chainfuse/helpers').then(async ({ Helpers, CryptoHelpers }) => {
 								if (!Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
 									const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}${c.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
@@ -106,10 +106,10 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 								.then(async ([hashRow]) => {
 									if (hashRow) {
 										await import('hono/timing').then(({ startTime }) => startTime(c, 'auth-verify-token'));
-										const receivedSecret = await import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(ak_secret_base64url));
+										const receivedSecret = await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(ak_secret_base64url));
 										let calculatedHash: Uint8Array;
 
-										await Promise.all([import('~shared/types/bw/index.mjs'), import('~shared/helpers/buffers.mjs'), import('~shared/helpers/crypto.mjs')]).then(async ([{ ApiKeyVersions }, { BufferHelpers }, { CryptoHelpers }]) => {
+										await Promise.all([import('~shared/types/bw/index.mjs'), import('@chainfuse/helpers')]).then(async ([{ ApiKeyVersions }, { BufferHelpers, CryptoHelpers }]) => {
 											switch (parseInt(version)) {
 												case ApiKeyVersions['256base64urlSha256']:
 													calculatedHash = new Uint8Array(await BufferHelpers.hexToBuffer(await CryptoHelpers.getHash('SHA-256', receivedSecret)));
@@ -168,7 +168,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 													.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`)),
 											)
 											.then((rows) =>
-												import('~shared/helpers/buffers.mjs').then(({ BufferHelpers }) =>
+												import('@chainfuse/helpers').then(({ BufferHelpers }) =>
 													Promise.all(
 														rows.map((row) =>
 															BufferHelpers.uuidConvert(row.kr_id).then((kr_id) => ({

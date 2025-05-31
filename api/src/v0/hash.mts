@@ -6,7 +6,6 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import { BufferHelpers } from '~shared/helpers/buffers.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
@@ -110,45 +109,89 @@ app.openapi(embededRoute, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 
-	if ('batch_input' in json) {
-		return c.json(
-			{
-				success: true,
-				result: json.batch_input.map((item) => {
-					const { input, format, reference } = item;
+	return import('@chainfuse/helpers').then(async ({ BufferHelpers }) => {
+		if ('batch_input' in json) {
+			return c.json(
+				{
+					success: true,
+					result: await Promise.all(
+						json.batch_input.map(async (item) => {
+							const { input, format, reference } = item;
 
-					startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
-					const value = createHash(item.algorithm)
-						.update(Buffer.from(input, format === 'base64' ? (BufferHelpers.base64urlRegex.test(input) ? 'base64url' : 'base64') : format))
-						.digest('hex');
-					endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+							startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+							const value = createHash(item.algorithm)
+								.update(
+									Buffer.from(
+										input,
+										format === 'base64'
+											? await import('zod/v4').then(({ z }) =>
+													Promise.any([
+														z
+															.base64()
+															.trim()
+															.parseAsync(input)
+															.then(() => 'base64' as const),
+														z
+															.base64url()
+															.trim()
+															.parseAsync(input)
+															.then(() => 'base64url' as const),
+													]),
+												)
+											: format,
+									),
+								)
+								.digest('hex');
+							endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
 
-					return {
-						value,
-						reference,
-					};
-				}),
-			},
-			200,
-		);
-	} else {
-		startTime(c, 'hashItem');
-		const value = createHash(json.algorithm)
-			.update(Buffer.from(json.input, json.format === 'base64' ? (BufferHelpers.base64urlRegex.test(json.input) ? 'base64url' : 'base64') : json.format))
-			.digest('hex');
-		endTime(c, 'hashItem');
-
-		return c.json(
-			{
-				success: true,
-				result: {
-					value,
-					reference: json.reference,
+							return {
+								value,
+								reference,
+							};
+						}),
+					),
 				},
-			},
-			200,
-		);
-	}
+				200,
+			);
+		} else {
+			startTime(c, 'hashItem');
+			const value = createHash(json.algorithm)
+				.update(
+					Buffer.from(
+						json.input,
+						json.format === 'base64'
+							? await import('zod/v4').then(({ z }) =>
+									Promise.any([
+										z
+											.base64()
+											.trim()
+											.parseAsync(json.input)
+											.then(() => 'base64' as const),
+										z
+											.base64url()
+											.trim()
+											.parseAsync(json.input)
+											.then(() => 'base64url' as const),
+									]),
+								)
+							: json.format,
+					),
+				)
+				.digest('hex');
+			endTime(c, 'hashItem');
+
+			return c.json(
+				{
+					success: true,
+					result: {
+						value,
+						reference: json.reference,
+					},
+				},
+				200,
+			);
+		}
+	});
 });
 
 const zodFileObject = z

@@ -194,49 +194,6 @@ app.use('*', async (c, next) => {
 
 ### Helper Classes Usage
 
-#### Crypto Operations
-
-```typescript
-import { CryptoHelpers } from '~shared/helpers/crypto.mjs';
-
-// Use CryptoHelpers for cryptographic operations
-const encrypted = await CryptoHelpers.encrypt(data, key);
-const hash = await CryptoHelpers.hash(input, algorithm);
-```
-
-#### Buffer Management
-
-```typescript
-import { BufferHelpers } from '~shared/helpers/buffers.mjs';
-
-// Use BufferHelpers for buffer operations and UUID handling
-const uuid = BufferHelpers.generateUuid();
-const buffer = BufferHelpers.fromHex(hexString);
-```
-
-#### Network Operations
-
-```typescript
-import { NetHelpers } from '~shared/helpers/net.mjs';
-
-// Use NetHelpers for HTTP operations
-const response = await NetHelpers.fetch(url, options);
-const cleanHeaders = NetHelpers.stripSensitiveHeaders(headers);
-```
-
-#### Environment Checks
-
-```typescript
-import { Helpers } from '~shared/helpers/index.mjs';
-
-// Check if running in local development
-if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
-	// Local development logic
-} else {
-	// Production logic
-}
-```
-
 ### Error Handling Patterns
 
 #### API Responses
