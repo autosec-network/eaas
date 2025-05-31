@@ -64,7 +64,8 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
-      - run: npm ci --include-workspace-root --workspaces
+      - run: npm ci --ignore-scripts --include-workspace-root --workspaces
+      - run: npm run-script install --if-present --include-workspace-root --workspaces
       - run: npm run fmt:fix
       - name: Check for Changes
         id: changes
