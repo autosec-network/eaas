@@ -34,7 +34,7 @@
 	],
 	"dependencies": {
 		"cloudflare": "^4.1.0",
-		"drizzle-orm": "^0.43.1",
+		"drizzle-orm": "^0.44.1",
 		"jose": "^6.0.8",
 		"uuid": "^11.0.3"
 	},
