@@ -52,13 +52,13 @@
 		"tailwindcss": "^4.1.8"
 	},
 	"devDependencies": {
-		"@builder.io/qwik": "^1.11.0",
-		"@builder.io/qwik-city": "^1.11.0",
+		"@builder.io/qwik": "^1.14.1",
+		"@builder.io/qwik-city": "^1.14.1",
 		"@rollup/plugin-node-resolve": "^16.0.0",
 		"@tailwindcss/vite": "^4.1.8",
 		"eslint-plugin-qwik": "^1.14.1",
 		"prettier-plugin-tailwindcss": "^0.6.12",
-		"rollup-plugin-visualizer": "^5.14.0",
+		"rollup-plugin-visualizer": "^6.0.1",
 		"turnstile-types": "^1.2.3",
 		"vite-tsconfig-paths": "^4.3.2"
 	}
