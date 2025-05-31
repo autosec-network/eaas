@@ -42,9 +42,9 @@ await Promise.all([
 
 						console.info({ openapiVersions });
 
-						return Promise.allSettled(
+						return Promise.allSettled([
 							// Get each OpenAPI version
-							openapiVersions.map(async (oV) => {
+							...openapiVersions.map(async (oV) => {
 								await worker.ready;
 
 								const url = new URL([aV, 'generate', oV].join('/'), (await worker.url).origin);
@@ -70,7 +70,33 @@ await Promise.all([
 									}
 								});
 							}),
-						);
+							(async () => {
+								await worker.ready;
+
+								const url = new URL([aV, 'generate', 'llms'].join('/'), (await worker.url).origin);
+								console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
+
+								return worker.fetch(url).then(async (response) => {
+									console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
+
+									if (response.ok && response.body) {
+										// Write the file to the asset directory
+										return import('node:fs').then(async ({ createWriteStream }) => {
+											// Use streaming to optimize memory usage
+											const writeStream = createWriteStream([...folderPath, `llms.txt`].join('/'), { encoding: 'utf-8' });
+
+											for await (const chunk of response.body) {
+												writeStream.write(chunk);
+											}
+
+											writeStream.end();
+
+											console.log('Wrote', aV, 'llms.txt', 'to', response.status);
+										});
+									}
+								});
+							})(),
+						]);
 					}),
 			),
 		).finally(() => worker.dispose());

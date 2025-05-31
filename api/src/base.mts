@@ -220,6 +220,8 @@ app.use('*', (c, next) =>
 				'/:version/generate/openapi31',
 				// OpenAPI Schema for CF API Gateway
 				'/:version/generate/v0.cf-aig.openapi',
+				// LLMs.txt
+				'/:version/generate/llms',
 				// Has it's own auth check
 				'/:version/apikeys',
 				// Free (non-gated)

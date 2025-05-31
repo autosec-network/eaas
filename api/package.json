@@ -33,6 +33,7 @@
 		"@hono/zod-validator": "^0.7.0",
 		"@mjackson/multipart-parser": "^0.8.2",
 		"@noble/post-quantum": "^0.4.1",
+		"@scalar/openapi-to-markdown": "^0.2.5",
 		"cron-schedule": "^5.0.4",
 		"cron-validate": "^1.4.5",
 		"hono": "^4.7.10",
