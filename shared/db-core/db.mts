@@ -162,7 +162,7 @@ export class DBManager {
 				},
 			) as DrizzleCommonDatabase<TSchema>;
 		} else {
-			return drizzleD1<TSchema>(dbRef, {
+			return drizzleD1<TSchema>(dbRef.withSession('first-unconstrained') as unknown as D1Database, {
 				logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
 				casing: 'snake_case',
 			}) as DrizzleCommonDatabase<TSchema>;
