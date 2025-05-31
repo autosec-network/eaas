@@ -71,21 +71,19 @@ await Promise.all([
 							(async () => {
 								await worker.ready;
 
-								const url = new URL([aV, 'generate', 'llms'].join('/'), (await worker.url).origin);
+								const url = new URL([aV, 'generate', 'openapi31'].join('/'), (await worker.url).origin);
 								console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
 
 								return worker.fetch(url).then(async (response) => {
 									console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
 
-									if (response.ok && response.body) {
+									if (response.ok) {
 										// Write the file to the asset directory
 										return import('node:fs').then(async ({ createWriteStream }) => {
 											// Use streaming to optimize memory usage
 											const writeStream = createWriteStream([...folderPath, `llms.txt`].join('/'), { encoding: 'utf-8' });
 
-											for await (const chunk of response.body) {
-												writeStream.write(chunk);
-											}
+											writeStream.write(await Promise.all([import('@scalar/openapi-to-markdown'), response.text()]).then(([{ createMarkdownFromOpenApi }, openapi31]) => createMarkdownFromOpenApi(openapi31)));
 
 											writeStream.end();
 

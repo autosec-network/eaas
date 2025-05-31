@@ -92,22 +92,6 @@ await import('~/../package.json').then(({ version }) => {
 	});
 });
 
-app.get('/generate/llms', async (c) =>
-	Promise.all([
-		import('@scalar/openapi-to-markdown'),
-		(async () => {
-			const url = new URL(c.req.raw.url);
-			url.pathname = '/generate/openapi31';
-
-			return app.fetch(new Request(url, c.req.raw), c.env, c.executionCtx);
-		})(),
-	])
-		.then(async ([{ createMarkdownFromOpenApi }, openapi31response]) => {
-			return createMarkdownFromOpenApi(await openapi31response.text());
-		})
-		.then((markdown) => c.text(markdown)),
-);
-
 app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	type: 'http',
 	scheme: 'bearer',
