@@ -16,7 +16,7 @@ on:
       - '**.md*'
       - '**.yaml'
       - '**.yml'
-  pull_request:
+  pull_request_target:
     paths:
       - '**.*js*'
       - '**.*ts*'
