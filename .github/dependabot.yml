@@ -33,6 +33,10 @@ updates:
         patterns:
           - 'actions/cache'
           - 'actions/cache/*'
+      ci-cd:
+        patterns:
+          - 'changesets/*'
+          - 'dependabot/*'
       sast:
         patterns:
           - 'github/codeql-*'
@@ -66,6 +70,9 @@ updates:
         patterns:
           - '@auth/*'
           - '@simplewebauthn/*'
+      bitwarden:
+        patterns:
+          - 'jose'
       cloudflare:
         patterns:
           - 'cloudflare'
@@ -73,6 +80,9 @@ updates:
           - 'wrangler'
         exclude-patterns:
           - '@cloudflare/workers-types'
+      ci-cd:
+        patterns:
+          - 'yargs'
       code-management:
         patterns:
           - 'prettier'
@@ -122,3 +132,7 @@ updates:
           - '@cloudflare/workers-types'
           - 'turnstile-types'
           - 'zaraz-ts'
+      validation:
+        patterns:
+          - 'zod'
+          - 'validator'
