@@ -1,5 +1,3 @@
-import { unstable_startWorker } from 'wrangler';
-
 await Promise.all([
 	// Read route paths directly
 	import('node:fs/promises').then(({ readdir }) =>
@@ -13,7 +11,7 @@ await Promise.all([
 				.map((dir) => dir.name),
 		),
 	),
-	unstable_startWorker({ config: 'wrangler.jsonc', dev: { remote: false, liveReload: false, watch: false } }),
+	import('wrangler').then(({ unstable_startWorker }) => unstable_startWorker({ config: 'wrangler.jsonc', dev: { remote: false, liveReload: false, watch: false } })),
 ])
 	.then(([apiVersions, worker]) => {
 		console.info({ apiVersions });
