@@ -109,7 +109,7 @@ app.openapi(embededRoute, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 
-	return import('@chainfuse/helpers').then(async ({ BufferHelpers }) => {
+	return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => {
 		if ('batch_input' in json) {
 			return c.json(
 				{
