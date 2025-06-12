@@ -51,7 +51,7 @@ app.openapi(route, (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 
-	return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm'), import('@chainfuse/helpers')]).then(([{ keyrings }, { sql }, { BufferHelpers }]) =>
+	return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm'), import('@chainfuse/helpers/buffers')]).then(([{ keyrings }, { sql }, { BufferHelpers }]) =>
 		BufferHelpers.generateUuid.then((kr_id) =>
 			c.var.t_db
 				.insert(keyrings)

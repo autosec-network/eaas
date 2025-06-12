@@ -26,7 +26,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			}),
 		);
 
-		const t_id = await step.do('Convert tenant id', () => import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.t_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const t_id = await step.do('Convert tenant id', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.t_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const t_db_setup = await step.do(
 			'Tenant DB',
@@ -42,8 +42,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				},
 			},
 			async () => {
-				if (!(await import('@chainfuse/helpers').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
-					const potentialVipBinding = (await import('@chainfuse/helpers').then(({ CryptoHelpers }) => CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`))).toUpperCase();
+				if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
+					const potentialVipBinding = (await import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) => CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`))).toUpperCase();
 
 					if (potentialVipBinding in this.env) {
 						return { binding: potentialVipBinding };
@@ -51,7 +51,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				}
 
 				let r_db: ReturnType<typeof DBManager.getDrizzle>;
-				if (!(await import('@chainfuse/helpers').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
+				if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
 					r_db = DBManager.getDrizzle(
 						{
 							accountId: this.env.CF_ACCOUNT_ID,
@@ -72,7 +72,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 					.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
 					.limit(1)
 					.then((rows) =>
-						import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+						import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
 							Promise.all(
 								rows.map((row) =>
 									BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
@@ -112,8 +112,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			return t_db;
 		};
 
-		const kr_id = await step.do('Convert keyring id', () => import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
-		const dk_id = await step.do('Generate datakey', () => import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.generateUuid).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const kr_id = await step.do('Convert keyring id', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const dk_id = await step.do('Generate datakey', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const { key_type, key_size, hash, generation_versions, retreival_versions } = await step.do(
 			'Get keyring info',
@@ -730,7 +730,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 					.values({
 						dk_id: sql`unhex(${dk_id.hex})`,
 						kr_id: sql`unhex(${kr_id.hex})`,
-						bw_id: sql`unhex(${(await import('@chainfuse/helpers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(uploadedSecret.id))).hex})`,
+						bw_id: sql`unhex(${(await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(uploadedSecret.id))).hex})`,
 					})
 					.then(() => {}),
 		);

@@ -25,7 +25,7 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 );
 
 app.openapi(route, async (c) => {
-	const kr_ids = await import('@chainfuse/helpers').then(({ BufferHelpers }) => Promise.all(Object.keys(c.var.permissions).map((kr_id_base64url) => BufferHelpers.uuidConvert(kr_id_base64url))));
+	const kr_ids = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => Promise.all(Object.keys(c.var.permissions).map((kr_id_base64url) => BufferHelpers.uuidConvert(kr_id_base64url))));
 
 	if ((c.var.globalPermissions && c.var.globalPermissions.r_keyrings > 0) || kr_ids.length > 0) {
 		return Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
@@ -55,7 +55,7 @@ app.openapi(route, async (c) => {
 					),
 			)
 			.then((rows) =>
-				import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+				import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
 					Promise.all(
 						rows.map((row) =>
 							BufferHelpers.uuidConvert(row.kr_id).then(async (kr_id) => ({
@@ -82,7 +82,7 @@ app.openapi(route, async (c) => {
 									.orderBy(desc(datakeys.b_time))
 									.limit(1)
 									.then((rows) =>
-										import('@chainfuse/helpers').then(({ BufferHelpers }) =>
+										import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
 											Promise.all(
 												rows.map((row) =>
 													BufferHelpers.bufferToBigint(row.generation_count).then((generation_count) => ({

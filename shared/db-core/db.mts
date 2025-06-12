@@ -57,7 +57,7 @@ export class DBManager {
 			return drizzleRest<TSchema>(
 				async (sql, params, method) => {
 					try {
-						const responses = await import('@chainfuse/helpers').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params })));
+						const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params })));
 
 						if (responses.result[0]?.success) {
 							const results = (responses.result[0].results ?? []) as Record<string, any>[];
@@ -87,7 +87,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const promises = await import('@chainfuse/helpers').then(({ NetHelpers }) => Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params })))));
+							const promises = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params })))));
 
 							promises.forEach((promise) => {
 								if (promise.status === 'fulfilled') {
@@ -127,7 +127,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const responses = await import('@chainfuse/helpers').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') })));
+							const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') })));
 
 							responses.result.forEach((response, index) => {
 								if (response.success) {
