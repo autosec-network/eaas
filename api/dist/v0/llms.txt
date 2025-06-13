@@ -57,11 +57,16 @@ Get a list of Api Keys.
 
   `string`
 
+- **`token_id` (required)**
+
+  `string`
+
 **Example:**
 
 ```
 [
   {
+    "token_id": "",
     "name": "",
     "created": "1970-01-01T00:00:00.000Z",
     "lastRotation": "1970-01-01T00:00:00.000Z",
@@ -1025,10 +1030,15 @@ This endpoint returns high-quality random bytes of the specified length
 
   `string`
 
+* **`token_id` (required)**
+
+  `string`
+
 **Example:**
 
 ```
 {
+  "token_id": "",
   "name": "",
   "created": "1970-01-01T00:00:00.000Z",
   "lastRotation": "1970-01-01T00:00:00.000Z",
