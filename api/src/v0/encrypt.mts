@@ -489,7 +489,8 @@ app.openapi(embededRoute, async (c) => {
 
 			// Efficient batch retreive datakeys
 			startTime(c, 'db-fetch-datakeys');
-			const receivedDatakeys = await c.var.t_db
+			const receivedDatakeys = await c.var
+				.t_db()
 				.select({
 					dk_id: datakeys.dk_id,
 					kr_id: datakeys.kr_id,
@@ -624,7 +625,8 @@ app.openapi(embededRoute, async (c) => {
 											 * @link https://github.com/cloudflare/workers-sdk/issues/2733
 											 */
 											c.executionCtx.waitUntil(
-												c.var.t_db
+												c.var
+													.t_db()
 													.select({ generation_count: datakeys.generation_count })
 													.from(datakeys)
 													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
@@ -642,7 +644,8 @@ app.openapi(embededRoute, async (c) => {
 													.then(([row]) => {
 														if (row) {
 															return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-																c.var.t_db
+																c.var
+																	.t_db()
 																	.update(datakeys)
 																	.set({
 																		generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
@@ -696,7 +699,8 @@ app.openapi(embededRoute, async (c) => {
 			const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
 
 			startTime(c, 'db-fetch-datakeys');
-			const receivedDatakeys = await c.var.t_db
+			const receivedDatakeys = await c.var
+				.t_db()
 				.select({
 					dk_id: datakeys.dk_id,
 					kr_id: datakeys.kr_id,
@@ -819,7 +823,8 @@ app.openapi(embededRoute, async (c) => {
 									 * @link https://github.com/cloudflare/workers-sdk/issues/2733
 									 */
 									c.executionCtx.waitUntil(
-										c.var.t_db
+										c.var
+											.t_db()
 											.select({ generation_count: datakeys.generation_count })
 											.from(datakeys)
 											.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
@@ -837,7 +842,8 @@ app.openapi(embededRoute, async (c) => {
 											.then(([row]) => {
 												if (row) {
 													return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-														c.var.t_db
+														c.var
+															.t_db()
 															.update(datakeys)
 															.set({
 																generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
@@ -959,7 +965,8 @@ app.openapi(uploadedRoute, async (c) => {
 		const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
 
 		startTime(c, 'db-fetch-datakeys');
-		const receivedDatakeys = await c.var.t_db
+		const receivedDatakeys = await c.var
+			.t_db()
 			.select({
 				dk_id: datakeys.dk_id,
 				kr_id: datakeys.kr_id,
@@ -1102,7 +1109,8 @@ app.openapi(uploadedRoute, async (c) => {
 				 * @link https://github.com/cloudflare/workers-sdk/issues/2733
 				 */
 				c.executionCtx.waitUntil(
-					c.var.t_db
+					c.var
+						.t_db()
 						.select({ generation_count: datakeys.generation_count })
 						.from(datakeys)
 						.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
@@ -1120,7 +1128,8 @@ app.openapi(uploadedRoute, async (c) => {
 						.then(([row]) => {
 							if (row) {
 								return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-									c.var.t_db
+									c.var
+										.t_db()
 										.update(datakeys)
 										.set({
 											generation_count: sql`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
