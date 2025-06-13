@@ -8,7 +8,7 @@ export interface UuidExport {
 	utf8: UUID;
 	hex: string;
 	// eslint-disable-next-line @typescript-eslint/no-duplicate-type-constituents
-	blob: Buffer | Buffer['buffer'] | (typeof Uint8Array)['prototype']['buffer'];
+	blob: Buffer['buffer'] | (typeof Uint8Array)['prototype']['buffer'];
 	base64: string;
 	base64url: string;
 }
