@@ -62,7 +62,7 @@ app.openapi(route, (c) => {
 				})
 				.then((hasPermission) => {
 					if (hasPermission) {
-						Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
+						return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
 							.then(([{ api_keys }, { eq, sql }]) =>
 								c.var.t_db
 									.select({
