@@ -23,7 +23,7 @@ app.use('*', async (c, next) => {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 	}
 });
 
@@ -686,7 +686,7 @@ app.openapi(embededRoute, async (c) => {
 				returningCiphertexts.length > 0 ? 200 : 422,
 			);
 		} else {
-			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 		}
 	} else {
 		const keyring_permissions = Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
@@ -872,13 +872,13 @@ app.openapi(embededRoute, async (c) => {
 						});
 					});
 				} else {
-					return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore', extensions: { code: 500 } }] }, 500);
+					return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore' }] }, 500);
 				}
 			} else {
-				return c.json({ success: false, errors: [{ message: 'Unsupported data store', extensions: { code: 500 } }] }, 500);
+				return c.json({ success: false, errors: [{ message: 'Unsupported data store' }] }, 500);
 			}
 		} else {
-			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 		}
 	}
 });
@@ -1134,7 +1134,7 @@ app.openapi(uploadedRoute, async (c) => {
 						}),
 				);
 			} else {
-				return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore', extensions: { code: 500 } }] }, 500);
+				return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore' }] }, 500);
 			}
 		}
 
@@ -1146,7 +1146,7 @@ app.openapi(uploadedRoute, async (c) => {
 			returningCiphertexts.length > 0 ? 200 : 422,
 		);
 	} else {
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 	}
 });
 

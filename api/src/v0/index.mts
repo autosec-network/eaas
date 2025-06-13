@@ -6,7 +6,7 @@ const app = await import('@hono/zod-openapi').then(
 		new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>({
 			defaultHook: (result, c) => {
 				if (!result.success) {
-					return c.json({ success: result.success, errors: [{ message: result.error.message, extensions: { code: 400 } }] }, 400);
+					return c.json({ success: result.success, errors: [{ message: result.error.message }] }, 400);
 				}
 			},
 		}),
