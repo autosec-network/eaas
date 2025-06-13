@@ -33,6 +33,8 @@ RUN --mount=type=cache,target=/root/.npm npm cache clean --force
 # Copy built application from the build stage
 COPY api/pqc/container/dist ./api/pqc/container/dist
 
+EXPOSE 8080
+
 # Run the web service on container startup.
 CMD ["npm", "-w", "api", "run", "start:pqc"]
     
