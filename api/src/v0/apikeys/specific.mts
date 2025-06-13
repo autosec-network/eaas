@@ -77,13 +77,23 @@ app.openapi(route, (c) => {
 									.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
 									.limit(1),
 							)
+							.then((rows) =>
+								import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
+									Promise.all(
+										rows.map(async (row) => ({
+											...row,
+											token_id: await BufferHelpers.uuidConvert(row.token_id),
+										})),
+									),
+								),
+							)
 							.then(([row]) => {
 								if (row) {
 									return import('~shared/types/d1/index.mjs')
 										.then(
 											({ Permissions }) =>
 												({
-													token_id: Buffer.from(row.token_id).toString('base64url'),
+													token_id: row.token_id.base64url,
 													name: row.name,
 													created: row.b_time,
 													lastRotation: row.m_time,
