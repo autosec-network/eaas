@@ -96,11 +96,11 @@ app.openapi(route, (c) => {
 										)
 										.then((result) => c.json(result, 200));
 								} else {
-									return c.json({ success: false, errors: [{ message: 'API Key not found', extensions: { code: 404 } }] }, 404);
+									return c.json({ success: false, errors: [{ message: 'API Key not found' }] }, 404);
 								}
 							});
 					} else {
-						return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+						return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 					}
 				});
 		})

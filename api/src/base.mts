@@ -249,7 +249,7 @@ app.use('*', (c, next) =>
 	import('hono/body-limit').then(({ bodyLimit }) =>
 		bodyLimit({
 			maxSize: 100 * 1024 * 1024,
-			onError: (c) => c.json({ success: false, errors: [{ message: 'Content size not supported', extensions: { code: 413 } }] }, 413),
+			onError: (c) => c.json({ success: false, errors: [{ message: 'Content size not supported' }] }, 413),
 		})(c, next),
 	),
 );

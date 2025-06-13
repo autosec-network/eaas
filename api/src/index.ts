@@ -88,7 +88,7 @@ export default class extends WorkerEntrypoint<EnvVars> {
 					// @ts-expect-error we don't want to always return to all passthrough
 					(result, c) => {
 						if (!result.success) {
-							return c.json({ success: false, errors: [{ message: "API version doesn't exist", extensions: { code: 404 } }] }, 404);
+							return c.json({ success: false, errors: [{ message: "API version doesn't exist" }] }, 404);
 						}
 					},
 				),

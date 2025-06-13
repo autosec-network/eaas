@@ -15,7 +15,7 @@ app.use('*', async (c, next) => {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action', extensions: { code: 403 } }] }, 403);
+		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
 	}
 });
 
