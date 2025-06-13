@@ -46,14 +46,11 @@ export default class extends WorkerEntrypoint<EnvVars> {
 		app.use('*', async (c, next) => {
 			c.set('bodyClone', secondaryRequest);
 
-			await next();
-		});
-		app.use('*', async (c, next) =>
-			Promise.all([import('@chainfuse/helpers/common'), import('~shared/db-core/db.mjs')]).then(async ([{ Helpers }, { DBManager }]) => {
+			c.set('r_db_session', c.env.EAAS_ROOT.withSession('first-unconstrained'));
+			await Promise.all([import('@chainfuse/helpers/common'), import('~shared/db-core/db.mjs')]).then(async ([{ Helpers }, { DBManager }]) => {
 				if (Helpers.isLocal(c.env.CF_VERSION_METADATA)) {
 					await import('~shared/db-core/db.mjs').then(({ StaticDatabase }) =>
-						c.set(
-							'r_db',
+						c.set('r_db', () =>
 							DBManager.getDrizzle(
 								{
 									accountId: c.env.CF_ACCOUNT_ID,
@@ -67,12 +64,12 @@ export default class extends WorkerEntrypoint<EnvVars> {
 						),
 					);
 				} else {
-					c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, { logger: c.env.NODE_ENV !== 'production' }));
+					c.set('r_db', () => DBManager.getDrizzle(c.env.EAAS_ROOT.withSession(c.var.r_db_session.getBookmark() ?? 'first-unconstrained'), { logger: c.env.NODE_ENV !== 'production' }));
 				}
+			});
 
-				await next();
-			}),
-		);
+			await next();
+		});
 
 		await Promise.all([import('@hono/zod-validator'), import('zod')]).then(([{ zValidator }, { z }]) =>
 			app.use(

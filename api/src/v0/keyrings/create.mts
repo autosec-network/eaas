@@ -53,7 +53,8 @@ app.openapi(route, (c) => {
 
 	return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm'), import('@chainfuse/helpers/buffers')]).then(([{ keyrings }, { sql }, { BufferHelpers }]) =>
 		BufferHelpers.generateUuid.then((kr_id) =>
-			c.var.t_db
+			c.var
+				.t_db()
 				.insert(keyrings)
 				.values({
 					kr_id: sql`unhex(${kr_id.hex})`,

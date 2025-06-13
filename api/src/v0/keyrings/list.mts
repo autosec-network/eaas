@@ -30,7 +30,8 @@ app.openapi(route, async (c) => {
 	if ((c.var.globalPermissions && c.var.globalPermissions.r_keyrings > 0) || kr_ids.length > 0) {
 		return Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
 			.then(([{ keyrings }, { Permissions }, { inArray, sql }]) =>
-				c.var.t_db
+				c.var
+					.t_db()
 					.select({
 						kr_id: keyrings.kr_id,
 						name: keyrings.name,
@@ -73,7 +74,8 @@ app.openapi(route, async (c) => {
 						Promise.all([
 							import('cron-schedule'),
 							Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ datakeys }, { eq, sql, desc }]) =>
-								c.var.t_db
+								c.var
+									.t_db()
 									.select({
 										generation_count: datakeys.generation_count,
 									})

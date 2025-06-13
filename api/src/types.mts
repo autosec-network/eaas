@@ -32,11 +32,13 @@ interface VipBindingsPreview {
 
 export interface ContextVariables extends TimingVariables {
 	bodyClone: ReturnType<Parameters<Exclude<WorkerEntrypoint['fetch'], undefined>>[0]['clone']>;
-	r_db: ReturnType<typeof DBManager.getDrizzle>;
+	r_db_session: D1DatabaseSession;
+	r_db: () => ReturnType<typeof DBManager.getDrizzle>;
 
 	t_id: UuidExport;
 	t_d1_id: UuidExport;
-	t_db: ReturnType<typeof DBManager.getDrizzle>;
+	t_db_session: D1DatabaseSession;
+	t_db: () => ReturnType<typeof DBManager.getDrizzle>;
 
 	ak_id: UuidExport;
 	globalPermissions?: {
