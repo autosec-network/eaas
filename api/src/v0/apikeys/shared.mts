@@ -3,6 +3,7 @@ import { Permissions } from '~shared/types/d1/index.mjs';
 
 export const apikeyOutput = z
 	.object({
+		token_id: z.string().trim().nonempty().base64url(),
 		name: z.string().trim().nonempty(),
 		created: z
 			.string()

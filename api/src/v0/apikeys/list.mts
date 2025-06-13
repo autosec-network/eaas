@@ -42,6 +42,7 @@ app.openapi(route, async (c) =>
 		.then(([{ api_keys }, { Permissions }, { eq, sql }]) =>
 			c.var.t_db
 				.select({
+					token_id: api_keys.ak_id,
 					name: api_keys.name,
 					b_time: api_keys.b_time,
 					m_time: api_keys.m_time,
@@ -56,6 +57,7 @@ app.openapi(route, async (c) =>
 				rows.map(
 					(row) =>
 						({
+							token_id: Buffer.from(row.token_id).toString('base64url'),
 							name: row.name,
 							created: row.b_time,
 							lastRotation: row.m_time,
