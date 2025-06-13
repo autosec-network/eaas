@@ -65,7 +65,7 @@ yargs(hideBin(process.argv))
 						}),
 					)
 					.then(async (d1CreateResponse) => {
-						console.log(d1CreateResponse, (await CryptoHelpers.getHash('SHA-256', d1CreateResponse.name!)).toUpperCase());
+						console.log(d1CreateResponse, (await CryptoHelpers.getHash('SHA-256', d1CreateResponse.name)).toUpperCase());
 						return d1CreateResponse;
 					})
 					.then((d1CreateResponse) => {
@@ -97,7 +97,9 @@ yargs(hideBin(process.argv))
 											apiToken: CICD_CF_API_TOKEN!,
 											databaseId: StaticDatabase.Root.eaas_root_p,
 										},
-										true,
+										{
+											logger: true,
+										},
 									)
 										.insert(tenants)
 										.values({
@@ -115,7 +117,9 @@ yargs(hideBin(process.argv))
 												apiToken: CICD_CF_API_TOKEN!,
 												databaseId: converted_d1_id.value.utf8,
 											},
-											true,
+											{
+												logger: true,
+											},
 										)
 											.insert(properties)
 											.values({
@@ -131,7 +135,7 @@ yargs(hideBin(process.argv))
 								})
 								.catch((reason) =>
 									NetHelpers.cfApi(CICD_CF_API_TOKEN!)
-										.then((cf) => cf.d1.database.delete(d1CreateResponse.uuid!, { account_id: CF_ACCOUNT_ID! }))
+										.then((cf) => cf.d1.database.delete(d1CreateResponse.uuid, { account_id: CF_ACCOUNT_ID! }))
 										.catch((d1DeleteReason) => {
 											const message = `Failed to setup, also failed to roll back orphaned D1 ${name} (${d1CreateResponse.uuid})`;
 											console.error(new Error(message, { cause: d1DeleteReason }));
@@ -187,7 +191,9 @@ yargs(hideBin(process.argv))
 						apiToken: CICD_CF_API_TOKEN!,
 						databaseId: StaticDatabase.Root.eaas_root_p,
 					},
-					true,
+					{
+						logger: true,
+					},
 				)
 					.select({
 						d1_id: tenants.d1_id,
@@ -212,7 +218,9 @@ yargs(hideBin(process.argv))
 										apiToken: CICD_CF_API_TOKEN!,
 										databaseId: row.d1_id.utf8,
 									},
-									true,
+									{
+										logger: true,
+									},
 								)
 									.insert(keyrings)
 									// @ts-expect-error
@@ -300,7 +308,9 @@ yargs(hideBin(process.argv))
 							apiToken: CICD_CF_API_TOKEN!,
 							databaseId: StaticDatabase.Root.eaas_root_p,
 						},
-						true,
+						{
+							logger: true,
+						},
 					);
 
 					return r_db
@@ -339,7 +349,9 @@ yargs(hideBin(process.argv))
 										apiToken: CICD_CF_API_TOKEN!,
 										databaseId: row.d1_id.utf8,
 									},
-									true,
+									{
+										logger: true,
+									},
 								);
 
 								return t_db
