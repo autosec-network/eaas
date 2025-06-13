@@ -76,7 +76,9 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 											apiToken: c.env.CF_API_TOKEN,
 											databaseId: row.d1_id.utf8,
 										},
-										c.env.NODE_ENV !== 'production',
+										{
+											logger: c.env.NODE_ENV !== 'production',
+										},
 									),
 								),
 							);
@@ -86,7 +88,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 									const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}${c.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
 									if (potentialVipBinding in c.env) {
-										await import('~shared/db-core/db.mjs').then(({ DBManager }) => c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, c.env.NODE_ENV !== 'production')));
+										await import('~shared/db-core/db.mjs').then(({ DBManager }) => c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, { logger: c.env.NODE_ENV !== 'production' })));
 									}
 								}
 							});

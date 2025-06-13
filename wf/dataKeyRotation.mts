@@ -58,10 +58,12 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							apiToken: this.env.CF_API_TOKEN,
 							databaseId: this.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
 						},
-						this.env.NODE_ENV !== 'production',
+						{
+							logger: this.env.NODE_ENV !== 'production',
+						},
 					);
 				} else {
-					r_db = DBManager.getDrizzle(this.env.EAAS_ROOT, this.env.NODE_ENV !== 'production');
+					r_db = DBManager.getDrizzle(this.env.EAAS_ROOT, { logger: this.env.NODE_ENV !== 'production' });
 				}
 
 				return r_db
@@ -97,7 +99,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			let t_db: ReturnType<typeof DBManager.getDrizzle> | undefined = undefined;
 
 			if ('binding' in t_db_setup) {
-				t_db = DBManager.getDrizzle(this.env[t_db_setup.binding] as D1Database, this.env.NODE_ENV !== 'production');
+				t_db = DBManager.getDrizzle(this.env[t_db_setup.binding] as D1Database, { logger: this.env.NODE_ENV !== 'production' });
 			} else {
 				t_db = DBManager.getDrizzle(
 					{
@@ -105,7 +107,9 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 						apiToken: this.env.CF_API_TOKEN,
 						databaseId: t_db_setup.d1_id,
 					},
-					this.env.NODE_ENV !== 'production',
+					{
+						logger: this.env.NODE_ENV !== 'production',
+					},
 				);
 			}
 
