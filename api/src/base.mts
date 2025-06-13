@@ -28,7 +28,8 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 
 			return Promise.all([import('~shared/db-preview/schemas/root'), import('drizzle-orm')])
 				.then(([{ api_keys_tenants, tenants }, { eq, sql }]) =>
-					c.var.r_db
+					c.var
+						.r_db()
 						.select({
 							expires: api_keys_tenants.expires,
 							t_id: tenants.t_id,
@@ -68,8 +69,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 							c.set('t_id', row.t_id);
 							c.set('t_d1_id', row.d1_id);
 							await import('~shared/db-core/db.mjs').then(({ DBManager }) =>
-								c.set(
-									't_db',
+								c.set('t_db', () =>
 									DBManager.getDrizzle(
 										{
 											accountId: c.env.CF_ACCOUNT_ID,
@@ -88,14 +88,17 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 									const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${row.t_id.utf8}${c.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
 									if (potentialVipBinding in c.env) {
-										await import('~shared/db-core/db.mjs').then(({ DBManager }) => c.set('t_db', DBManager.getDrizzle(c.env[potentialVipBinding] as D1Database, { logger: c.env.NODE_ENV !== 'production' })));
+										if (!c.var.t_db_session) c.set('t_db_session', (c.env[potentialVipBinding] as D1Database).withSession('first-unconstrained'));
+
+										await import('~shared/db-core/db.mjs').then(({ DBManager }) => c.set('t_db', () => DBManager.getDrizzle((c.env[potentialVipBinding] as D1Database).withSession(c.var.t_db_session.getBookmark() ?? 'first-unconstrained'), { logger: c.env.NODE_ENV !== 'production' })));
 									}
 								}
 							});
 
 							return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
 								.then(([{ api_keys }, { eq, sql }]) =>
-									c.var.t_db
+									c.var
+										.t_db()
 										.select({
 											hash: api_keys.hash,
 											r_keyrings: api_keys.r_keyrings,
@@ -150,7 +153,8 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 									if (!expired && hashCheck) {
 										await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
 											.then(([{ api_keys, keyrings, api_keys_keyrings }, { eq, sql }]) =>
-												c.var.t_db
+												c.var
+													.t_db()
 													.select({
 														kr_id: api_keys_keyrings.kr_id,
 														kr_name: keyrings.name,
