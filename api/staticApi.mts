@@ -49,9 +49,9 @@ await Promise.all([
 								console.info(new Date().toISOString(), 'GET', `${url.pathname}${url.search}${url.hash}`);
 
 								return worker.fetch(url).then(async (response) => {
-									console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`);
+									console.info(new Date().toISOString(), response.status, `${url.pathname}${url.search}${url.hash}`, await response.clone().json());
 
-									if (response.ok && response.body) {
+									if (response.ok && response.body !== null) {
 										// Write the file to the asset directory
 										return import('node:fs').then(async ({ createWriteStream }) => {
 											// Use streaming to optimize memory usage
