@@ -5,16 +5,18 @@ import type { BaseSQLiteDatabase } from 'drizzle-orm/sqlite-core';
 import type { SqliteRemoteResult } from 'drizzle-orm/sqlite-proxy';
 import type { UuidExport } from '../types/d1/index.mjs';
 
-export type FlexibleDbRef = D1Database | ApiDbRef;
+export type DistributedD1Database = D1Database | D1DatabaseSession;
+export type FlexibleDbRef = DistributedD1Database | ApiDbRef;
 export interface ApiDbRef {
 	accountId: string;
 	apiToken: string;
 	databaseId: UuidExport['utf8'];
 }
 
-export declare class DrizzleCommonDatabase<TSchema extends Record<string, unknown> = Record<string, never>> extends BaseSQLiteDatabase<'async', D1Result | SqliteRemoteResult, TSchema> {
+export declare class DrizzleCommonDatabase<TSchema extends Record<string, unknown> = Record<string, never>, TClient extends DistributedD1Database = DistributedD1Database> extends BaseSQLiteDatabase<'async', D1Result | SqliteRemoteResult, TSchema> {
 	static readonly [entityKind]: string;
 	batch<U extends BatchItem<'sqlite'>, T extends Readonly<[U, ...U[]]>>(batch: T): Promise<BatchResponse<T>>;
+	$client: TClient;
 }
 
 export interface CliArgs {
