@@ -1,11 +1,11 @@
 #!/usr/bin/env -S npx tsx
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { CryptoHelpers } from '@chainfuse/helpers/crypto';
 import { stringify } from '@iarna/toml';
 import { unlink, writeFile } from 'node:fs/promises';
 import { BaseMigrator } from '../db-core/cli-base.mjs';
 import { DBManager, StaticDatabase } from '../db-core/db.mjs';
 import type { CliWorkerData, CliWorkerDataMigrate, CliWranglerConfig } from '../db-core/types.mjs';
-import { BufferHelpers } from '../helpers/buffers.mjs';
-import { CryptoHelpers } from '../helpers/crypto.mjs';
 import { tenants as rootTenants } from './schemas/root/index.js';
 
 const { CF_ACCOUNT_ID, CICD_CF_API_TOKEN } = process.env;
