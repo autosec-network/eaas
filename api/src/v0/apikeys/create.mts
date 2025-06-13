@@ -71,7 +71,8 @@ app.openapi(route, async (c) => {
 		// Check if keyring exists and user has access to it
 		const keyringExists = await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
 			.then(([{ keyrings }, { eq, sql }]) =>
-				c.var.t_db
+				c.var
+					.t_db()
 					.select({ kr_id: keyrings.kr_id })
 					.from(keyrings)
 					.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
@@ -95,16 +96,20 @@ app.openapi(route, async (c) => {
 
 		// Insert into root database (api_keys_tenants)
 		await Promise.all([import('~shared/db-preview/schemas/root'), import('drizzle-orm')]).then(([{ api_keys_tenants }, { sql }]) =>
-			c.var.r_db.insert(api_keys_tenants).values({
-				ak_id: sql`unhex(${ak_id.hex})`,
-				t_id: sql`unhex(${c.var.t_id.hex})`,
-				expires: expires.toISOString() as any,
-			}),
+			c.var
+				.r_db()
+				.insert(api_keys_tenants)
+				.values({
+					ak_id: sql`unhex(${ak_id.hex})`,
+					t_id: sql`unhex(${c.var.t_id.hex})`,
+					expires: expires.toISOString() as any,
+				}),
 		);
 
 		// Insert into tenant database (api_keys)
 		const insertedApiKeys = await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ api_keys }, { sql }]) =>
-			c.var.t_db
+			c.var
+				.t_db()
 				.insert(api_keys)
 				.values({
 					ak_id: sql`unhex(${ak_id.hex})`,
@@ -127,17 +132,20 @@ app.openapi(route, async (c) => {
 
 		// Link API key to keyring with permissions
 		await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ api_keys_keyrings }, { sql }]) =>
-			c.var.t_db.insert(api_keys_keyrings).values({
-				ak_id: sql`unhex(${ak_id.hex})`,
-				kr_id: sql`unhex(${kr_id.hex})`,
-				...(body.permissions?.r_datakeys !== undefined && { r_datakeys: body.permissions.r_datakeys }),
-				...(body.permissions?.r_encrypt !== undefined && { r_encrypt: body.permissions.r_encrypt }),
-				...(body.permissions?.r_decrypt !== undefined && { r_decrypt: body.permissions.r_decrypt }),
-				...(body.permissions?.r_rewrap !== undefined && { r_rewrap: body.permissions.r_rewrap }),
-				...(body.permissions?.r_sign !== undefined && { r_sign: body.permissions.r_sign }),
-				...(body.permissions?.r_verify !== undefined && { r_verify: body.permissions.r_verify }),
-				...(body.permissions?.r_hmac !== undefined && { r_hmac: body.permissions.r_hmac }),
-			}),
+			c.var
+				.t_db()
+				.insert(api_keys_keyrings)
+				.values({
+					ak_id: sql`unhex(${ak_id.hex})`,
+					kr_id: sql`unhex(${kr_id.hex})`,
+					...(body.permissions?.r_datakeys !== undefined && { r_datakeys: body.permissions.r_datakeys }),
+					...(body.permissions?.r_encrypt !== undefined && { r_encrypt: body.permissions.r_encrypt }),
+					...(body.permissions?.r_decrypt !== undefined && { r_decrypt: body.permissions.r_decrypt }),
+					...(body.permissions?.r_rewrap !== undefined && { r_rewrap: body.permissions.r_rewrap }),
+					...(body.permissions?.r_sign !== undefined && { r_sign: body.permissions.r_sign }),
+					...(body.permissions?.r_verify !== undefined && { r_verify: body.permissions.r_verify }),
+					...(body.permissions?.r_hmac !== undefined && { r_hmac: body.permissions.r_hmac }),
+				}),
 		);
 
 		// Return the created API key info (same format as list but with token)
