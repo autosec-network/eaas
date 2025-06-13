@@ -60,12 +60,14 @@ export default class extends WorkerEntrypoint<EnvVars> {
 									apiToken: c.env.CF_API_TOKEN,
 									databaseId: c.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
 								},
-								c.env.NODE_ENV !== 'production',
+								{
+									logger: c.env.NODE_ENV !== 'production',
+								},
 							),
 						),
 					);
 				} else {
-					c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, c.env.NODE_ENV !== 'production'));
+					c.set('r_db', DBManager.getDrizzle(c.env.EAAS_ROOT, { logger: c.env.NODE_ENV !== 'production' }));
 				}
 
 				await next();
