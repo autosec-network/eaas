@@ -79,6 +79,72 @@ Get a list of Api Keys.
 ]
 ```
 
+### GET /apikeys/{token\_id}
+
+- **Method:** `GET`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** apikey management
+
+Get a specific Api Key by its token ID.
+
+#### Responses
+
+##### Status: 200 Returns the specific API key if permissions allow access.
+
+###### Content-Type: application/json
+
+- **`apikeysPermission` (required)**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`
+
+- **`created` (required)**
+
+  `string`, format: `date-time`
+
+- **`expired` (required)**
+
+  `boolean`
+
+- **`expires` (required)**
+
+  `string`, format: `date-time`
+
+- **`keyringsPermission` (required)**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`
+
+- **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+- **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+- **`name` (required)**
+
+  `string`
+
+- **`token_id` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "token_id": "",
+  "name": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None"
+}
+```
+
 ### POST /keyrings
 
 - **Method:** `POST`
