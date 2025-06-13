@@ -40,7 +40,8 @@ export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v
 app.openapi(route, async (c) =>
 	Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
 		.then(([{ api_keys }, { Permissions }, { eq, sql }]) =>
-			c.var.t_db
+			c.var
+				.t_db()
 				.select({
 					token_id: api_keys.ak_id,
 					name: api_keys.name,
