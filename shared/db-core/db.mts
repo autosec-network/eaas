@@ -1,10 +1,10 @@
-import type { D1Database, DurableObjectStorage } from '@cloudflare/workers-types/experimental';
+import { NetHelpers } from '@chainfuse/helpers/net';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm';
+import type { Cache as DrizzleCache } from 'drizzle-orm/cache/core';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
-import { drizzle as drizzleDO } from 'drizzle-orm/durable-sqlite';
 import { drizzle as drizzleRest } from 'drizzle-orm/sqlite-proxy';
 import type { CustomLogCallback, CustomLoging } from '../types/index.mjs';
-import type { ApiDbRef, DrizzleCommonDatabase, FlexibleDbRef } from './types.mjs';
+import type { ApiDbRef, DistributedD1Database, DrizzleCommonDatabase, FlexibleDbRef } from './types.mjs';
 
 export namespace StaticDatabase {
 	export enum Root {
@@ -46,18 +46,40 @@ export class DBManager {
 		return 'accountId' in ref && ref.accountId !== undefined && 'apiToken' in ref && ref.apiToken !== undefined && 'databaseId' in ref && ref.databaseId !== undefined;
 	}
 
-	protected static isD1Database(ref: FlexibleDbRef): ref is D1Database {
+	protected static isD1Database(ref: FlexibleDbRef): ref is DistributedD1Database {
 		return 'batch' in ref && typeof ref.batch === 'function';
 	}
 
-	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: D1Database, logger?: CustomLoging): DrizzleCommonDatabase<TSchema>;
-	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: ApiDbRef, logger?: CustomLoging): DrizzleCommonDatabase<TSchema>;
-	public static getDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: FlexibleDbRef, logger: CustomLoging = false) {
+	public static getDrizzle<C extends DrizzleCache, TSchema extends Record<string, unknown> = Record<string, never>>(
+		dbRef: DistributedD1Database,
+		config?: {
+			logger?: CustomLoging;
+			cache?: C;
+		},
+	): DrizzleCommonDatabase<TSchema>;
+	public static getDrizzle<C extends DrizzleCache, TSchema extends Record<string, unknown> = Record<string, never>>(
+		dbRef: ApiDbRef,
+		config?: {
+			logger?: CustomLoging;
+			cfLogging?: Parameters<typeof NetHelpers.cfApi>[1];
+			cache?: C;
+		},
+	): DrizzleCommonDatabase<TSchema>;
+	public static getDrizzle<C extends DrizzleCache, TSchema extends Record<string, unknown> = Record<string, never>>(
+		dbRef: FlexibleDbRef,
+		config: {
+			logger?: CustomLoging;
+			cfLogging?: Parameters<typeof NetHelpers.cfApi>[1];
+			cache?: C;
+		} = {
+			logger: false,
+		},
+	) {
 		if (this.isApiDbRef(dbRef)) {
 			return drizzleRest<TSchema>(
 				async (sql, params, method) => {
 					try {
-						const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params })));
+						const responses = await NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params }));
 
 						if (responses.result[0]?.success) {
 							const results = (responses.result[0].results ?? []) as Record<string, any>[];
@@ -80,14 +102,14 @@ export class DBManager {
 						return { rows: [] };
 					}
 				},
-				async (queries: { sql: string; params?: any[]; method: 'all' | 'run' | 'get' | 'values' }[]) => {
+				async (queries: { sql: string; params: any[]; method: 'all' | 'run' | 'get' | 'values' }[]) => {
 					const hasParams = queries.some((query) => (query.params ?? []).length > 0);
 					if (hasParams) {
 						// params with multiple statements is not supported
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const promises = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params })))));
+							const promises = await Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params }))));
 
 							promises.forEach((promise) => {
 								if (promise.status === 'fulfilled') {
@@ -127,8 +149,9 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') })));
+							const responses = await NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') }));
 
+							// Merge back together into final result
 							responses.result.forEach((response, index) => {
 								if (response.success) {
 									const results = (response.results ?? []) as Record<string, any>[];
@@ -156,23 +179,17 @@ export class DBManager {
 					}
 				},
 				{
-					logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('REST') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
+					logger: typeof config.logger === 'boolean' ? (config.logger ? new DefaultLogger({ writer: new DebugLogWriter('REST') }) : config.logger) : new DefaultLogger({ writer: new CustomLogWriter(config.logger!) }),
 					casing: 'snake_case',
+					cache: config.cache,
 				},
 			) as DrizzleCommonDatabase<TSchema>;
 		} else {
-			return drizzleD1<TSchema>(typeof dbRef.withSession === 'function' ? (dbRef.withSession('first-unconstrained') as unknown as D1Database) : dbRef, {
-				logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
+			return drizzleD1<TSchema>(dbRef as D1Database, {
+				logger: typeof config.logger === 'boolean' ? (config.logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : config.logger) : new DefaultLogger({ writer: new CustomLogWriter(config.logger!) }),
 				casing: 'snake_case',
+				cache: config.cache,
 			}) as DrizzleCommonDatabase<TSchema>;
 		}
-	}
-
-	public static getDoDrizzle<TSchema extends Record<string, unknown> = Record<string, never>>(dbRef: DurableObjectStorage, logger: CustomLoging = false) {
-		// @ts-expect-error drizzle has out of date cf types
-		return drizzleDO<TSchema>(dbRef, {
-			logger: typeof logger === 'boolean' ? (logger ? new DefaultLogger({ writer: new DebugLogWriter('BINDING') }) : logger) : new DefaultLogger({ writer: new CustomLogWriter(logger) }),
-			casing: 'snake_case',
-		});
 	}
 }
