@@ -1,4 +1,3 @@
-import type { ReadableStream } from '@cloudflare/workers-types/experimental';
 import { createRoute, z } from '@hono/zod-openapi';
 import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { endTime, startTime } from 'hono/timing';
@@ -261,11 +260,11 @@ app.openapi(uploadedRoute, async (c) => {
 	const result: z.infer<typeof uploadedOutput>[] = [];
 
 	// Type cast because of CF's implementation of Request vs w3c Request
-	return parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0], async (part) => {
+	for await (const part of parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0])) {
 		const hash = createHash(c.req.valid('param').algorithm);
 
-		// Type cast because of CF's implementation of ReadableStream is async iterable
-		for await (const chunk of part.body as ReadableStream<Uint8Array>) {
+		// Process each chunk in the content array for memory efficiency
+		for (const chunk of part.content) {
 			hash.update(chunk);
 		}
 
@@ -273,14 +272,14 @@ app.openapi(uploadedRoute, async (c) => {
 			value: hash.digest('hex'),
 			filename: part.filename!,
 		});
-	}).then(() =>
-		c.json(
-			{
-				success: true,
-				result: result,
-			},
-			200,
-		),
+	}
+
+	return c.json(
+		{
+			success: true,
+			result: result,
+		},
+		200,
 	);
 });
 
