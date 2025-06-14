@@ -4,12 +4,12 @@ import type { keyringOutput } from '~/v0/keyrings/shared.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs'), import('~/v0/shared.mjs')]).then(([{ createRoute, z }, { keyringOutput }, { unifiedResponseNote }]) =>
 	createRoute({
 		tags: ['keyring management'],
 		method: 'get',
 		path: '/',
-		description: 'Get a list of keyrings.',
+		description: `Get a list of keyrings.${unifiedResponseNote}`,
 		request: {},
 		responses: {
 			200: {
