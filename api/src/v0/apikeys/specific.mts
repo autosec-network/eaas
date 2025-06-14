@@ -18,12 +18,12 @@ app.use('*', (c, next) =>
 	),
 );
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs'), import('~/v0/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }, { unifiedResponseNote }]) =>
 	createRoute({
 		tags: ['apikey management'],
 		method: 'get',
 		path: '/',
-		description: 'Get a specific Api Key by its token ID.',
+		description: `Get a specific Api Key by its token ID.${unifiedResponseNote}`,
 		request: {
 			params: z.object({
 				token_id: apikeyOutput.shape.token_id,
