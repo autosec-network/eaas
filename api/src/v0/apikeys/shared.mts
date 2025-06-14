@@ -60,7 +60,7 @@ export const apikeyEditable = z
 			.enum(Object.values(Permissions).slice(0, Math.ceil(Object.values(Permissions).length / 2)))
 			.default(Permissions[Permissions.None])
 			.transform((value) => Permissions[value as keyof typeof Permissions]),
-		keyrings: z.record(z.string().trim().nonempty(), apikeyPermissions),
+		keyrings: z.record(z.string().trim().nonempty(), apikeyPermissions).default({}),
 	})
 	.openapi('ApikeyEditable');
 
