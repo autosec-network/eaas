@@ -1,6 +1,7 @@
 import type { z } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { apikeyOutput } from '~/v0/apikeys/shared.mjs';
+import type { Permissions } from '~shared/types/d1/index.mjs';
 
 const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
@@ -62,33 +63,54 @@ app.openapi(route, (c) => {
 				})
 				.then((hasPermission) => {
 					if (hasPermission) {
-						return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
-							.then(([{ api_keys }, { eq, sql }]) =>
-								c.var
-									.t_db()
-									.select({
-										token_id: api_keys.ak_id,
-										name: api_keys.name,
-										b_time: api_keys.b_time,
-										m_time: api_keys.m_time,
-										expires: api_keys.expires,
-										c_time: api_keys.c_time,
-									})
-									.from(api_keys)
-									.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`))
-									.limit(1),
+						return Promise.all([import('~shared/db-preview/schemas/tenant'), import('~shared/types/d1/index.mjs'), import('drizzle-orm')])
+							.then(([{ api_keys, api_keys_keyrings, keyrings }, { Permissions }, { eq, sql }]) =>
+								c.var.t_db().batch([
+									c.var
+										.t_db()
+										.select({
+											token_id: api_keys.ak_id,
+											name: api_keys.name,
+											b_time: api_keys.b_time,
+											m_time: api_keys.m_time,
+											expires: api_keys.expires,
+											c_time: api_keys.c_time,
+											r_apikeys: api_keys.r_apikeys,
+											r_keyrings: api_keys.r_keyrings,
+										})
+										.from(api_keys)
+										.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`))
+										.limit(1),
+									c.var
+										.t_db()
+										.select({
+											keyring_name: keyrings.name,
+											r_datakeys: api_keys_keyrings.r_datakeys,
+											r_encrypt: api_keys_keyrings.r_encrypt,
+											r_decrypt: api_keys_keyrings.r_decrypt,
+											r_rewrap: api_keys_keyrings.r_rewrap,
+											r_sign: api_keys_keyrings.r_sign,
+											r_verify: api_keys_keyrings.r_verify,
+											r_hmac: api_keys_keyrings.r_hmac,
+										})
+										.from(api_keys_keyrings)
+										.innerJoin(keyrings, eq(api_keys_keyrings.kr_id, keyrings.kr_id))
+										.where(eq(api_keys_keyrings.ak_id, sql`unhex(${c.var.ak_id.hex})`)),
+								]),
 							)
-							.then((rows) =>
+							.then(([apiKeyRows, keyringRows]) =>
 								import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
 									Promise.all(
-										rows.map(async (row) => ({
+										apiKeyRows.map(async (row) => ({
 											...row,
 											token_id: await BufferHelpers.uuidConvert(row.token_id),
 										})),
-									),
+									).then((apiKeyRows) => ({ apiKeyRows, keyringRows })),
 								),
 							)
-							.then(([row]) => {
+							.then(({ apiKeyRows, keyringRows }) => {
+								const row = apiKeyRows[0];
+
 								if (row) {
 									return import('~shared/types/d1/index.mjs')
 										.then(
@@ -101,9 +123,27 @@ app.openapi(route, (c) => {
 													expires: row.expires,
 													expired: new Date(row.expires) < new Date(),
 													lastModified: row.c_time,
-													keyringsPermission: Permissions[c.var.globalPermissions!.r_keyrings],
-													apikeysPermission: Permissions[c.var.globalPermissions!.r_apikeys],
-												}) satisfies z.infer<typeof apikeyOutput>,
+													apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
+													// It's the string version
+													keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
+													keyrings: keyringRows.reduce(
+														(acc, keyringRow) => {
+															if (keyringRow.keyring_name) {
+																acc[keyringRow.keyring_name] = {
+																	r_datakeys: Permissions[keyringRow.r_datakeys] as unknown as Permissions,
+																	r_encrypt: keyringRow.r_encrypt,
+																	r_decrypt: keyringRow.r_decrypt,
+																	r_rewrap: keyringRow.r_rewrap,
+																	r_sign: keyringRow.r_sign,
+																	r_verify: keyringRow.r_verify,
+																	r_hmac: keyringRow.r_hmac,
+																};
+															}
+															return acc;
+														},
+														{} as Record<string, any>,
+													),
+												}) satisfies z.output<typeof apikeyOutput>,
 										)
 										.then((result) => c.json(result, 200));
 								} else {
