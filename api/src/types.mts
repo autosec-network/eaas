@@ -30,10 +30,29 @@ interface VipBindingsPreview {
 	'98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED': D1Database;
 }
 
+export interface ApiError {
+	code?: number;
+	message: string;
+	cause?: string;
+}
+
+export interface UnifiedApiResponse<T = any> {
+	success: boolean;
+	errors: ApiError[];
+	response?: T;
+}
+
 export interface ContextVariables extends TimingVariables {
 	bodyClone: ReturnType<Parameters<Exclude<WorkerEntrypoint['fetch'], undefined>>[0]['clone']>;
 	r_db_session: D1DatabaseSession;
 	r_db: () => ReturnType<typeof DBManager.getDrizzle>;
+
+	// Unified error handling
+	errors: ApiError[];
+	addError: (error: ApiError) => void;
+	addErrors: (errors: ApiError[]) => void;
+	hasErrors: () => boolean;
+	getUnifiedResponse: <T>(response?: T) => UnifiedApiResponse<T>;
 
 	t_id: UuidExport;
 	t_d1_id: UuidExport;
