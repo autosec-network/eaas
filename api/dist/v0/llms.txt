@@ -25,39 +25,45 @@ Get a list of Api Keys.
 
 **Array of:**
 
-- **`apikeysPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-- **`created` (required)**
-
-  `string`, format: `date-time`
-
-- **`expired` (required)**
-
-  `boolean`
-
-- **`expires` (required)**
-
-  `string`, format: `date-time`
-
-- **`keyringsPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-- **`lastModified` (required)**
-
-  `string`, format: `date-time`
-
-- **`lastRotation` (required)**
-
-  `string`, format: `date-time`
+**All of:**
 
 - **`name` (required)**
 
-  `string`
+  `string` — Name for the API key
 
-- **`token_id` (required)**
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
 
   `string`
 
@@ -66,17 +72,182 @@ Get a list of Api Keys.
 ```
 [
   {
-    "token_id": "",
     "name": "",
+    "expires": "1970-01-01T00:00:00.000Z",
+    "keyringsPermission": "None",
+    "apikeysPermission": "None",
+    "keyrings": {},
+    "token_id": "",
     "created": "1970-01-01T00:00:00.000Z",
     "lastRotation": "1970-01-01T00:00:00.000Z",
-    "expires": "1970-01-01T00:00:00.000Z",
     "expired": true,
-    "lastModified": "1970-01-01T00:00:00.000Z",
-    "keyringsPermission": "None",
-    "apikeysPermission": "None"
+    "lastModified": "1970-01-01T00:00:00.000Z"
   }
 ]
+```
+
+### POST /apikeys
+
+- **Method:** `POST`
+- **Path:** `/apikeys`
+- **Tags:** apikey management
+
+Create a new API key.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {}
+}
+```
+
+#### Responses
+
+##### Status: 201 API key created successfully.
+
+###### Content-Type: application/json
+
+**All of:**
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+- **`token` (required)**
+
+  `string` — The generated API token
+
+**Example:**
+
+```
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z",
+  "token": ""
+}
+```
+
+##### Status: 400 Bad request - invalid keyrings.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 403 Insufficient permissions.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/json
+
+- **`error` (required)**
+
+  `string`
+
+**Example:**
+
+```
+{
+  "error": ""
+}
 ```
 
 ### GET /apikeys/{token\_id}
@@ -93,39 +264,45 @@ Get a specific Api Key by its token ID.
 
 ###### Content-Type: application/json
 
-- **`apikeysPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-- **`created` (required)**
-
-  `string`, format: `date-time`
-
-- **`expired` (required)**
-
-  `boolean`
-
-- **`expires` (required)**
-
-  `string`, format: `date-time`
-
-- **`keyringsPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-- **`lastModified` (required)**
-
-  `string`, format: `date-time`
-
-- **`lastRotation` (required)**
-
-  `string`, format: `date-time`
+**All of:**
 
 - **`name` (required)**
 
-  `string`
+  `string` — Name for the API key
 
-- **`token_id` (required)**
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
 
   `string`
 
@@ -133,15 +310,16 @@ Get a specific Api Key by its token ID.
 
 ```
 {
-  "token_id": "",
   "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
   "created": "1970-01-01T00:00:00.000Z",
   "lastRotation": "1970-01-01T00:00:00.000Z",
-  "expires": "1970-01-01T00:00:00.000Z",
   "expired": true,
-  "lastModified": "1970-01-01T00:00:00.000Z",
-  "keyringsPermission": "None",
-  "apikeysPermission": "None"
+  "lastModified": "1970-01-01T00:00:00.000Z"
 }
 ```
 
@@ -1060,61 +1238,53 @@ This endpoint returns high-quality random bytes of the specified length
 
 ## Schemas
 
-### ApikeyOutput
+### ApikeyEditable
 
 - **Type:**`object`
 
-* **`apikeysPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-* **`created` (required)**
-
-  `string`, format: `date-time`
-
-* **`expired` (required)**
-
-  `boolean`
-
-* **`expires` (required)**
-
-  `string`, format: `date-time`
-
-* **`keyringsPermission` (required)**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`
-
-* **`lastModified` (required)**
-
-  `string`, format: `date-time`
-
-* **`lastRotation` (required)**
-
-  `string`, format: `date-time`
-
 * **`name` (required)**
 
-  `string`
+  `string` — Name for the API key
 
-* **`token_id` (required)**
+* **`apikeysPermission`**
 
-  `string`
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+* **`keyrings`**
+
+  `object`, default: `{}`
+
+* **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
 
 **Example:**
 
 ```
 {
-  "token_id": "",
   "name": "",
-  "created": "1970-01-01T00:00:00.000Z",
-  "lastRotation": "1970-01-01T00:00:00.000Z",
   "expires": "1970-01-01T00:00:00.000Z",
-  "expired": true,
-  "lastModified": "1970-01-01T00:00:00.000Z",
   "keyringsPermission": "None",
-  "apikeysPermission": "None"
+  "apikeysPermission": "None",
+  "keyrings": {}
 }
 ```
+
+### ApikeyOutput
+
+- **Type:**
+
+**Example:**
+
+### CreateApikeyOutput
+
+- **Type:**
+
+**Example:**
 
 ### KeyringEditable
 
