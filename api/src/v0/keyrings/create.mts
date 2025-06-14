@@ -15,16 +15,17 @@ app.use('*', async (c, next) => {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+		c.var['addError']({ code: 403, message: 'Access Denied: You do not have permission to perform this action' });
+		return c.json(c.var['getUnifiedResponse'](), 403 as any);
 	}
 });
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs')]).then(([{ createRoute }, { keyringEditable, keyringOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/keyrings/shared.mjs'), import('~/v0/shared.mjs')]).then(([{ createRoute }, { keyringEditable, keyringOutput }, { unifiedResponseNote }]) =>
 	createRoute({
 		tags: ['keyring management'],
 		method: 'post',
 		path: '/',
-		description: 'Create a new keyring.',
+		description: `Create a new keyring.${unifiedResponseNote}`,
 		request: {
 			body: {
 				content: {
