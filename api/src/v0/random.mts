@@ -4,13 +4,13 @@ const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new Open
 
 const example = new Uint8Array(32);
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('validator/es/lib/isHexadecimal'), import('node:buffer')]).then(([{ createRoute, z }, { default: isHexadecimal }, { Buffer }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('validator/es/lib/isHexadecimal'), import('node:buffer'), import('~/v0/shared.mjs')]).then(([{ createRoute, z }, { default: isHexadecimal }, { Buffer }, { unifiedResponseNote }]) =>
 	createRoute({
 		tags: ['free'],
 		method: 'post',
 		path: '/',
 		security: [],
-		description: 'This endpoint returns high-quality random bytes of the specified length',
+		description: `This endpoint returns high-quality random bytes of the specified length${unifiedResponseNote}`,
 		request: {
 			body: {
 				content: {
