@@ -23,7 +23,8 @@ app.use('*', async (c, next) => {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+		c.var['addError']({ code: 403, message: 'Access Denied: You do not have permission to perform this action' });
+		return c.json(c.var['getUnifiedResponse'](), 403 as any);
 	}
 });
 
@@ -125,7 +126,18 @@ const embededOutput = z.union([
 export const embededRoute = createRoute({
 	method: 'post',
 	path: '/',
-	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
+	description: `This endpoint returns the cryptographic hash of given data using the specified algorithm
+
+**Note**: All responses are wrapped in a unified format:
+\`\`\`json
+{
+  "success": boolean,
+  "errors": Array<{ code?: number, message: string, cause?: string }>,
+  "response"?: <actual_response_data>
+}
+\`\`\`
+
+The schema shown below represents the content of the \`response\` field when \`success: true\`.`,
 	request: {
 		body: {
 			content: {
@@ -681,15 +693,14 @@ app.openapi(embededRoute, async (c) => {
 				);
 			}
 
-			return c.json(
-				{
-					success: returningCiphertexts.length > 0,
-					result: returningCiphertexts,
-				},
-				returningCiphertexts.length > 0 ? 200 : 422,
-			);
+			if (returningCiphertexts.length === 0) {
+				c.var['addError']({ code: 422, message: 'No valid ciphertexts were generated' });
+			}
+
+			return c.json(c.var['getUnifiedResponse'](returningCiphertexts.length > 0 ? { result: returningCiphertexts } : undefined), returningCiphertexts.length > 0 ? 200 : 422);
 		} else {
-			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+			c.var['addError']({ code: 403, message: 'Access Denied: You do not have permission to perform this action' });
+			return c.json(c.var['getUnifiedResponse'](), 403 as any);
 		}
 	} else {
 		const keyring_permissions = Object.entries(c.var.permissions).find(([, keyring_permission]) => keyring_permission.kr_name.toLowerCase() === json.keyringName.toLowerCase());
@@ -878,13 +889,16 @@ app.openapi(embededRoute, async (c) => {
 						});
 					});
 				} else {
-					return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore' }] }, 500);
+					c.var['addError']({ code: 500, message: 'Matching key not found in datastore' });
+					return c.json(c.var['getUnifiedResponse'](), 500 as any);
 				}
 			} else {
-				return c.json({ success: false, errors: [{ message: 'Unsupported data store' }] }, 500);
+				c.var['addError']({ code: 500, message: 'Unsupported data store' });
+				return c.json(c.var['getUnifiedResponse'](), 500 as any);
 			}
 		} else {
-			return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+			c.var['addError']({ code: 403, message: 'Access Denied: You do not have permission to perform this action' });
+			return c.json(c.var['getUnifiedResponse'](), 403 as any);
 		}
 	}
 });
@@ -920,7 +934,18 @@ const uploadedOutput = z.object({
 export const uploadedRoute = createRoute({
 	method: 'post',
 	path: '/{keyringName}/{algorithm}/{bitStrength}',
-	description: 'This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm',
+	description: `This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm
+
+**Note**: All responses are wrapped in a unified format:
+\`\`\`json
+{
+  "success": boolean,
+  "errors": Array<{ code?: number, message: string, cause?: string }>,
+  "response"?: <actual_response_data>
+}
+\`\`\`
+
+The schema shown below represents the content of the \`response\` field when \`success: true\`.`,
 	request: {
 		params: z.object({
 			keyringName: z.string().trim().min(1).toLowerCase().describe('Specifies the name of the key ring to use, case insensitive'),
@@ -1144,19 +1169,19 @@ app.openapi(uploadedRoute, async (c) => {
 						}),
 				);
 			} else {
-				return c.json({ success: false, errors: [{ message: 'Matching key not found in datastore' }] }, 500);
+				c.var['addError']({ code: 500, message: 'Matching key not found in datastore' });
+				return c.json(c.var['getUnifiedResponse'](), 500 as any);
 			}
 		}
 
-		return c.json(
-			{
-				success: returningCiphertexts.length > 0,
-				result: returningCiphertexts,
-			},
-			returningCiphertexts.length > 0 ? 200 : 422,
-		);
+		if (returningCiphertexts.length === 0) {
+			c.var['addError']({ code: 422, message: 'No valid ciphertexts were generated' });
+		}
+
+		return c.json(c.var['getUnifiedResponse'](returningCiphertexts.length > 0 ? { result: returningCiphertexts } : undefined), returningCiphertexts.length > 0 ? 200 : 422);
 	} else {
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+		c.var['addError']({ code: 403, message: 'Access Denied: You do not have permission to perform this action' });
+		return c.json(c.var['getUnifiedResponse'](), 403 as any);
 	}
 });
 
