@@ -70,7 +70,18 @@ export const embededRoute = createRoute({
 	method: 'post',
 	path: '/',
 	security: [],
-	description: 'This endpoint returns the cryptographic hash of given data using the specified algorithm',
+	description: `This endpoint returns the cryptographic hash of given data using the specified algorithm
+
+**Note**: All responses are wrapped in a unified format:
+\`\`\`json
+{
+  "success": boolean,
+  "errors": Array<{ code?: number, message: string, cause?: string }>,
+  "response"?: <actual_response_data>
+}
+\`\`\`
+
+The schema shown below represents the content of the \`response\` field when \`success: true\`.`,
 	request: {
 		body: {
 			content: {
@@ -226,7 +237,18 @@ export const uploadedRoute = createRoute({
 	method: 'post',
 	path: '/{algorithm}',
 	security: [],
-	description: 'This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm',
+	description: `This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm
+
+**Note**: All responses are wrapped in a unified format:
+\`\`\`json
+{
+  "success": boolean,
+  "errors": Array<{ code?: number, message: string, cause?: string }>,
+  "response"?: <actual_response_data>
+}
+\`\`\`
+
+The schema shown below represents the content of the \`response\` field when \`success: true\`.`,
 	request: {
 		params: z.object({
 			algorithm: z.enum(workersCryptoCatalog.hashes).describe('Specifies the hash algorithm to use').openapi({ example: 'sha256' }),
