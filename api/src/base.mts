@@ -2,6 +2,18 @@ import type { Context } from 'hono';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 
+// Utility functions for unified response handling
+export class ResponseHelpers {
+	static success<T>(c: Context<{ Bindings: EnvVars; Variables: ContextVariables }>, data?: T, statusCode: number = 200) {
+		return c.json(c.var['getUnifiedResponse'](data), statusCode as any);
+	}
+
+	static error(c: Context<{ Bindings: EnvVars; Variables: ContextVariables }>, message: string, code: number = 400, cause?: string) {
+		c.var['addError']({ code, message, cause });
+		return c.json(c.var['getUnifiedResponse'](), code as any);
+	}
+}
+
 const app = await import('hono').then(({ Hono }) => new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
 // Security
@@ -241,6 +253,9 @@ app.use('*', (c, next) =>
 				 */
 				hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
 				verifyToken,
+				// Custom error handler to ensure unified format
+				invalidTokenMessage: 'Invalid or expired token',
+				noAuthenticationHeaderMessage: 'Authorization header is required',
 			}),
 		)(c, next),
 	),
@@ -255,7 +270,9 @@ app.use('*', (c, next) =>
 	import('hono/body-limit').then(({ bodyLimit }) =>
 		bodyLimit({
 			maxSize: 100 * 1024 * 1024,
-			onError: (c) => c.json({ success: false, errors: [{ message: 'Content size not supported' }] }, 413),
+			onError: (c) => {
+				return c.json({ success: false, errors: [{ message: 'Content size not supported' }] }, 413);
+			},
 		})(c, next),
 	),
 );
