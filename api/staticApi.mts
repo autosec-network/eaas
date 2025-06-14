@@ -13,8 +13,30 @@ await Promise.all([
 	),
 	import('wrangler').then(({ unstable_startWorker }) => unstable_startWorker({ config: 'wrangler.jsonc', dev: { remote: false, liveReload: false, watch: false } })),
 ])
-	.then(([apiVersions, worker]) => {
+	.then(async ([apiVersions, worker]) => {
 		console.info({ apiVersions });
+
+		await import('node:fs').then(async ({ createWriteStream }) => {
+			// Use streaming to optimize memory usage
+			const writeStream = createWriteStream(['dist', 'llms.txt'].join('/'), { encoding: 'utf-8' });
+
+			// Create root llms.txt as a pointer to each API version's llms.txt
+			writeStream.write('# EaaS (Encryption as a Service) API Documentation\n\n');
+			writeStream.write('This service provides multiple API versions. Each version has its own detailed documentation:\n\n');
+
+			// Generate links to each version's llms.txt
+			for (const version of apiVersions) {
+				writeStream.write(`## API ${version.toUpperCase()}\n\n`);
+				writeStream.write(`Full API documentation for ${version}: [${version}/llms.txt](/${version}/llms.txt)\n\n`);
+			}
+
+			writeStream.write('---\n\n');
+			writeStream.write('Generated automatically from OpenAPI specifications.\n');
+
+			writeStream.end();
+
+			console.log('Wrote root llms.txt with pointers to', apiVersions.length, 'API versions');
+		});
 
 		return Promise.allSettled(
 			// Loop through the API versions
