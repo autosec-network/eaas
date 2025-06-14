@@ -1057,8 +1057,9 @@ app.openapi(uploadedRoute, async (c) => {
 				}).then(async ({ key, mac }) => {
 					endTime(c, 'encrypt-compute-keys');
 
-					await parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0], async (part) => {
-						const input = await part.arrayBuffer();
+					// Type cast because of CF's implementation of Request vs w3c Request
+					for await (const part of parseMultipartRequest(c.var.bodyClone as Parameters<typeof parseMultipartRequest>[0])) {
+						const input = part.arrayBuffer;
 
 						startTime(c, `${part.filename}|encrypt-cipher`);
 						// Actually encrypt
@@ -1099,7 +1100,7 @@ app.openapi(uploadedRoute, async (c) => {
 									});
 								});
 						});
-					});
+					}
 				});
 
 				/**
