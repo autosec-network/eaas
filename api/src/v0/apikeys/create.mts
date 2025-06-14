@@ -19,12 +19,12 @@ app.use('*', (c, next) =>
 	),
 );
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs')]).then(([{ createRoute, z }, { apikeyEditable, createApikeyOutput }]) =>
+export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs'), import('~/v0/shared.mjs')]).then(([{ createRoute, z }, { apikeyEditable, createApikeyOutput }, { unifiedResponseNote }]) =>
 	createRoute({
 		tags: ['apikey management'],
 		method: 'post',
 		path: '/',
-		description: 'Create a new API key.',
+		description: `Create a new API key.${unifiedResponseNote}`,
 		request: {
 			body: {
 				content: {
