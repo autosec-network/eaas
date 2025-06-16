@@ -38,6 +38,10 @@
 		{
 			"binding": "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED",
 			"database_id": "b55a31ba-b382-4f53-b204-2d730ee6c3aa"
+		},
+		{
+			"binding": "EA803ABD600308CBA6D90AC4D2853B1BFE87E90DFC7024BE15F5BD15C1A95396",
+			"database_id": "44fc8199-a069-40e2-bdde-f0f16ff12a81"
 		}
 	],
 	"durable_objects": {
@@ -95,6 +99,10 @@
 				{
 					"binding": "98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED",
 					"database_id": "b55a31ba-b382-4f53-b204-2d730ee6c3aa"
+				},
+				{
+					"binding": "EA803ABD600308CBA6D90AC4D2853B1BFE87E90DFC7024BE15F5BD15C1A95396",
+					"database_id": "44fc8199-a069-40e2-bdde-f0f16ff12a81"
 				}
 			],
 			"durable_objects": {
