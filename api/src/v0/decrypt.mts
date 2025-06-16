@@ -521,15 +521,15 @@ app.openapi(embededRoute, async (c) => {
 
 				// Get all the unique keys from bitwarden and parse them into formats needed + carry over db metadata (for filtering purposes)
 				startTime(c, 'bitwarden-fetch-datakeys');
-				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
+				const bwKeys = await Promise.all([bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)), import('@chainfuse/helpers/buffers')]).then(([retreivedKeys, { BufferHelpers }]) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
-							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(([key, value, note]) => {
+							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
 								const [, kr_id_utf8] = key.split('/');
 								const { dk_id, name, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+								return {
 									name,
 									key_type,
 									key_size,
@@ -540,7 +540,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								}));
+								};
 							}),
 						),
 					),
