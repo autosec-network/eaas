@@ -962,6 +962,277 @@ This endpoint returns the cryptographic hash of uploaded file(s) using the speci
 }
 ```
 
+### POST /decrypt
+
+- **Method:** `POST`
+- **Path:** `/decrypt`
+
+This endpoint decrypts ciphertext produced by the encrypt endpoint, returning the original plaintext
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**Any of:**
+
+- **`batch_input` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`input` (required)**
+
+    `string` — Specifies the encrypted ciphertext data in the format output by cipherText0()
+
+  - **`keyringName` (required)**
+
+    `string` — Specifies the name of the key ring to use, case insensitive
+
+  - **`outputFormat` (required)**
+
+    `string`, possible values: `"base64", "base64url", "hex", "utf8"` — Specifies the output encoding
+
+  - **`reference`**
+
+    `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`input` (required)**
+
+  `string` — Specifies the encrypted ciphertext data in the format output by cipherText0()
+
+* **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex", "utf8"` — Specifies the output encoding
+
+* **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+**Example:**
+
+```
+{
+  "batch_input": [
+    {
+      "keyringName": "",
+      "outputFormat": "utf8",
+      "input": "0.MDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDA.QUVTLUdDTQ.MjU2.cmFuZG9tSVY.Y2lwaGVyZGF0YQ.c2lnbmF0dXJl",
+      "reference": ""
+    }
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the decrypted plaintext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "Hello world"
+    }
+  ]
+}
+```
+
+##### Status: 403 Access denied
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+### POST /decrypt/{keyringName}
+
+- **Method:** `POST`
+- **Path:** `/decrypt/{keyringName}`
+
+This endpoint decrypts uploaded files containing ciphertext produced by the encrypt endpoint
+
+#### Request Body
+
+##### Content-Type: multipart/form-data
+
+- **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns the decrypted plaintext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "Hello world",
+      "filename": ""
+    }
+  ]
+}
+```
+
+##### Status: 403 Access denied
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
 ### POST /hash
 
 - **Method:** `POST`
@@ -1420,6 +1691,82 @@ This endpoint returns high-quality random bytes of the specified length
 ```
 
 ### EncryptUploadInput
+
+- **Type:**`object`
+
+* **`files` (required)**
+
+  `object`
+
+**Example:**
+
+```
+{
+  "files": [
+    {}
+  ]
+}
+```
+
+### DecryptEmbedOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "reference": "",
+      "value": "Hello world"
+    }
+  ]
+}
+```
+
+### DecryptEmbedInput
+
+- **Type:**
+
+**Example:**
+
+### DecryptUploadOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "result": [
+    {
+      "value": "Hello world",
+      "filename": ""
+    }
+  ]
+}
+```
+
+### DecryptUploadInput
 
 - **Type:**`object`
 
