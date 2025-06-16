@@ -69,7 +69,7 @@ export async function parseCipherText0(cipherText: string): Promise<{ dk_id: Uui
 
 	const [version, dk_id_str, algorithm_str, bitStrength_str, preamble_str, cipherBuffer_str, signature_str] = parts;
 
-	if (!version || parseInt(version) !== 0) {
+	if (!version || parseInt(version, 10) !== 0) {
 		throw new Error('Unsupported ciphertext version');
 	}
 
