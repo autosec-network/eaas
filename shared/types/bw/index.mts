@@ -59,3 +59,38 @@ export function cipherText0(outputFormat: 'base64' | 'base64url' | 'hex', { dk_i
 		Buffer.from(signature).toString(outputFormat),
 	].join('.');
 }
+
+export async function parseCipherText0(cipherText: string): Promise<{ dk_id: UuidExport; algorithm: EncryptionAlgorithms; bitStrength: '128' | '192' | '256'; preamble: Uint8Array; cipherBuffer: Uint8Array; signature: Uint8Array }> {
+	const parts = cipherText.split('.');
+
+	if (parts.length !== 7) {
+		throw new Error('Invalid ciphertext format');
+	}
+
+	const [version, dk_id_str, algorithm_str, bitStrength_str, preamble_str, cipherBuffer_str, signature_str] = parts;
+
+	if (!version || parseInt(version) !== 0) {
+		throw new Error('Unsupported ciphertext version');
+	}
+
+	if (!dk_id_str || !algorithm_str || !bitStrength_str || !preamble_str || !cipherBuffer_str || !signature_str) {
+		throw new Error('Invalid ciphertext format - missing components');
+	}
+
+	// Determine the encoding format based on the characters used
+	let encoding: 'base64' | 'base64url' | 'hex' = 'base64';
+	if (dk_id_str.includes('-') || dk_id_str.includes('_')) {
+		encoding = 'base64url';
+	} else if (/^[0-9a-fA-F]+$/.test(dk_id_str)) {
+		encoding = 'hex';
+	}
+
+	return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+		dk_id: await BufferHelpers.uuidConvert(dk_id_str),
+		algorithm: Buffer.from(algorithm_str, encoding).toString('utf8') as EncryptionAlgorithms,
+		bitStrength: Buffer.from(bitStrength_str, encoding).toString('utf8') as '128' | '192' | '256',
+		preamble: new Uint8Array(Buffer.from(preamble_str, encoding)),
+		cipherBuffer: new Uint8Array(Buffer.from(cipherBuffer_str, encoding)),
+		signature: new Uint8Array(Buffer.from(signature_str, encoding)),
+	}));
+}
