@@ -6,7 +6,7 @@ import { Buffer } from 'node:buffer';
 import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import type { encryptRoute } from '~pqc/container/src/index.mjs';
+import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { cipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
@@ -427,7 +427,7 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 1)),
 			])
 				.then(([{ hc }, stub]) =>
-					hc<encryptRoute>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
+					hc<containerRoutes>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
 						param: { algo: 'chacha20-poly1305' },
 						json: {
 							key: Buffer.from(key).toString('base64'),
