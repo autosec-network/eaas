@@ -9,83 +9,6 @@
 
 ## Operations
 
-### GET /apikeys
-
-- **Method:** `GET`
-- **Path:** `/apikeys`
-- **Tags:** apikey management
-
-Get a list of Api Keys.
-
-#### Responses
-
-##### Status: 200 Depending on key permissions, list all api keys, or fallback to itself.
-
-###### Content-Type: application/json
-
-**Array of:**
-
-**All of:**
-
-- **`name` (required)**
-
-  `string` — Name for the API key
-
-- **`apikeysPermission`**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
-
-- **`expires`**
-
-  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
-
-- **`keyrings`**
-
-  `object`, default: `{}`
-
-- **`keyringsPermission`**
-
-  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
-
-* **`created` (required)**
-
-  `string`, format: `date-time`
-
-* **`expired` (required)**
-
-  `boolean`
-
-* **`lastModified` (required)**
-
-  `string`, format: `date-time`
-
-* **`lastRotation` (required)**
-
-  `string`, format: `date-time`
-
-* **`token_id` (required)**
-
-  `string`
-
-**Example:**
-
-```
-[
-  {
-    "name": "",
-    "expires": "1970-01-01T00:00:00.000Z",
-    "keyringsPermission": "None",
-    "apikeysPermission": "None",
-    "keyrings": {},
-    "token_id": "",
-    "created": "1970-01-01T00:00:00.000Z",
-    "lastRotation": "1970-01-01T00:00:00.000Z",
-    "expired": true,
-    "lastModified": "1970-01-01T00:00:00.000Z"
-  }
-]
-```
-
 ### POST /apikeys
 
 - **Method:** `POST`
@@ -248,6 +171,83 @@ Create a new API key.
 {
   "error": ""
 }
+```
+
+### GET /apikeys
+
+- **Method:** `GET`
+- **Path:** `/apikeys`
+- **Tags:** apikey management
+
+Get a list of Api Keys.
+
+#### Responses
+
+##### Status: 200 Depending on key permissions, list all api keys, or fallback to itself.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+**All of:**
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+* **`created` (required)**
+
+  `string`, format: `date-time`
+
+* **`expired` (required)**
+
+  `boolean`
+
+* **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+* **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+* **`token_id` (required)**
+
+  `string`
+
+**Example:**
+
+```
+[
+  {
+    "name": "",
+    "expires": "1970-01-01T00:00:00.000Z",
+    "keyringsPermission": "None",
+    "apikeysPermission": "None",
+    "keyrings": {},
+    "token_id": "",
+    "created": "1970-01-01T00:00:00.000Z",
+    "lastRotation": "1970-01-01T00:00:00.000Z",
+    "expired": true,
+    "lastModified": "1970-01-01T00:00:00.000Z"
+  }
+]
 ```
 
 ### GET /apikeys/{token\_id}
