@@ -71,18 +71,18 @@ export default class extends WorkerEntrypoint<EnvVars> {
 			await next();
 		});
 
-		await Promise.all([import('@hono/zod-validator'), import('zod')]).then(([{ zValidator }, { z }]) =>
+		await Promise.all([import('@hono/zod-validator'), import('zod/v4')]).then(([{ zValidator }, { z: z4 }]) =>
 			app.use(
 				'/:version/*',
 				zValidator(
 					'param',
-					z.object({
-						version: z
+					z4.object({
+						version: z4
 							.string()
 							.trim()
 							.min(2)
 							.regex(/^v\d+$/)
-							.refine((version) => z.coerce.number().int().nonnegative().finite().safe().safeParse(version.slice(1)).success),
+							.refine((version) => z4.coerce.number().int().nonnegative().safeParse(version.slice(1)).success),
 					}),
 					// @ts-expect-error we don't want to always return to all passthrough
 					(result, c) => {

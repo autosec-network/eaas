@@ -2,7 +2,7 @@ import { serve, type HttpBindings } from '@hono/node-server';
 import { zValidator } from '@hono/zod-validator';
 import { Hono } from 'hono';
 import type { TimingVariables } from 'hono/timing';
-import { z } from 'zod';
+import { z as z4 } from 'zod/v4';
 
 const app = new Hono<{ Bindings: HttpBindings; Variables: TimingVariables }>();
 
@@ -22,16 +22,16 @@ const rawRoutes = app
 		'/encrypt/:algo',
 		zValidator(
 			'param',
-			z.object({
-				algo: z.string().trim().nonempty().toLowerCase(),
+			z4.object({
+				algo: z4.string().trim().nonempty().toLowerCase(),
 			}),
 		),
 		zValidator(
 			'json',
-			z.object({
-				key: z.string().trim().nonempty().base64(),
-				chaIv: z.string().trim().nonempty().base64(),
-				plainText: z.string().trim().nonempty().base64(),
+			z4.object({
+				key: z4.base64().trim().nonempty(),
+				chaIv: z4.base64().trim().nonempty(),
+				plainText: z4.base64().trim().nonempty(),
 			}),
 		),
 		(c) =>
@@ -66,16 +66,16 @@ const rawRoutes = app
 		'/decrypt/:algo',
 		zValidator(
 			'param',
-			z.object({
-				algo: z.string().trim().nonempty().toLowerCase(),
+			z4.object({
+				algo: z4.string().trim().nonempty().toLowerCase(),
 			}),
 		),
 		zValidator(
 			'json',
-			z.object({
-				key: z.string().trim().nonempty().base64(),
-				chaIv: z.string().trim().nonempty().base64(),
-				cipherText: z.string().trim().nonempty().base64(),
+			z4.object({
+				key: z4.base64().trim().nonempty(),
+				chaIv: z4.base64().trim().nonempty(),
+				cipherText: z4.base64().trim().nonempty(),
 			}),
 		),
 		(c) =>

@@ -93,8 +93,8 @@ await import('module').then(({ export }) => {
 // Parallel dynamic imports
 await Promise.all([
     import('@hono/zod-validator'),
-    import('zod')
-]).then(([{ zValidator }, { z }]) => {
+    import('zod/v4')
+]).then(([{ zValidator }, { z: z4 }]) => {
     // Use imported modules
 });
 ```
@@ -294,7 +294,7 @@ if (cacheRef && cacheTtl) {
 
 ```typescript
 // Use dynamic imports for conditional loading
-await Promise.all([import('@hono/zod-validator'), import('zod')]).then(([{ zValidator }, { z }]) => {
+await Promise.all([import('@hono/zod-validator'), import('zod/v4')]).then(([{ zValidator }, { z: z4 }]) => {
 	// Use imported modules
 });
 ```
