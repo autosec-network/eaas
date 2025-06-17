@@ -14,13 +14,14 @@ import { EncryptionAlgorithms, KeyAlgorithms } from '~shared/types/crypto/index.
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
+// @ts-expect-error - Hono middleware doesn't need to return when calling await next()
 app.use('*', async (c, next) => {
 	/**
 	 * Check if at least one permission has r_decrypt set to true.
 	 * We have to check specifics in the route handler to get the keyring name from fields.
 	 */
 	if (Object.values(c.var.permissions).some(({ r_decrypt }) => r_decrypt)) {
-		return await next();
+		await next();
 	} else {
 		console.error("Token doesn't have permissions");
 		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);

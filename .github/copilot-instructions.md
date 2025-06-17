@@ -190,7 +190,23 @@ app.use('*', async (c, next) => {
 	}
 	await next();
 });
+
+// Custom middleware with conditional logic
+app.use('*', async (c, next) => {
+	if (condition) {
+		// Use 'await next()' when continuing the middleware chain
+		// Hono builds c.res behind the scenes, no return needed
+		await next();
+	} else {
+		// Return response directly when not continuing
+		return c.json({ error: 'Condition not met' }, 403);
+	}
+});
 ```
+
+> **Important**: In Hono middleware, use `await next()` (not `return await next()`) when allowing the middleware chain to continue. Hono builds the response (`c.res`) behind the scenes throughout the middleware chain. Only return responses directly when you want to short-circuit the chain.
+
+> **TypeScript Note**: You may need to add `// @ts-expect-error - Hono middleware doesn't need to return when calling await next()` above middleware functions that use `await next()` to suppress false "not all code paths return a value" errors.
 
 ### Helper Classes Usage
 
@@ -394,6 +410,7 @@ const sidecarResponse = await env.SIDECAR.fetch(request);
 14. **Clone requests** when needed for middleware processing
 15. **Use Promise.all** for parallel dynamic imports
 16. **Implement proper path aliases** for clean import statements
+17. **Use `await next()` in Hono middleware** - never `return await next()` when continuing the chain
 
 ## Avoid These Patterns
 
@@ -409,6 +426,7 @@ const sidecarResponse = await env.SIDECAR.fetch(request);
 10. **Don't ignore environment checks** - use proper development vs production logic
 11. **Don't use blocking imports** - prefer dynamic imports for conditional loading
 12. **Don't skip request cloning** when middleware needs to read the body
+13. **Don't use `return await next()` in Hono middleware** - use `await next()` when continuing the chain
 
 ## Security Notes
 
