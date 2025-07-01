@@ -33,7 +33,7 @@
 		"api"
 	],
 	"dependencies": {
-		"cloudflare": "^4.3.0",
+		"cloudflare": "^4.4.1",
 		"drizzle-orm": "^0.44.2",
 		"jose": "^6.0.11",
 		"uuid": "^11.0.3"
@@ -59,7 +59,7 @@
 		"tsx": "^4.20.3",
 		"typescript": "^5.8.2",
 		"typescript-eslint": "^8.34.1",
-		"wrangler": "^4.19.2",
+		"wrangler": "^4.22.0",
 		"yargs": "^18.0.0"
 	}
 }
