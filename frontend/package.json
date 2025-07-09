@@ -57,7 +57,7 @@
 		"@rollup/plugin-node-resolve": "^16.0.0",
 		"@tailwindcss/vite": "^4.1.10",
 		"eslint-plugin-qwik": "^1.14.1",
-		"prettier-plugin-tailwindcss": "^0.6.12",
+		"prettier-plugin-tailwindcss": "^0.6.14",
 		"turnstile-types": "^1.2.3",
 		"vite-tsconfig-paths": "^4.3.2"
 	}
