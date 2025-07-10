@@ -229,9 +229,17 @@ interface ApiResponse<T> {
 #### Async Operations
 
 ```typescript
-// Comprehensive error handling
+// Prefer promise chains for better DX and granular error handling
+return riskyOperation()
+	.then((result) => ({ success: true, data: result }))
+	.catch((error) => {
+		console.error('Operation failed:', error);
+		throw new Error('Detailed error message', { cause: error });
+	});
+
+// Use try/catch only when promise chains become unwieldy
 try {
-	const result = await riskyOperation();
+	const result = await complexMultiStepOperation();
 	return { success: true, data: result };
 } catch (error) {
 	console.error('Operation failed:', error);
@@ -372,6 +380,127 @@ const sidecarResponse = await env.SIDECAR.fetch(request);
 // Handle Cloudflare-specific limitations and features
 ```
 
+#### Cloudflare Workflows
+
+```typescript
+// Each step can be void or must return serializable data
+// CF serializes step output to be available for subsequent steps
+// Steps must be idempotent - don't rely on external state
+await step.do('Step name', async () => {
+	// All steps must be async and awaited
+	// Return serializable data or void
+	return { data: 'value' }; // Will be serialized and available later
+});
+
+// Define params using Zod - first step should always parse
+export const workflowParams = z4.object({
+	t_id: ZodUuidExportInput,
+	kr_id: ZodUuidExportInput,
+	cursor: z4.string().optional(), // For pagination
+	completed: z4.number().default(0), // Track progress
+});
+
+export class MyWorkflow extends WorkflowEntrypoint<EnvVars, Params> {
+	override async run(event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep) {
+		// First step: always parse params with Zod
+		const params = await step.do('Parse params', () =>
+			workflowParams.parseAsync(typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload).catch((err) => {
+				throw new NonRetryableError('Bad workflow payload: ' + JSON.stringify(err));
+			}),
+		);
+
+		// Make each step granular for effective retry logic
+		// Each step = one transaction/unit of work
+		const result1 = await step.do('API call 1', async () => {
+			// Minimize API calls per step for idempotency
+			return await externalApi.call();
+		});
+
+		// Parallelize steps wherever possible
+		const [result2, result3] = await Promise.all([step.do('Parallel task 1', async () => task1()), step.do('Parallel task 2', async () => task2())]);
+
+		// Step retry logic targeting consistent timeframe (3 days default)
+		const criticalData = await step.do(
+			'Critical operation',
+			{
+				retries: {
+					limit: 4320, // 3 days = 4320 minutes at 1min intervals
+					delay: 60 * 1000, // 1 minute
+					backoff: 'constant',
+				},
+				timeout: 30 * 1000, // CPU limit (default 30s, max 5min)
+			},
+			async () => {
+				return await criticalApiCall();
+			},
+		);
+
+		// Maximum 1024 steps per instance - use pagination for long workflows
+		const finalStep = await step.do('Final step', async () => {
+			if (remainingWork) {
+				// Preserve state in params for next workflow instance
+				return this.env.WORKFLOWS.create({
+					id: `${workflowId}-${Date.now()}`,
+					params: {
+						...params,
+						cursor: nextCursor,
+						completed: stepCount,
+					},
+				});
+			}
+			return { complete: true };
+		});
+	}
+}
+
+// Workflow Logging Best Practices
+// Direct console.log() in workflows is not easily visible - you have to check the worker logs
+// Instead, prefer these patterns:
+
+// IMPORTANT: NonRetryableError usage
+// Only use the first parameter (message) when throwing NonRetryableError
+// The second parameter (name) is for internal Cloudflare use only and breaks the error object
+// Using it makes the workflow engine treat it as a normal error and retry as defined
+// Correct: throw new NonRetryableError('Validation failed: invalid input format');
+// Incorrect: throw new NonRetryableError('Validation failed', 'InvalidInput');
+
+// 1. Use descriptive error messages for failures
+await step.do('Validate API key', async () => {
+	const isValid = await validateKey(apiKey);
+	if (!isValid) {
+		throw new Error('API key validation failed: key expired or invalid format');
+	}
+	return { validated: true, keyId: extractKeyId(apiKey) };
+});
+
+// 2. Let step output "speak for itself" for success cases
+const processedData = await step.do('Process user data', async () => {
+	return {
+		recordsProcessed: 150,
+		errors: [],
+		duration: '2.3s',
+		nextCursor: 'abc123',
+	};
+});
+
+// 3. Wrap step output with logging info when needed
+const apiResult = await step.do('Call external API', async () => {
+	const startTime = Date.now();
+	const response = await externalApi.getData();
+	const duration = Date.now() - startTime;
+
+	return {
+		data: response.data,
+		meta: {
+			statusCode: response.status,
+			duration: `${duration}ms`,
+			recordCount: response.data?.length || 0,
+			timestamp: new Date().toISOString(),
+		},
+	};
+});
+```
+
 ### Build & Deployment Patterns
 
 #### Development Environment
@@ -411,7 +540,69 @@ const sidecarResponse = await env.SIDECAR.fetch(request);
 15. **Use Promise.all** for parallel dynamic imports
 16. **Implement proper path aliases** for clean import statements
 17. **Use `await next()` in Hono middleware** - never `return await next()` when continuing the chain
+18. **Make Workflow steps idempotent** - don't rely on external state outside of step return values
+19. **All Workflow steps must be async** - use async functions and await all operations
+20. **Make Workflow steps granular** - one API call or unit of work per step for effective retry logic
+21. **Return serializable data from Workflow steps** - each step output is serialized by Cloudflare
+22. **Limit Workflow steps to 1024 per instance** - use pagination pattern for long-running workflows
+23. **Define Workflow params with Zod** - first step should always parse params
+24. **Parallelize Workflow steps** - use Promise.all/allSettled/race/any for concurrent operations
+25. **Name Workflow steps deterministically** - short, human-readable, and consistent names
+26. **Target 3-day retry timeframes** - set retry limits based on delay intervals
+27. **Prefer promise chains over try/catch** - use `.then()/.catch()/.finally()` for better DX and granular error handling
+28. **Use descriptive errors in Workflow steps** - direct logging isn't easily visible, prefer meaningful error messages
+29. **Let Workflow step output speak for itself** - return structured data that shows what happened instead of logging
+30. **Wrap step output with meta info when logging is needed** - include timing, counts, and status in return values
+31. **Use only first parameter of NonRetryableError** - second parameter (name) is for internal CF use and breaks error handling
+32. **Match retry config to API rate limits** - use API-specific delays and backoff patterns in step configurations
 
+### Workflow Step Retry Configurations
+
+When configuring retries for steps that make API calls, always match the `delay` and `backoff` to the target service's rate limits:
+
+#### Cloudflare APIs
+```typescript
+retries: {
+    limit: 4320, // 3 days at 1-minute intervals
+    delay: 1 * 60 * 1000, // 1 minute - matches CF API rate limits
+    backoff: 'constant', // CF APIs use constant backoff
+}
+```
+
+#### Bitwarden Secrets Manager
+```typescript
+retries: {
+    limit: 4320, // 3 days at 1-minute intervals 
+    delay: 1 * 60 * 1000, // 1 minute - matches rate limit reset interval
+    backoff: 'constant', // Rate limits reset at calendar minute boundaries
+}
+```
+
+#### D1 Database Operations
+```typescript
+retries: {
+    limit: 1440, // 3 days at 3-minute intervals
+    delay: 3 * 60 * 1000, // 3 minutes - conservative for database operations
+    backoff: 'exponential', // Database congestion benefits from exponential backoff
+}
+```
+
+#### PQC Container Operations
+```typescript
+retries: {
+    limit: 1440, // 3 days at 3-minute intervals
+    delay: 3 * 60 * 1000, // 3 minutes - accounts for container startup time
+    backoff: 'exponential', // Container issues often resolve with exponential backoff
+}
+```
+
+#### CPU-Intensive Operations (Cryptography)
+```typescript
+{
+    timeout: 30 * 1000, // 30 seconds for standard operations
+    // timeout: 5 * 60 * 1000, // 5 minutes for PQC operations like SLH-DSA
+}
+```
 ## Avoid These Patterns
 
 1. **Don't use while loops** - prefer for...of, map, filter, reduce
@@ -427,6 +618,16 @@ const sidecarResponse = await env.SIDECAR.fetch(request);
 11. **Don't use blocking imports** - prefer dynamic imports for conditional loading
 12. **Don't skip request cloning** when middleware needs to read the body
 13. **Don't use `return await next()` in Hono middleware** - use `await next()` when continuing the chain
+14. **Don't rely on external state in Workflow steps** - steps must be idempotent using only serialized data
+15. **Don't use blocking operations in Workflow steps** - all steps must be async and awaited
+16. **Don't put multiple API calls in one Workflow step** - keep steps granular for retry effectiveness
+17. **Don't return non-serializable data from Workflow steps** - only primitives, objects, and arrays
+18. **Don't exceed 1024 steps in a single Workflow instance** - implement pagination for long operations
+19. **Don't nest steps inside steps** - avoid steps within steps due to CPU timeout limits
+20. **Don't mutate incoming Workflow events directly** - use step outputs for any mutations
+21. **Don't use sync operations in Workflow steps** - everything must be async/awaited
+22. **Don't use try/catch when promise chains are clearer** - prefer `.then()/.catch()/.finally()` for better DX and granular error handling
+23. **Don't use generic retry configurations for API calls** - always match delay/backoff to the specific API's rate limits
 
 ## Security Notes
 
