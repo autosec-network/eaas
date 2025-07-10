@@ -1,4 +1,4 @@
-import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from 'cloudflare:workers';
+import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { eq, sql } from 'drizzle-orm';
 import { Buffer } from 'node:buffer';
@@ -19,81 +19,98 @@ export const workflowParams = z4.object({
 });
 
 export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
+	private static readonly cfApiCallRetry: WorkflowStepConfig = {
+		retries: {
+			/**
+			 * CF global rate limit is 1200/5m
+			 * @link https://developers.cloudflare.com/fundamentals/api/reference/limits/
+			 */
+			delay: 5 * 60 * 1000,
+			/**
+			 * days * hours * minutes / delay
+			 */
+			limit: (3 * 24 * 60) / 5,
+			backoff: 'constant',
+		},
+	};
+	private static readonly bitwardenCallRetry: WorkflowStepConfig = {
+		retries: {
+			/**
+			 * Bitwarden api rate limit is 500/1m
+			 * @link https://developers.cloudflare.com/workers-ai/platform/limits/
+			 */
+			delay: 1 * 60 * 1000,
+			/**
+			 * days * hours * minutes / delay
+			 */
+			limit: (3 * 24 * 60) / 1,
+			backoff: 'constant',
+		},
+	};
+
 	override async run(event: Readonly<WorkflowEvent<Params>>, step: WorkflowStep) {
-		const parsedPayload = await step.do('zod parse payload', () =>
+		// First step: always parse params with Zod for validation
+		const parsedPayload = await step.do('Parse workflow params', () =>
 			workflowParams.parseAsync(typeof event.payload === 'string' ? JSON.parse(event.payload) : event.payload).catch((err) => {
-				throw new NonRetryableError(JSON.stringify(err), 'Bad workflow payload');
+				throw new NonRetryableError(`Invalid workflow payload: ${JSON.stringify(err)}`);
 			}),
 		);
 
-		const t_id = await step.do('Convert tenant id', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.t_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		// Convert tenant ID with error handling
+		const t_id = await step.do('Convert tenant ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.t_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
-		const t_db_setup = await step.do(
-			'Tenant DB',
-			{
-				retries: {
-					limit: Number.MAX_SAFE_INTEGER,
-					/**
-					 * CF global rate limit is 1200/5m
-					 * @link https://developers.cloudflare.com/fundamentals/api/reference/limits/
-					 */
-					delay: 5 * 60 * 1000,
-					backoff: 'constant',
-				},
-			},
-			async () => {
-				if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
-					const potentialVipBinding = (await import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) => CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`))).toUpperCase();
+		const t_db_setup = await step.do('Tenant DB lookup', DataKeyRotation.cfApiCallRetry, async () => {
+			if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
+				const potentialVipBinding = (await import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) => CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`))).toUpperCase();
 
-					if (potentialVipBinding in this.env) {
-						return { binding: potentialVipBinding };
-					}
+				if (potentialVipBinding in this.env) {
+					return { binding: potentialVipBinding };
 				}
+			}
 
-				let r_db: ReturnType<typeof DBManager.getDrizzle>;
-				if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
-					r_db = DBManager.getDrizzle(
-						{
-							accountId: this.env.CF_ACCOUNT_ID,
-							apiToken: this.env.CF_API_TOKEN,
-							databaseId: this.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
-						},
-						{
-							logger: this.env.NODE_ENV !== 'production',
-						},
-					);
-				} else {
-					r_db = DBManager.getDrizzle(this.env.EAAS_ROOT, { logger: this.env.NODE_ENV !== 'production' });
-				}
+			let r_db: ReturnType<typeof DBManager.getDrizzle>;
+			if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
+				r_db = DBManager.getDrizzle(
+					{
+						accountId: this.env.CF_ACCOUNT_ID,
+						apiToken: this.env.CF_API_TOKEN,
+						databaseId: this.env.ENVIRONMENT === 'production' ? StaticDatabase.Root.eaas_root : StaticDatabase.Root.eaas_root_p,
+					},
+					{
+						logger: this.env.NODE_ENV !== 'production',
+					},
+				);
+			} else {
+				r_db = DBManager.getDrizzle(this.env.EAAS_ROOT, { logger: this.env.NODE_ENV !== 'production' });
+			}
 
-				return r_db
-					.select({
-						d1_id: tenants.d1_id,
-					})
-					.from(tenants)
-					.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
-					.limit(1)
-					.then((rows) =>
-						import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-							Promise.all(
-								rows.map((row) =>
-									BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
-										...row,
-										d1_id,
-									})),
-								),
+			return r_db
+				.select({
+					d1_id: tenants.d1_id,
+				})
+				.from(tenants)
+				.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
+				.limit(1)
+				.then((rows) =>
+					import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
+						Promise.all(
+							rows.map((row) =>
+								BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
+									...row,
+									d1_id,
+								})),
 							),
 						),
-					)
-					.then(([row]) => {
-						if (row) {
-							return { d1_id: row.d1_id.utf8 };
-						} else {
-							throw new NonRetryableError('Tenant not found');
-						}
-					});
-			},
-		);
+					),
+				)
+				.then(([row]) => {
+					if (row) {
+						return { d1_id: row.d1_id.utf8 };
+					} else {
+						throw new NonRetryableError('Tenant not found');
+					}
+				});
+		});
 
 		const t_db = () => {
 			let t_db: ReturnType<typeof DBManager.getDrizzle> | undefined = undefined;
@@ -116,59 +133,49 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			return t_db;
 		};
 
-		const kr_id = await step.do('Convert keyring id', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
-		const dk_id = await step.do('Generate datakey', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const kr_id = await step.do('Convert keyring ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const dk_id = await step.do('Generate datakey ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
-		const { key_type, key_size, hash, generation_versions, retreival_versions } = await step.do(
-			'Get keyring info',
-			{
-				retries: {
-					limit: Number.MAX_SAFE_INTEGER,
-					/**
-					 * CF global rate limit is 1200/5m
-					 * @link https://developers.cloudflare.com/fundamentals/api/reference/limits/
-					 */
-					delay: 5 * 60 * 1000,
-					backoff: 'constant',
-				},
-			},
-			() =>
-				t_db()
-					.select({
-						key_type: keyrings.key_type,
-						key_size: keyrings.key_size,
-						hash: keyrings.hash,
-						generation_versions: keyrings.generation_versions,
-						retreival_versions: keyrings.retreival_versions,
-					})
-					.from(keyrings)
-					.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
-					.limit(1)
-					.then(([row]) => {
-						if (row) {
-							return row;
-						} else {
-							throw new NonRetryableError('Keyring not found');
-						}
-					}),
+		const { key_type, key_size, hash } = await step.do('Get keyring info', DataKeyRotation.cfApiCallRetry, () =>
+			t_db()
+				.select({
+					key_type: keyrings.key_type,
+					key_size: keyrings.key_size,
+					hash: keyrings.hash,
+					generation_versions: keyrings.generation_versions,
+					retreival_versions: keyrings.retreival_versions,
+				})
+				.from(keyrings)
+				.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
+				.limit(1)
+				.then(([row]) => {
+					if (row) {
+						return row;
+					} else {
+						throw new NonRetryableError('Keyring not found');
+					}
+				}),
 		);
 
 		/**
 		 * @todo delete older versions
 		 */
 
+		// Never run random generation at the same time (using `Promise.all`) to prevent potential collision
+		// eslint-disable-next-line @typescript-eslint/require-await
 		const salt = await step.do('Generate salt', async () => {
-			const salt = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
+			const saltBytes = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
 			return {
-				base64: Buffer.from(salt).toString('base64'),
-				base64url: Buffer.from(salt).toString('base64url'),
+				base64: Buffer.from(saltBytes).toString('base64'),
+				base64url: Buffer.from(saltBytes).toString('base64url'),
 			};
 		});
-		const macInfo = await step.do('Generate salt', async () => {
-			const salt = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
+		// eslint-disable-next-line @typescript-eslint/require-await
+		const macInfo = await step.do('Generate MAC info', async () => {
+			const macInfoBytes = crypto.getRandomValues(new Uint8Array(createHash(hash).digest().byteLength));
 			return {
-				base64: Buffer.from(salt).toString('base64'),
-				base64url: Buffer.from(salt).toString('base64url'),
+				base64: Buffer.from(macInfoBytes).toString('base64'),
+				base64url: Buffer.from(macInfoBytes).toString('base64url'),
 			};
 		});
 
@@ -246,7 +253,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									normalizedUsages,
 								)
 								.catch((err: DOMException) => {
-									throw new NonRetryableError(err.message, 'Generate key failure');
+									throw new NonRetryableError(`RSA key generation failed: ${err.message}`);
 								});
 
 							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
@@ -303,7 +310,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									normalizedUsages,
 								)
 								.catch((err: DOMException) => {
-									throw new NonRetryableError(err.message, 'Generate key failure');
+									throw new NonRetryableError(`ECC key generation failed: ${err.message}`);
 								});
 
 							return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
@@ -321,7 +328,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								['sign', 'verify'],
 							)
 							.catch((err: DOMException) => {
-								throw new NonRetryableError(err.message, 'Generate key failure');
+								throw new NonRetryableError(`HMAC key generation failed: ${err.message}`);
 							});
 
 						return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
@@ -379,7 +386,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 									normalizedUsages,
 								)
 								.catch((err: DOMException) => {
-									throw new NonRetryableError(err.message, 'Generate key failure');
+									throw new NonRetryableError(`AES key generation failed: ${err.message}`);
 								});
 
 							return crypto.subtle.exportKey('jwk', key).then((privateKey) => ({ publicKey: undefined, privateKey }));
@@ -406,7 +413,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 								normalizedUsages,
 							)
 							.catch((err: DOMException) => {
-								throw new NonRetryableError(err.message, 'Generate key failure');
+								throw new NonRetryableError(`Ed25519/X25519 key generation failed: ${err.message}`);
 							})) as CryptoKeyPair;
 
 						return Promise.all([crypto.subtle.exportKey('jwk', keyPair.publicKey), crypto.subtle.exportKey('jwk', keyPair.privateKey)]).then(([publicKey, privateKey]) => ({ publicKey, privateKey }));
@@ -646,97 +653,46 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			},
 		);
 
-		const uploadedSecret = await step.do('Bitwarden Secrets Manager', async () => {
-			const jwt = await step.do(
-				'Get JWT',
-				{
-					retries: {
-						limit: Number.MAX_SAFE_INTEGER,
-						/**
-						 * Bitwarden secrets manager rate limit is per 1 minute
-						 */
-						delay: 1 * 60 * 1000,
-						backoff: 'constant',
-					},
-				},
-				() => BitwardenHelper.identity(this.env.US_BW_SM_ACCESS_TOKEN),
+		// All as 1 step because it requires JWT to not expire (or be leaked in logs)
+		const uploadedSecret = await step.do('Bitwarden upload', DataKeyRotation.bitwardenCallRetry, async () => {
+			const jwt = await BitwardenHelper.identity(this.env.US_BW_SM_ACCESS_TOKEN);
+			const bwHelper = new BitwardenHelper(jwt);
+
+			// Prepare encrypted data
+			// Never run random generation at the same time (using `Promise.all`) to prevent potential collision
+			const secretKey = await bwHelper.encryptSecret([t_id.utf8, kr_id.utf8, dk_id.utf8].join('/'));
+			const secretValue = await bwHelper.encryptSecret(JSON.stringify(privateKey));
+			const secretNote = await bwHelper.encryptSecret(
+				JSON.stringify({
+					public: publicKey,
+					salt: salt.base64url,
+					macInfo: macInfo.base64url,
+				} satisfies SecretNote),
 			);
 
-			// tenantId/keyringId/secretId
-			const secretKey = await step.do('Encrypt key', async () => new BitwardenHelper(jwt).encryptSecret([t_id.utf8, kr_id.utf8, dk_id.utf8].join('/')));
-			const secretValue = await step.do('Encrypt value', () => new BitwardenHelper(jwt).encryptSecret(JSON.stringify(privateKey)));
-			const secretNote = await step.do('Encrypt note', () =>
-				new BitwardenHelper(jwt).encryptSecret(
-					JSON.stringify({
-						public: publicKey,
-						salt: salt.base64url,
-						macInfo: macInfo.base64url,
-					} satisfies SecretNote),
-				),
-			);
+			// Get projects and validate
+			const projects = await bwHelper.getProjects();
+			if (projects.length === 0) {
+				throw new NonRetryableError('No projects found for access token');
+			}
+			const bwProject = projects[0]!;
 
-			const bwProject = await step.do(
-				'Get bitwarden project',
-				{
-					retries: {
-						limit: Number.MAX_SAFE_INTEGER,
-						/**
-						 * Bitwarden secrets manager rate limit is per 1 minute
-						 */
-						delay: 1 * 60 * 1000,
-						backoff: 'constant',
-					},
-				},
-				() =>
-					new BitwardenHelper(jwt).getProjects().then((projects) => {
-						if (projects.length > 0) {
-							return projects[0]!;
-						} else {
-							throw new NonRetryableError('No projects found for access token');
-						}
-					}),
-			);
-
-			const uploadedSecret = await step.do(
-				'Upload secret',
-				{
-					retries: {
-						limit: Number.MAX_SAFE_INTEGER,
-						/**
-						 * Bitwarden secrets manager rate limit is per 1 minute
-						 */
-						delay: 1 * 60 * 1000,
-						backoff: 'constant',
-					},
-				},
-				() => new BitwardenHelper(jwt).setSecret(bwProject.id, secretKey, secretValue, secretNote),
-			);
-
-			return uploadedSecret;
+			// Upload secret
+			return bwHelper.setSecret(bwProject.id, secretKey, secretValue, secretNote);
 		});
 
-		await step.do(
-			'Add DB record',
-			{
-				retries: {
-					limit: Number.MAX_SAFE_INTEGER,
-					/**
-					 * CF global rate limit is 1200/5m
-					 * @link https://developers.cloudflare.com/fundamentals/api/reference/limits/
-					 */
-					delay: 5 * 60 * 1000,
-					backoff: 'constant',
-				},
-			},
-			async () =>
-				t_db()
-					.insert(datakeys)
-					.values({
-						dk_id: sql`unhex(${dk_id.hex})`,
-						kr_id: sql`unhex(${kr_id.hex})`,
-						bw_id: sql`unhex(${(await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(uploadedSecret.id))).hex})`,
-					})
-					.then(() => {}),
+		await step.do('Add DB record', DataKeyRotation.cfApiCallRetry, async () =>
+			t_db()
+				.insert(datakeys)
+				.values({
+					dk_id: sql`unhex(${dk_id.hex})`,
+					kr_id: sql`unhex(${kr_id.hex})`,
+					bw_id: sql`unhex(${(await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(uploadedSecret.id))).hex})`,
+				})
+				.returning({
+					dk_id: datakeys.dk_id,
+					kr_id: datakeys.kr_id,
+				}),
 		);
 	}
 }
