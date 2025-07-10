@@ -561,6 +561,7 @@ const apiResult = await step.do('Call external API', async () => {
 When configuring retries for steps that make API calls, always match the `delay` and `backoff` to the target service's rate limits:
 
 #### Cloudflare APIs
+
 ```typescript
 retries: {
     limit: 4320, // 3 days at 1-minute intervals
@@ -570,15 +571,17 @@ retries: {
 ```
 
 #### Bitwarden Secrets Manager
+
 ```typescript
 retries: {
-    limit: 4320, // 3 days at 1-minute intervals 
+    limit: 4320, // 3 days at 1-minute intervals
     delay: 1 * 60 * 1000, // 1 minute - matches rate limit reset interval
     backoff: 'constant', // Rate limits reset at calendar minute boundaries
 }
 ```
 
 #### D1 Database Operations
+
 ```typescript
 retries: {
     limit: 1440, // 3 days at 3-minute intervals
@@ -588,6 +591,7 @@ retries: {
 ```
 
 #### PQC Container Operations
+
 ```typescript
 retries: {
     limit: 1440, // 3 days at 3-minute intervals
@@ -597,12 +601,14 @@ retries: {
 ```
 
 #### CPU-Intensive Operations (Cryptography)
+
 ```typescript
 {
     timeout: 30 * 1000, // 30 seconds for standard operations
     // timeout: 5 * 60 * 1000, // 5 minutes for PQC operations like SLH-DSA
 }
 ```
+
 ## Avoid These Patterns
 
 1. **Don't use while loops** - prefer for...of, map, filter, reduce
