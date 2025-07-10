@@ -27,7 +27,7 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/tree/production/api#readme",
 	"dependencies": {
-		"@chainfuse/helpers": "^3.4.3",
+		"@chainfuse/helpers": "^3.4.4",
 		"@hono/node-server": "^1.15.0",
 		"@hono/zod-openapi": "^0.19.9",
 		"@hono/zod-validator": "^0.7.0",
