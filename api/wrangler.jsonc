@@ -125,6 +125,7 @@
 	},
 	"dev": {
 		"local_protocol": "http",
-		"ip": "localhost"
+		"ip": "localhost",
+		"enable_containers": false
 	}
 }
