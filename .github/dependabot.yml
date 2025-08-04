@@ -34,6 +34,7 @@ updates:
         patterns:
           - 'actions/cache'
           - 'actions/cache/*'
+          - 'awalsh128/cache-apt-pkgs-action'
       ci-cd:
         patterns:
           - 'changesets/*'
@@ -84,6 +85,7 @@ updates:
       ci-cd:
         patterns:
           - 'yargs'
+          - '@scalar/openapi-to-markdown'
       code-management:
         patterns:
           - 'prettier'
