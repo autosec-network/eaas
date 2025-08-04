@@ -777,36 +777,6 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
     `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
 
-**One of:**
-
-- **`algorithm` (required)**
-
-  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
-
-- **`bitStrength` (required)**
-
-  `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
-
-- **`input` (required)**
-
-  `string` — Specifies the utf8 encoded input data
-
-- **`inputFormat` (required)**
-
-  `string`, possible values: `"utf8"` — Specifies the input encoding
-
-- **`keyringName` (required)**
-
-  `string` — Specifies the name of the key ring to use, case insensitive
-
-- **`outputFormat` (required)**
-
-  `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
-
-- **`reference`**
-
-  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
-
 * **`algorithm` (required)**
 
   `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
@@ -817,11 +787,11 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
 * **`input` (required)**
 
-  `string` — Specifies the hex encoded input data
+  `string` — Specifies the utf8 encoded input data
 
 * **`inputFormat` (required)**
 
-  `string`, possible values: `"hex"` — Specifies the input encoding
+  `string`, possible values: `"utf8"` — Specifies the input encoding
 
 * **`keyringName` (required)**
 
@@ -845,11 +815,11 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
 - **`input` (required)**
 
-  `object`
+  `string` — Specifies the hex encoded input data
 
 - **`inputFormat` (required)**
 
-  `string`, possible values: `"base64"` — Specifies the input encoding
+  `string`, possible values: `"hex"` — Specifies the input encoding
 
 - **`keyringName` (required)**
 
@@ -860,6 +830,34 @@ This endpoint returns the cryptographic hash of given data using the specified a
   `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
 
 - **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm", "chacha20-poly1305"` — Specifies the encryption algorithm to use
+
+* **`bitStrength` (required)**
+
+  `string`, possible values: `"128", "192", "256"` — Specifies the bit strength of the encryption algorithm
+
+* **`input` (required)**
+
+  `object`
+
+* **`inputFormat` (required)**
+
+  `string`, possible values: `"base64"` — Specifies the input encoding
+
+* **`keyringName` (required)**
+
+  `string` — Specifies the name of the key ring to use, case insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — Specifies the output encoding
+
+* **`reference`**
 
   `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
 
@@ -1303,35 +1301,17 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
     `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
 
-**One of:**
-
-- **`algorithm` (required)**
-
-  `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
-
-- **`format` (required)**
-
-  `string`, possible values: `"utf8"` — Specifies the input encoding
-
-- **`input` (required)**
-
-  `string` — Specifies the utf8 encoded input data
-
-- **`reference`**
-
-  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
-
 * **`algorithm` (required)**
 
   `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
 
 * **`format` (required)**
 
-  `string`, possible values: `"hex"` — Specifies the input encoding
+  `string`, possible values: `"utf8"` — Specifies the input encoding
 
 * **`input` (required)**
 
-  `string` — Specifies the hex encoded input data
+  `string` — Specifies the utf8 encoded input data
 
 * **`reference`**
 
@@ -1343,13 +1323,29 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
 - **`format` (required)**
 
-  `string`, possible values: `"base64"` — Specifies the input encoding
+  `string`, possible values: `"hex"` — Specifies the input encoding
 
 - **`input` (required)**
 
-  `object`
+  `string` — Specifies the hex encoded input data
 
 - **`reference`**
+
+  `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"md4", "md5", "sha1", "sha224", "sha256", "sha384", "sha512", "md5-sha1", "RSA-MD5", "RSA-SHA1", "RSA-SHA224", "RSA-SHA256", "RSA-SHA384", "RSA-SHA512", "DSA-SHA", "DSA-SHA1", "ecdsa-with-SHA1"` — Specifies the hash algorithm to use
+
+* **`format` (required)**
+
+  `string`, possible values: `"base64"` — Specifies the input encoding
+
+* **`input` (required)**
+
+  `object`
+
+* **`reference`**
 
   `string` — An optional string that will be present in the reference field on the corresponding item in the response, to assist in understanding which result corresponds to a particular input
 
