@@ -17,14 +17,10 @@
 	},
 	"containers": [
 		{
-			"class_name": "PqcContainerSidecar",
-			"configuration": {
-				"network": { "mode": "private" },
-				"vcpu": 2,
-				"memory": "4GB"
-			},
 			"image": "../Dockerfile",
-			"instances": 0,
+			"class_name": "PqcContainerSidecar",
+			"instance_type": "standard",
+			"max_instances": 0,
 			"name": "eaas-pqc-preview"
 		}
 	],
@@ -78,14 +74,10 @@
 			},
 			"containers": [
 				{
-					"class_name": "PqcContainerSidecar",
-					"configuration": {
-						"network": { "mode": "private" },
-						"vcpu": 2,
-						"memory": "4GB"
-					},
 					"image": "../Dockerfile",
-					"instances": 1,
+					"class_name": "PqcContainerSidecar",
+					"instance_type": "standard",
+					"max_instances": 1,
 					"name": "eaas-pqc"
 				}
 			],
