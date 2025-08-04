@@ -16,13 +16,13 @@
 		"run_worker_first": false
 	},
 	"containers": [
-		{
-			"image": "../Dockerfile",
-			"class_name": "PqcContainerSidecar",
-			"instance_type": "standard",
-			"max_instances": 0,
-			"name": "eaas-pqc-preview"
-		}
+		// {
+		// 	"image": "../Dockerfile",
+		// 	"class_name": "PqcContainerSidecar",
+		// 	"instance_type": "standard",
+		// 	"max_instances": 0,
+		// 	"name": "eaas-pqc-preview"
+		// }
 	],
 	"d1_databases": [
 		{
