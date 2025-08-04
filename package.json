@@ -57,7 +57,7 @@
 		"p-queue": "^8.0.1",
 		"prettier": "^3.6.2",
 		"tsx": "^4.20.3",
-		"typescript": "^5.8.2",
+		"typescript": "^5.9.2",
 		"typescript-eslint": "^8.36.0",
 		"wrangler": "^4.24.0",
 		"yargs": "^18.0.0"
