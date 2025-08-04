@@ -7,6 +7,7 @@ import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
+import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { parseCipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
@@ -353,7 +354,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 		}));
 }
 
-async function decryptContent({ algorithm, algorithmSize, key, ciphertext, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: '128' | '192' | '256'; key: CipherKey; ciphertext: string; containerDo: DurableObjectNamespace<any>; url: string | URL }) {
+async function decryptContent({ algorithm, algorithmSize, key, ciphertext, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: '128' | '192' | '256'; key: CipherKey; ciphertext: string; containerDo: DurableObjectNamespace<PqcContainerSidecar>; url: string | URL }) {
 	// Parse the ciphertext format to extract components
 	const parsedCiphertext = await parseCipherText0(ciphertext);
 
@@ -401,7 +402,7 @@ async function decryptContent({ algorithm, algorithmSize, key, ciphertext, conta
 			return Promise.all([
 				//
 				import('hono/client'),
-				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 1)),
+				import('@cloudflare/containers').then(({ getRandom }) => getRandom(containerDo, 1)),
 			])
 				.then(([{ hc }, stub]) =>
 					hc<containerRoutes>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).decrypt[':algo'].$post({

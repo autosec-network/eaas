@@ -78,15 +78,16 @@
 			},
 			"containers": [
 				{
+					"image": "../Dockerfile",
 					"class_name": "PqcContainerSidecar",
+					"instance_type": "standard",
+					"max_instances": 1,
+					"name": "eaas-pqc",
 					"configuration": {
 						"network": { "mode": "private" },
 						"vcpu": 2,
 						"memory": "4GB"
-					},
-					"image": "../Dockerfile",
-					"instances": 1,
-					"name": "eaas-pqc"
+					}
 				}
 			],
 			"d1_databases": [

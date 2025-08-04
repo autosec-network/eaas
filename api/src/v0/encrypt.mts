@@ -7,6 +7,7 @@ import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
 import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
+import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { cipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
@@ -367,7 +368,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 		}));
 }
 
-async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike; containerDo: DurableObjectNamespace<any>; url: string | URL }) {
+async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike; containerDo: DurableObjectNamespace<PqcContainerSidecar>; url: string | URL }) {
 	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(input as string)).then((arrayBuffer) => Buffer.from(arrayBuffer)) : Buffer.from(input as string, inputFormat);
 
 	switch (algorithm) {
@@ -424,7 +425,7 @@ async function encryptContent({ algorithm, algorithmSize, key, inputFormat, inpu
 			return Promise.all([
 				//
 				import('hono/client'),
-				import('~pqc/do/containerHelpers.mjs').then(({ loadBalance }) => loadBalance(containerDo, 1)),
+				import('@cloudflare/containers').then(({ getRandom }) => getRandom(containerDo, 1)),
 			])
 				.then(([{ hc }, stub]) =>
 					hc<containerRoutes>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
