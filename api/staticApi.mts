@@ -20,7 +20,7 @@ await Promise.allSettled([
 			build: {
 				minify: true,
 				keepNames: false,
-				nodejsCompatMode: 'v2',
+				nodejsCompatMode: 'v1',
 			},
 			dev: {
 				inspector: false,
