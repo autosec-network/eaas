@@ -76,8 +76,8 @@
 				{
 					"image": "../Dockerfile",
 					"class_name": "PqcContainerSidecar",
-					"instance_type": "standard",
-					"max_instances": 1,
+					"instance_type": "dev",
+					"max_instances": 10,
 					"name": "eaas-pqc"
 				}
 			],
