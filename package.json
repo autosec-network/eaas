@@ -58,7 +58,7 @@
 		"prettier": "^3.6.2",
 		"tsx": "^4.20.3",
 		"typescript": "^5.8.2",
-		"typescript-eslint": "^8.38.0",
+		"typescript-eslint": "^8.39.0",
 		"wrangler": "^4.27.0",
 		"yargs": "^18.0.0"
 	}
