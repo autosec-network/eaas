@@ -49,13 +49,13 @@
 		"@simplewebauthn/server": "^10.0.0",
 		"@unpic/qwik": "^1.0.0",
 		"flowbite": "^3.1.2",
-		"tailwindcss": "^4.1.11"
+		"tailwindcss": "^4.1.12"
 	},
 	"devDependencies": {
 		"@builder.io/qwik": "^1.15.0",
 		"@builder.io/qwik-city": "^1.15.0",
 		"@rollup/plugin-node-resolve": "^16.0.0",
-		"@tailwindcss/vite": "^4.1.11",
+		"@tailwindcss/vite": "^4.1.12",
 		"eslint-plugin-qwik": "^1.15.0",
 		"prettier-plugin-tailwindcss": "^0.6.14",
 		"turnstile-types": "^1.2.3",
