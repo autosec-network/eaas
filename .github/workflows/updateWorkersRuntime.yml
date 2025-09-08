@@ -50,7 +50,7 @@ jobs:
           MINOR_VERSION_HYPHEN="${MINOR_VERSION:0:4}-${MINOR_VERSION:4:2}-${MINOR_VERSION:6:2}"
           echo "minor-version-hyphen=$MINOR_VERSION_HYPHEN" >> $GITHUB_OUTPUT
       - name: Update `compatibility_date`
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const maxDepth = 2;
@@ -124,7 +124,7 @@ jobs:
       - run: git push
       # crypto catalog
       - run: npm -w sidecar install -D miniflare
-      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+      - uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8.0.0
         with:
           script: |
             const { Miniflare } = require('miniflare');
