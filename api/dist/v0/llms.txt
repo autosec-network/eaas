@@ -506,7 +506,7 @@ Create a new keyring.
   "name": "",
   "key": {
     "algorithm": "rsassa-pkcs1-v1_5",
-    "size": 1,
+    "size": 256,
     "hash": "md4"
   },
   "rotation": {
@@ -631,7 +631,7 @@ Create a new keyring.
   "name": "",
   "key": {
     "algorithm": "rsassa-pkcs1-v1_5",
-    "size": 1,
+    "size": 256,
     "hash": "md4"
   },
   "rotation": {
@@ -772,7 +772,7 @@ Get a list of keyrings.
     "name": "",
     "key": {
       "algorithm": "rsassa-pkcs1-v1_5",
-      "size": 1,
+      "size": 256,
       "hash": "md4"
     },
     "rotation": {
@@ -1728,7 +1728,7 @@ This endpoint returns high-quality random bytes of the specified length
   "name": "",
   "key": {
     "algorithm": "rsassa-pkcs1-v1_5",
-    "size": 1,
+    "size": 256,
     "hash": "md4"
   },
   "rotation": {
