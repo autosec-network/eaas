@@ -1,0 +1,54 @@
+name: Publish API Gateway
+
+on:
+  push:
+    branches:
+      - production
+      - preview
+    paths:
+      - '.github/workflows/publish-apig.yml'
+      - 'dist/*/*.cf-apig.openapi.json'
+      - 'apiGateway.mts'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose an environment to deploy to:'
+        required: true
+        default: 'preview'
+        type: environment
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ inputs.environment || github.ref_name }}
+      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.sushidata.ai
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@ec9f2d5744a09debf3a187a3f4f675c53b671911 # v2.13.0
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo-and-containers: true
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci --ignore-scripts
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.PRIVATE_READ_NPM_TOKEN }}
+      - run: npm run-script install --if-present
+      - run: npm run publish:static
+        env:
+          CF_API_TOKEN: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          ZONE_ID: ${{ vars.ZONE_ID }}

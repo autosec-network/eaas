@@ -67,7 +67,7 @@ await Promise.allSettled(
 			// Get the OpenAPI versions
 			'openapi',
 			'openapi31',
-			`${aV}.cf-aig.openapi`,
+			`${aV}.eaas.cf-apig.openapi`,
 		];
 
 		console.info({ openapiVersions });
