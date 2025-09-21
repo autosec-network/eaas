@@ -43,12 +43,9 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
-          registry-url: 'https://registry.npmjs.org'
-      - run: npm ci --ignore-scripts
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.PRIVATE_READ_NPM_TOKEN }}
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace api
       - run: npm run-script install --if-present
-      - run: npm run publish:static
+      - run: npm -w api run publish:static
         env:
           CF_API_TOKEN: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
           ZONE_ID: ${{ vars.ZONE_ID }}
