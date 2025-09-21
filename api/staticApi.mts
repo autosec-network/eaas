@@ -121,7 +121,7 @@ await Promise.allSettled(
 
 						writeStream.end();
 
-						console.log('Wrote', aV, 'llms.txt', 'to', response.status);
+						console.log('Wrote', aV, 'llms.txt', response.status);
 					}
 				});
 			})(),
