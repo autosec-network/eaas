@@ -56,7 +56,7 @@
 		"@builder.io/qwik-city": "^1.15.0",
 		"@rollup/plugin-node-resolve": "^16.0.0",
 		"@tailwindcss/vite": "^4.1.11",
-		"eslint-plugin-qwik": "^1.15.0",
+		"eslint-plugin-qwik": "^1.16.0",
 		"prettier-plugin-tailwindcss": "^0.6.14",
 		"turnstile-types": "^1.2.3",
 		"vite-tsconfig-paths": "^4.3.2"
