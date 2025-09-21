@@ -59,10 +59,6 @@ updates:
       - dependency-name: '@types/node'
         versions:
           - '>=23.0.0'
-      # Currently not supported by qwik
-      - dependency-name: 'vite-tsconfig-paths'
-        versions:
-          - '>=5.0.0'
       # All tutorials use v9. Keep it on v9 until I get around to figuring out breaking upgrade
       - dependency-name: '@simplewebauthn/*'
         versions:
