@@ -323,6 +323,130 @@ Get a specific Api Key by its token ID.
 }
 ```
 
+### DELETE /apikeys/{token\_id}
+
+- **Method:** `DELETE`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** apikey management
+
+Delete a specific API Key by its token ID. Requires Admin permissions.
+
+#### Responses
+
+##### Status: 200 API Key successfully deleted.
+
+###### Content-Type: application/json
+
+- **`message` (required)**
+
+  `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "message": ""
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 404 API Key not found.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/json
+
+- **`errors` (required)**
+
+  `array`
+
+  **Items:**
+
+  - **`message` (required)**
+
+    `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```
+{
+  "success": true,
+  "errors": [
+    {
+      "message": ""
+    }
+  ]
+}
+```
+
 ### POST /keyrings
 
 - **Method:** `POST`
