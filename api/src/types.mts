@@ -1,14 +1,11 @@
 import type { WorkerEntrypoint } from 'cloudflare:workers';
 import type { TimingVariables } from 'hono/timing';
-import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
 import type { DBManager } from '~shared/db-core/db.mjs';
 import type { Permissions, UuidExport } from '~shared/types/d1/index.mjs';
 
-export interface EnvVars extends Secrets, Bindings, VipBindingsProd, VipBindingsPreview, Record<string, any> {
+export interface EnvVars extends Secrets, Omit<Cloudflare.Env, ''>, TypedBindings {
 	CF_ACCOUNT_ID: string;
 	GIT_HASH: string;
-	ENVIRONMENT: 'production' | 'preview';
-	NODE_ENV: 'production' | 'development';
 }
 
 interface Secrets {
@@ -16,20 +13,7 @@ interface Secrets {
 	US_BW_SM_ACCESS_TOKEN: string;
 }
 
-interface Bindings {
-	EAAS_ROOT: D1Database;
-	PQC_CONTAINER_SIDECAR: DurableObjectNamespace<PqcContainerSidecar>;
-	CF_VERSION_METADATA: WorkerVersionMetadata;
-	DATA_KEY_ROTATION: Workflow;
-}
-
-interface VipBindingsProd {}
-
-interface VipBindingsPreview {
-	// Sushidata
-	'98573F5FF41FFAEDCC34D6E8A143276A527827F519D617E511C55681C1BB4DED': D1Database;
-	EA803ABD600308CBA6D90AC4D2853B1BFE87E90DFC7024BE15F5BD15C1A95396: D1Database;
-}
+interface TypedBindings {}
 
 export interface ContextVariables extends TimingVariables {
 	bodyClone: ReturnType<Parameters<Exclude<WorkerEntrypoint['fetch'], undefined>>[0]['clone']>;

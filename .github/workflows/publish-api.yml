@@ -61,6 +61,10 @@ jobs:
           packages: docker-ce
       - run: npm ci --ignore-scripts --include-workspace-root --workspace api
       - run: npm run-script install --if-present
+      - run: npm -w api run build:types:cf
+      - run: npx prettier --write worker-configuration.d.ts
+      - run: git commit -m "Generate cf types" api/worker-configuration.d.ts || echo "No type generation done"
+      - run: git push
       - run: npm -w api run build:pqc
       - run: npm -w api run build:static
       - run: git add api/dist/**

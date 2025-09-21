@@ -7,7 +7,8 @@
 			"~shared/*": ["../shared/*"],
 			"~pqc/*": ["./pqc/*"],
 			"~wf/*": ["../wf/*"]
-		}
+		},
+		"types": ["./worker-configuration.d.ts", "node"]
 	},
 	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs"],
 	"include": ["src", "dist", "../shared"]
