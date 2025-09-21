@@ -128,3 +128,5 @@ await Promise.allSettled(
 		]);
 	}),
 ).finally(() => worker.dispose());
+
+process.exit(0);
