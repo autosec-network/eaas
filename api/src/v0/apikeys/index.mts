@@ -5,5 +5,6 @@ const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new Open
 await import('~/v0/apikeys/create.mjs').then(({ default: create }) => app.route('/', create));
 await import('~/v0/apikeys/list.mjs').then(({ default: list }) => app.route('/', list));
 await import('~/v0/apikeys/specific.mjs').then(({ default: specific }) => app.route('/:token_id', specific));
+await import('~/v0/apikeys/delete.mjs').then(({ default: deleteRoute }) => app.route('/:token_id', deleteRoute));
 
 export default app;
