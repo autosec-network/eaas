@@ -2,6 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, type z } from '@hono/zod-openapi';
 import { parseCronExpression } from 'cron-schedule';
 import { sql } from 'drizzle-orm/sql';
+import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { keyringEditable, keyringOutput } from '~/v0/keyrings/shared.mjs';
 import { keyrings } from '~shared/db-preview/schemas/tenant';
@@ -58,14 +59,14 @@ app.openapi(route, (c) => {
 			.t_db()
 			.insert(keyrings)
 			.values({
-				kr_id: sql`unhex(${kr_id.hex})`,
+				kr_id: sql<Buffer>`unhex(${kr_id.hex})`,
 				name: json.name,
 				key_type: json.key.algorithm,
 				// @ts-expect-error size does sometimes exist
 				key_size: (json.key.size as number | undefined) ?? null,
 				hash: json.key.hash as (typeof workersCryptoCatalog.hashes)[number],
 				time_rotation: json.rotation.time.enabled,
-				count_rotation: json.rotation.count.enabled ? sql`unhex(${await BufferHelpers.bigintToHex(BigInt(json.rotation.count.threshold))})` : null,
+				count_rotation: json.rotation.count.enabled ? sql<Buffer>`unhex(${await BufferHelpers.bigintToHex(BigInt(json.rotation.count.threshold))})` : null,
 			})
 			.returning({
 				b_time: keyrings.b_time,

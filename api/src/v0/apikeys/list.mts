@@ -2,6 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
+import type { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
@@ -57,7 +58,7 @@ app.openapi(route, async (c) =>
 					r_keyrings: api_keys.r_keyrings,
 				})
 				.from(api_keys)
-				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`) : undefined),
+				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`) : undefined),
 			c.var
 				.t_db()
 				.select({
@@ -73,7 +74,7 @@ app.openapi(route, async (c) =>
 				})
 				.from(api_keys_keyrings)
 				.innerJoin(keyrings, eq(api_keys_keyrings.kr_id, keyrings.kr_id))
-				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys_keyrings.ak_id, sql`unhex(${c.var.ak_id.hex})`) : undefined),
+				.where(c.var.globalPermissions?.r_apikeys === Permissions.None ? eq(api_keys_keyrings.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`) : undefined),
 		])
 		.then(([apiKeyRows, keyringRows]) =>
 			Promise.all([

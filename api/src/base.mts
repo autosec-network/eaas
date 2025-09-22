@@ -9,6 +9,7 @@ import { except } from 'hono/combine';
 import { contextStorage } from 'hono/context-storage';
 import { prettyJSON } from 'hono/pretty-json';
 import { endTime, startTime } from 'hono/timing';
+import type { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api0 from '~/v0/index.mjs';
@@ -48,7 +49,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 				})
 				.from(api_keys_tenants)
 				.innerJoin(tenants, eq(tenants.t_id, api_keys_tenants.t_id))
-				.where(eq(api_keys_tenants.ak_id, sql`unhex(${c.var.ak_id.hex})`))
+				.where(eq(api_keys_tenants.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`))
 				.limit(1)
 				.then((rows) =>
 					Promise.all(
@@ -108,7 +109,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 								})
 								.from(api_keys)
 								.limit(1)
-								.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`))
+								.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`))
 								.then(async ([hashRow]) => {
 									if (hashRow) {
 										startTime(c, 'auth-verify-token');
@@ -168,7 +169,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 											.from(api_keys_keyrings)
 											.innerJoin(api_keys, eq(api_keys.ak_id, api_keys_keyrings.ak_id))
 											.innerJoin(keyrings, eq(keyrings.kr_id, api_keys_keyrings.kr_id))
-											.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`))
+											.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`))
 											.then((rows) =>
 												Promise.all(
 													rows.map((row) =>

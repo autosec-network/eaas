@@ -2,6 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { parseCronExpression } from 'cron-schedule';
 import { desc, inArray, sql } from 'drizzle-orm/sql';
+import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { keyringOutput } from '~/v0/keyrings/shared.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
@@ -51,7 +52,7 @@ app.openapi(route, async (c) => {
 					? // @ts-expect-error map is fine because at least 1 exists
 						inArray(
 							keyrings.kr_id,
-							kr_ids.map((kr_id) => sql`unhex(${kr_id.hex})`),
+							kr_ids.map((kr_id) => sql<Buffer>`unhex(${kr_id.hex})`),
 						)
 					: undefined,
 			)
@@ -75,7 +76,7 @@ app.openapi(route, async (c) => {
 								generation_count: datakeys.generation_count,
 							})
 							.from(datakeys)
-							.where(eq(datakeys.kr_id, sql`unhex(${row.kr_id.hex})`))
+							.where(eq(datakeys.kr_id, sql<Buffer>`unhex(${row.kr_id.hex})`))
 							.orderBy(desc(datakeys.b_time))
 							.limit(1)
 							.then((rows) =>

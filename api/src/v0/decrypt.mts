@@ -460,7 +460,7 @@ app.openapi(embededRoute, async (c) => {
 					// @ts-expect-error drizzle expects guarantee of atleast one element
 					inArray(
 						keyrings.kr_id,
-						keyringPermissions.map(({ kr_id }) => sql`unhex(${kr_id.hex})`),
+						keyringPermissions.map(({ kr_id }) => sql<Buffer>`unhex(${kr_id.hex})`),
 					),
 				)
 				.orderBy(desc(datakeys.b_time))
@@ -642,7 +642,7 @@ app.openapi(embededRoute, async (c) => {
 				})
 				.from(datakeys)
 				.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
-				.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
+				.where(eq(keyrings.kr_id, sql<Buffer>`unhex(${kr_id.hex})`))
 				.orderBy(desc(datakeys.b_time))
 				// versions is 0 based
 				.limit(keyring_permission.generation_versions + 1)
@@ -907,7 +907,7 @@ app.openapi(uploadedRoute, async (c) => {
 			})
 			.from(datakeys)
 			.innerJoin(keyrings, eq(keyrings.kr_id, datakeys.kr_id))
-			.where(eq(keyrings.kr_id, sql`unhex(${kr_id.hex})`))
+			.where(eq(keyrings.kr_id, sql<Buffer>`unhex(${kr_id.hex})`))
 			.orderBy(desc(datakeys.b_time))
 			// versions is 0 based
 			.limit(keyring_permission.generation_versions + 1)

@@ -2,6 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
+import type { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
@@ -79,7 +80,7 @@ app.openapi(route, (c) => {
 								r_keyrings: api_keys.r_keyrings,
 							})
 							.from(api_keys)
-							.where(eq(api_keys.ak_id, sql`unhex(${c.var.ak_id.hex})`))
+							.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`))
 							.limit(1),
 						c.var
 							.t_db()
@@ -95,7 +96,7 @@ app.openapi(route, (c) => {
 							})
 							.from(api_keys_keyrings)
 							.innerJoin(keyrings, eq(api_keys_keyrings.kr_id, keyrings.kr_id))
-							.where(eq(api_keys_keyrings.ak_id, sql`unhex(${c.var.ak_id.hex})`)),
+							.where(eq(api_keys_keyrings.ak_id, sql<Buffer>`unhex(${c.var.ak_id.hex})`)),
 					])
 					.then(([apiKeyRows, keyringRows]) =>
 						Promise.all(

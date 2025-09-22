@@ -153,18 +153,18 @@ app.openapi(route, (c) => {
 								.r_db()
 								.insert(api_keys_tenants)
 								.values({
-									ak_id: sql`unhex(${ak_id.hex})`,
+									ak_id: sql<Buffer>`unhex(${ak_id.hex})`,
 									expires: expires.toISOString() as ISODateString,
-									t_id: sql`unhex(${c.var.t_id.hex})`,
+									t_id: sql<Buffer>`unhex(${c.var.t_id.hex})`,
 								}),
 							// Save to tenant for lookup
 							c.var
 								.t_db()
 								.insert(api_keys)
 								.values({
-									ak_id: sql`unhex(${ak_id.hex})`,
+									ak_id: sql<Buffer>`unhex(${ak_id.hex})`,
 									expires: expires.toISOString() as ISODateString,
-									hash: sql`unhex(${ak_secret_hash})`,
+									hash: sql<Buffer>`unhex(${ak_secret_hash})`,
 									name,
 									r_apikeys: apikeysPermission,
 									r_keyrings: keyringsPermission,

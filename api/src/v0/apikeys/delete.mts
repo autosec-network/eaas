@@ -2,6 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
+import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { api_keys_tenants } from '~shared/db-preview/schemas/root';
@@ -113,12 +114,12 @@ app.openapi(route, (c) => {
 				c.var
 					.r_db()
 					.delete(api_keys_tenants)
-					.where(eq(api_keys_tenants.ak_id, sql`unhex(${ak_id.hex})`)),
+					.where(eq(api_keys_tenants.ak_id, sql<Buffer>`unhex(${ak_id.hex})`)),
 				// Delete from tenant database (api_keys - will cascade to api_keys_keyrings)
 				c.var
 					.t_db()
 					.delete(api_keys)
-					.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`)),
+					.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`)),
 			]).then(() => {
 				// If we reach here, both delete operations completed successfully
 				// Since we can't reliably check the changes count across different database types,
