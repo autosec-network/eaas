@@ -34,7 +34,7 @@
 		"@hono/zod-openapi": "^1.1.2",
 		"@hono/zod-validator": "^0.7.0",
 		"@mjackson/multipart-parser": "^0.10.1",
-		"@noble/post-quantum": "^0.4.1",
+		"@noble/post-quantum": "^0.5.2",
 		"cron-schedule": "^5.0.4",
 		"cron-validate": "^1.4.5",
 		"hono": "^4.9.8",
