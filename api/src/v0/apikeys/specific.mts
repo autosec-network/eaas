@@ -2,7 +2,7 @@ import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
-import type { Buffer } from 'node:buffer';
+import { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
