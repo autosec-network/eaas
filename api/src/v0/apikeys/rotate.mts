@@ -111,16 +111,14 @@ app.openapi(route, async (c) => {
 
 		if ((row?.count ?? 0) > 0) {
 			// Generate new API key secret
-			const ak_secret = await CryptoHelpers.secretBytes(512 / 8);
-			const [ak_secret_base64url, ak_secret_hash] = await Promise.all([
-				// Convert to format for user response
-				BufferHelpers.bufferToBase64(ak_secret.buffer, true),
-				// Hash to store in db
-				CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
-			]);
-
-			// Create the new bearer token
-			const token = [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.');
+			const { ak_secret_base64url, ak_secret_hash } = await CryptoHelpers.secretBytes(512 / 8).then((ak_secret) =>
+				Promise.all([
+					// Convert to format for user response
+					BufferHelpers.bufferToBase64(ak_secret.buffer, true),
+					// Hash to store in db
+					CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
+				]).then(([ak_secret_base64url, ak_secret_hash]) => ({ ak_secret_base64url, ak_secret_hash })),
+			);
 
 			// Update both databases in parallel
 			const [, [updatedRow]] = await Promise.all([
