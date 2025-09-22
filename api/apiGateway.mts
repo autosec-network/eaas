@@ -1,4 +1,4 @@
-import { Cloudflare } from 'cloudflare';
+import { NetHelpers } from '@chainfuse/helpers/net';
 import type { SchemaListResponse } from 'cloudflare/resources/schema-validation.mjs';
 import type { OperationBulkEditParams, OperationListResponse } from 'cloudflare/resources/schema-validation/settings/operations';
 import { readdir, readFile } from 'node:fs/promises';
@@ -11,7 +11,7 @@ const { CF_API_TOKEN, ZONE_ID } = await z
 	})
 	.parseAsync(process.env);
 
-const cf = new Cloudflare({ apiToken: CF_API_TOKEN, fetch: globalThis.fetch });
+const cf = await NetHelpers.cfApi(CF_API_TOKEN);
 
 const [oldSchemas, fileRoutes] = await Promise.all([
 	(async () => {
