@@ -95,30 +95,23 @@ app.openapi(route, async (c) => {
 	// Set default expiration if not provided (90 days from now)
 	const expires = body.expires ? new Date(body.expires) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-	try {
-		const ak_id = await BufferHelpers.uuidConvert(token_id);
+	const ak_id = await BufferHelpers.uuidConvert(token_id);
 
-		// First, verify the API key exists
-		const rows = await c.var
-			.t_db()
-			.select({
-				ak_id: api_keys.ak_id,
-				name: api_keys.name,
-				r_apikeys: api_keys.r_apikeys,
-				r_keyrings: api_keys.r_keyrings,
-				b_time: api_keys.b_time,
-				c_time: api_keys.c_time,
-			})
-			.from(api_keys)
-			.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
-			.limit(1);
+	// First, verify the API key exists
+	const [row] = await c.var
+		.t_db()
+		.select({
+			name: api_keys.name,
+			r_apikeys: api_keys.r_apikeys,
+			r_keyrings: api_keys.r_keyrings,
+			b_time: api_keys.b_time,
+			c_time: api_keys.c_time,
+		})
+		.from(api_keys)
+		.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
+		.limit(1);
 
-		if (rows.length === 0) {
-			return c.json({ error: 'API key not found' }, 404);
-		}
-
-		const existingKey = rows[0]!;
-
+	if (row) {
 		// Generate new API key secret
 		const ak_secret = await CryptoHelpers.secretBytes(512 / 8);
 		const [ak_secret_base64url, ak_secret_hash] = await Promise.all([
@@ -162,23 +155,22 @@ app.openapi(route, async (c) => {
 
 		// Return the rotated API key details including the new token
 		const response = {
-			created: existingKey.b_time,
+			created: row.b_time,
 			expired: expires < new Date(),
 			expires: expires.toISOString() as ISODateString,
 			lastModified: updatedRow.m_time,
-			lastRotation: existingKey.c_time,
-			name: existingKey.name,
+			lastRotation: row.c_time,
+			name: row.name,
 			token,
 			token_id: ak_id.base64url,
-			apikeysPermission: Permissions[existingKey.r_apikeys] as unknown as Permissions,
-			keyringsPermission: Permissions[existingKey.r_keyrings] as unknown as Permissions,
+			apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
+			keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
 			keyrings: {}, // Note: This endpoint doesn't return keyring permissions for simplicity
 		};
 
 		return c.json(response, 200);
-	} catch (error) {
-		console.error('Failed to rotate API key:', error);
-		return c.json({ error: 'Failed to rotate API key' }, 500);
+	} else {
+		return c.json({ error: 'API key not found' }, 404);
 	}
 });
 
