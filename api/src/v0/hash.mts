@@ -3,7 +3,6 @@ import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
@@ -27,9 +26,8 @@ const embededInput = z.discriminatedUnion('format', [
 	}),
 	embededInputBase.extend({
 		input: z
-			.string()
+			.hex()
 			.trim()
-			.refine((value) => isHexadecimal(value))
 			.describe('Specifies the hex encoded input data')
 			.openapi({ example: Buffer.from(example, 'utf8').toString('hex') }),
 		format: z.literal('hex').describe('Specifies the input encoding'),
@@ -57,9 +55,8 @@ const embededInput = z.discriminatedUnion('format', [
 
 const embededOutput = z.object({
 	value: z
-		.string()
+		.hex()
 		.trim()
-		.refine((value) => isHexadecimal(value))
 		.describe('The hash of the input data, hex encoded.')
 		.openapi({ example: createHash('sha256').update(Buffer.from(example, 'utf8')).digest('hex') }),
 	reference: z.string().trim().optional().describe('The value of the `reference` field from the corresponding item in the request'),

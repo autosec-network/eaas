@@ -4,7 +4,6 @@ import { desc, eq, inArray, sql } from 'drizzle-orm';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
-import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
 import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
@@ -71,9 +70,8 @@ const embededOutput = z.union([
 	}),
 	embededOutputBase.extend({
 		value: z
-			.string()
+			.hex()
 			.trim()
-			.refine((value) => isHexadecimal(value))
 			.describe('The decrypted plaintext, hex encoded.')
 			.openapi({ example: Buffer.from(exampleInput, 'utf8').toString('hex') }),
 	}),

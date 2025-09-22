@@ -1,6 +1,5 @@
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
-import isHexadecimal from 'validator/es/lib/isHexadecimal';
 import { z as z4 } from 'zod/v4';
 
 export type PrefixedUuid = `${'t_'}${UuidExport['utf8']}${'' | '_p'}`;
