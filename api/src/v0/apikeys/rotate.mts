@@ -4,7 +4,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
 import { Buffer } from 'node:buffer';
-import { createHash, timingSafeEqual } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyEditable, createApikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { APITags } from '~/v0/extras.mjs';
@@ -97,24 +97,6 @@ app.openapi(route, async (c) => {
 
 	try {
 		const ak_id = await BufferHelpers.uuidConvert(token_id);
-
-		const hasPermission = (() => {
-			// Check if user has rotate permissions for API keys (Admin level)
-			if (c.var.globalPermissions?.r_apikeys === Permissions.Admin) {
-				return true;
-			}
-
-			const incomingBuffer = Buffer.from(ak_id.blob);
-			const originalBuffer = Buffer.from(c.var.ak_id.blob);
-
-			// Or if they're rotating their own key and have Write permissions
-			const isSameKey = timingSafeEqual(incomingBuffer, originalBuffer) && incomingBuffer.byteLength === originalBuffer.byteLength;
-			return isSameKey && c.var.globalPermissions?.r_apikeys && c.var.globalPermissions.r_apikeys >= Permissions.Write;
-		})();
-
-		if (!hasPermission) {
-			return c.json({ error: 'Insufficient permissions to rotate API keys' }, 403);
-		}
 
 		// First, verify the API key exists
 		const rows = await c.var
