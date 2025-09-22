@@ -208,22 +208,12 @@ export const keyringEditable = z
 
 export const keyringOutput = keyringEditable
 	.extend({
-		created: z
-			.string()
-			.datetime({ precision: 3 })
-			.openapi({ example: new Date(0).toISOString() }),
-		lastModified: z
-			.string()
-			.datetime({ precision: 3 })
-			.openapi({ example: new Date(0).toISOString() }),
+		created: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
+		lastModified: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
 		rotation: rotationEditable.extend({
-			lastRotation: z
-				.string()
-				.datetime({ precision: 3 })
-				.openapi({ example: new Date(0).toISOString() }),
+			lastRotation: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
 			time: timeEditable.extend({
-				next: z
-					.string()
+				next: z.iso
 					.datetime({ precision: 3 })
 					.nullable()
 					.openapi({ example: new Date(0).toISOString() }),

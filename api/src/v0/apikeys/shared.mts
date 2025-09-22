@@ -44,8 +44,7 @@ const apikeyPermissions = z
 export const apikeyEditable = z
 	.object({
 		name: z.string().trim().nonempty().describe('Name for the API key'),
-		expires: z
-			.string()
+		expires: z.iso
 			.datetime({ precision: 3 })
 			.nullish()
 			.describe('Expiration date and time. Defaults to 90 days from now')
@@ -67,19 +66,10 @@ export const apikeyEditable = z
 export const apikeyOutput = apikeyEditable
 	.extend({
 		token_id: z.string().trim().nonempty().base64url(),
-		created: z
-			.string()
-			.datetime({ precision: 3 })
-			.openapi({ example: new Date(0).toISOString() }),
-		lastRotation: z
-			.string()
-			.datetime({ precision: 3 })
-			.openapi({ example: new Date(0).toISOString() }),
+		created: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
+		lastRotation: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
 		expired: z.boolean(),
-		lastModified: z
-			.string()
-			.datetime({ precision: 3 })
-			.openapi({ example: new Date(0).toISOString() }),
+		lastModified: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
 	})
 	.openapi('ApikeyOutput');
 
