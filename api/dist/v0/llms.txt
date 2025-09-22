@@ -13,7 +13,7 @@
 
 - **Method:** `POST`
 - **Path:** `/apikeys`
-- **Tags:** apikey management
+- **Tags:** API Key Management
 
 Create a new API key.
 
@@ -177,7 +177,7 @@ Create a new API key.
 
 - **Method:** `GET`
 - **Path:** `/apikeys`
-- **Tags:** apikey management
+- **Tags:** API Key Management
 
 Get a list of Api Keys.
 
@@ -254,7 +254,7 @@ Get a list of Api Keys.
 
 - **Method:** `GET`
 - **Path:** `/apikeys/{token_id}`
-- **Tags:** apikey management
+- **Tags:** API Key Management
 
 Get a specific Api Key by its token ID.
 
@@ -327,7 +327,7 @@ Get a specific Api Key by its token ID.
 
 - **Method:** `DELETE`
 - **Path:** `/apikeys/{token_id}`
-- **Tags:** apikey management
+- **Tags:** API Key Management
 
 Delete a specific API Key by its token ID. Requires Admin permissions.
 
@@ -451,7 +451,7 @@ Delete a specific API Key by its token ID. Requires Admin permissions.
 
 - **Method:** `POST`
 - **Path:** `/keyrings`
-- **Tags:** keyring management
+- **Tags:** Keyring Management
 
 Create a new keyring.
 
@@ -658,7 +658,7 @@ Create a new keyring.
 
 - **Method:** `GET`
 - **Path:** `/keyrings`
-- **Tags:** keyring management
+- **Tags:** Keyring Management
 
 Get a list of keyrings.
 
@@ -1359,7 +1359,7 @@ This endpoint decrypts uploaded files containing ciphertext produced by the encr
 
 - **Method:** `POST`
 - **Path:** `/hash`
-- **Tags:** free
+- **Tags:** Free
 
 This endpoint returns the cryptographic hash of given data using the specified algorithm
 
@@ -1520,7 +1520,7 @@ This endpoint returns the cryptographic hash of given data using the specified a
 
 - **Method:** `POST`
 - **Path:** `/hash/{algorithm}`
-- **Tags:** free
+- **Tags:** Free
 
 This endpoint returns the cryptographic hash of uploaded file(s) using the specified algorithm
 
@@ -1574,7 +1574,7 @@ This endpoint returns the cryptographic hash of uploaded file(s) using the speci
 
 - **Method:** `POST`
 - **Path:** `/random`
-- **Tags:** free
+- **Tags:** Free
 
 This endpoint returns high-quality random bytes of the specified length
 
