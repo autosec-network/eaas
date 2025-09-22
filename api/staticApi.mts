@@ -52,6 +52,7 @@ const worker = await unstable_startWorker({
 		watch: false,
 		remote: false,
 		enableContainers: false,
+		persist: '../.wrangler/state',
 	},
 });
 
