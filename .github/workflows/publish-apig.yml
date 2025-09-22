@@ -48,4 +48,4 @@ jobs:
       - run: npm -w api run publish:static
         env:
           CF_API_TOKEN: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
-          ZONE_ID: ${{ vars.ZONE_ID }}
+          ZONE_ID: ${{ secrets.AUTOSEC_ZONE_ID }}
