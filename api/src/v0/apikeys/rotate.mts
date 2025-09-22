@@ -1,7 +1,7 @@
 import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { CryptoHelpers } from '@chainfuse/helpers/crypto';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { count, eq, sql } from 'drizzle-orm/sql';
+import { and, count, eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
@@ -121,15 +121,7 @@ app.openapi(route, async (c) => {
 			);
 
 			// Update both databases in parallel
-			const [, [updatedRow]] = await Promise.all([
-				// Update root database (expires only)
-				c.var
-					.r_db()
-					.update(api_keys_tenants)
-					.set({
-						expires: expires.toISOString() as ISODateString,
-					})
-					.where(sql`${api_keys_tenants.ak_id} = unhex(${ak_id.hex}) AND ${api_keys_tenants.t_id} = unhex(${c.var.t_id.hex})`),
+			return Promise.all([
 				// Update tenant database (hash, expires, m_time auto-updates)
 				c.var
 					.t_db()
@@ -139,32 +131,27 @@ app.openapi(route, async (c) => {
 						expires: expires.toISOString() as ISODateString,
 						m_time: new Date().toISOString() as ISODateString,
 					})
-					.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
-					.returning({
-						m_time: api_keys.m_time,
-					}),
-			]);
-
-			if (!updatedRow) {
-				return c.json({ error: 'Failed to update API key' }, 500);
-			}
-
-			// Return the rotated API key details including the new token
-			const response = {
-				created: row.b_time,
-				expired: expires < new Date(),
-				expires: expires.toISOString() as ISODateString,
-				lastModified: updatedRow.m_time,
-				lastRotation: row.c_time,
-				name: row.name,
-				token,
-				token_id: ak_id.base64url,
-				apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
-				keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
-				keyrings: {}, // Note: This endpoint doesn't return keyring permissions for simplicity
-			};
-
-			return c.json(response, 200);
+					.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`)),
+				// Update root database (expires only)
+				c.var
+					.r_db()
+					.update(api_keys_tenants)
+					.set({
+						expires: expires.toISOString() as ISODateString,
+					})
+					.where(and(eq(api_keys_tenants.ak_id, sql<Buffer>`unhex(${ak_id.hex})`), eq(api_keys_tenants.t_id, sql<Buffer>`unhex(${c.var.t_id.hex})`))),
+			])
+				.then(() =>
+					c.json(
+						{
+							token_id: ak_id.base64url,
+							expires: expires.toISOString() as ISODateString,
+							token: [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.'),
+						},
+						200,
+					),
+				)
+				.catch(() => c.json({ error: 'Failed to update API key' }, 500));
 		} else {
 			return c.json({ error: 'API key not found' }, 404);
 		}
