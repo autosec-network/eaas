@@ -1,19 +1,25 @@
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { eq, sql } from 'drizzle-orm/sql';
+import { bearerAuth } from 'hono/bearer-auth';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
+import { api_keys_tenants } from '~shared/db-preview/schemas/root';
+import { api_keys } from '~shared/db-preview/schemas/tenant';
 import { Permissions } from '~shared/types/d1/index.mjs';
 
-const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-app.use('*', (c, next) =>
-	Promise.all([import('hono/bearer-auth'), import('node:crypto')]).then(([{ bearerAuth }, { createHash }]) =>
-		bearerAuth({
-			/**
-			 * Use sha512 (default uses sha256)
-			 * Use node crypto for optimization
-			 */
-			hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
-			verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false)),
-		})(c, next),
-	),
+app.use(
+	'*',
+	bearerAuth({
+		/**
+		 * Use sha512 (default uses sha256)
+		 * Use node crypto for optimization
+		 */
+		hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
+		verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false)),
+	}),
 );
 
 // @ts-expect-error - Hono middleware doesn't need to return when calling await next()
@@ -26,100 +32,93 @@ app.use('*', async (c, next) => {
 	}
 });
 
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs')]).then(([{ createRoute, z }, { apikeyOutput }]) =>
-	createRoute({
-		tags: ['apikey management'],
-		method: 'delete',
-		path: '/',
-		description: 'Delete a specific API Key by its token ID. Requires Admin permissions.',
-		request: {
-			params: z.object({
-				token_id: apikeyOutput.shape.token_id,
-			}),
+export const route = createRoute({
+	tags: ['apikey management'],
+	method: 'delete',
+	path: '/',
+	description: 'Delete a specific API Key by its token ID. Requires Admin permissions.',
+	request: {
+		params: z.object({
+			token_id: apikeyOutput.shape.token_id,
+		}),
+	},
+	responses: {
+		200: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						success: z.boolean(),
+						message: z.string(),
+					}),
+				},
+			},
+			description: 'API Key successfully deleted.',
 		},
-		responses: {
-			200: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							success: z.boolean(),
-							message: z.string(),
-						}),
-					},
+		403: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						success: z.boolean(),
+						errors: z.array(
+							z.object({
+								message: z.string(),
+							}),
+						),
+					}),
 				},
-				description: 'API Key successfully deleted.',
 			},
-			403: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							success: z.boolean(),
-							errors: z.array(
-								z.object({
-									message: z.string(),
-								}),
-							),
-						}),
-					},
-				},
-				description: 'Access denied.',
-			},
-			404: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							success: z.boolean(),
-							errors: z.array(
-								z.object({
-									message: z.string(),
-								}),
-							),
-						}),
-					},
-				},
-				description: 'API Key not found.',
-			},
-			500: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							success: z.boolean(),
-							errors: z.array(
-								z.object({
-									message: z.string(),
-								}),
-							),
-						}),
-					},
-				},
-				description: 'Internal server error.',
-			},
+			description: 'Access denied.',
 		},
-	}),
-);
+		404: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						success: z.boolean(),
+						errors: z.array(
+							z.object({
+								message: z.string(),
+							}),
+						),
+					}),
+				},
+			},
+			description: 'API Key not found.',
+		},
+		500: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						success: z.boolean(),
+						errors: z.array(
+							z.object({
+								message: z.string(),
+							}),
+						),
+					}),
+				},
+			},
+			description: 'Internal server error.',
+		},
+	},
+});
 
 app.openapi(route, (c) => {
 	const { token_id } = c.req.valid('param');
 
-	return import('@chainfuse/helpers/buffers')
-		.then(({ BufferHelpers }) => BufferHelpers.uuidConvert(token_id))
+	return BufferHelpers.uuidConvert(token_id)
 		.then((ak_id) =>
 			// Delete from both databases directly - no need to check existence first
 			Promise.all([
 				// Delete from root database (api_keys_tenants)
-				Promise.all([import('~shared/db-preview/schemas/root'), import('drizzle-orm')]).then(([{ api_keys_tenants }, { eq, sql }]) =>
-					c.var
-						.r_db()
-						.delete(api_keys_tenants)
-						.where(eq(api_keys_tenants.ak_id, sql`unhex(${ak_id.hex})`)),
-				),
+				c.var
+					.r_db()
+					.delete(api_keys_tenants)
+					.where(eq(api_keys_tenants.ak_id, sql`unhex(${ak_id.hex})`)),
 				// Delete from tenant database (api_keys - will cascade to api_keys_keyrings)
-				Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ api_keys }, { eq, sql }]) =>
-					c.var
-						.t_db()
-						.delete(api_keys)
-						.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`)),
-				),
+				c.var
+					.t_db()
+					.delete(api_keys)
+					.where(eq(api_keys.ak_id, sql`unhex(${ak_id.hex})`)),
 			]).then(() => {
 				// If we reach here, both delete operations completed successfully
 				// Since we can't reliably check the changes count across different database types,

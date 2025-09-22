@@ -1,8 +1,11 @@
+import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import create from '~/v0/keyrings/create.mjs';
+import list from '~/v0/keyrings/list.mjs';
 
-const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-await import('~/v0/keyrings/create.mjs').then(({ default: create }) => app.route('/', create));
-await import('~/v0/keyrings/list.mjs').then(({ default: list }) => app.route('/', list));
+app.route('/', create);
+app.route('/', list);
 
 export default app;

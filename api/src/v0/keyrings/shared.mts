@@ -1,21 +1,23 @@
 import { z } from '@hono/zod-openapi';
+import cron from 'cron-validate';
+import { KeyAlgorithms } from '~shared/types/crypto/index.mjs';
+import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
-const timeEditable = await import('cron-validate').then(({ default: cron }) =>
-	z.object({
-		enabled: z.boolean(),
-		cron: z.array(
-			z
-				.string()
-				.trim()
-				.nonempty()
-				.default('0 0 1 1 *')
-				/**
-				 * @link https://github.com/P4sca1/cron-schedule?tab=readme-ov-file#cron-validation
-				 */
-				.refine((value) => cron(value).isValid()),
-		),
-	}),
-);
+const timeEditable = z.object({
+	enabled: z.boolean(),
+	cron: z.array(
+		z
+			.string()
+			.trim()
+			.nonempty()
+			.default('0 0 1 1 *')
+			/**
+			 * @link https://github.com/P4sca1/cron-schedule?tab=readme-ov-file#cron-validation
+			 */
+			.refine((value) => cron(value).isValid()),
+	),
+});
+
 const countEditable = z.object({
 	enabled: z.boolean(),
 	threshold: z.coerce.bigint().default((BigInt(2) ** BigInt(32)).toString() as unknown as bigint),
@@ -25,7 +27,7 @@ const rotationEditable = z.object({
 	count: countEditable,
 });
 
-const keyringAlgorithm = await Promise.all([import('~shared/types/crypto/index.mjs'), import('~shared/types/crypto/workers-crypto-catalog.mjs')]).then(([{ KeyAlgorithms }, { workersCryptoCatalog }]) => {
+const keyringAlgorithm = (() => {
 	const rsaBase = z.object({
 		algorithm: z.enum([KeyAlgorithms['RSASSA-PKCS1-v1_5'], KeyAlgorithms['RSA-PSS'], KeyAlgorithms['RSA-OAEP']]),
 		size: z
@@ -194,7 +196,7 @@ const keyringAlgorithm = await Promise.all([import('~shared/types/crypto/index.m
 			}),
 		]),
 	]);
-});
+})();
 
 export const keyringEditable = z
 	.object({

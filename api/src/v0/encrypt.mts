@@ -1,9 +1,13 @@
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { getRandom } from '@cloudflare/containers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
+import { hc } from 'hono/client';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
-import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
+import { createCipheriv, createHash, createHmac, createSecretKey, hkdf, timingSafeEqual, type CipherKey } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
 import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
@@ -236,10 +240,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			// Merge keys
 			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
-				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
-				.then((key) => Buffer.from(key));
+			keyMaterial = await promisify(hkdf)(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8).then((key) => Buffer.from(key));
 			break;
 		}
 		case KeyAlgorithms.ECDSA: {
@@ -305,10 +306,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			// Merge keys
 			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
-				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
-				.then((key) => Buffer.from(key));
+			keyMaterial = await promisify(hkdf)(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8).then((key) => Buffer.from(key));
 			break;
 		}
 		case KeyAlgorithms['ML-KEM']:
@@ -333,98 +331,76 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			throw new Error('Unsupported key type');
 	}
 
-	return Promise.all([import('node:util'), import('node:crypto')])
-		.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-		.then((hkdfAsync) =>
-			Promise.all([
-				hkdfAsync(
-					//
-					hash,
-					keyMaterial,
-					salt,
-					Buffer.from(new Uint8Array()),
-					parseInt(algorithmSize) / 8,
-				),
-				import('node:crypto')
-					.then(({ createHash }) => createHash(hash).digest().byteLength)
-					.then((byteLength) =>
-						hkdfAsync(
-							//
-							hash,
-							keyMaterial,
-							salt,
-							macInfo,
-							byteLength,
-						),
-					),
-			]),
-		)
-		.then(([key, mac]) => ({
-			key: Buffer.from(key),
-			mac: Buffer.from(mac),
-		}));
+	return Promise.all([
+		promisify(hkdf)(
+			//
+			hash,
+			keyMaterial,
+			salt,
+			Buffer.from(new Uint8Array()),
+			parseInt(algorithmSize) / 8,
+		),
+		promisify(hkdf)(
+			//
+			hash,
+			keyMaterial,
+			salt,
+			macInfo,
+			createHash(hash).digest().byteLength,
+		),
+	]).then(([key, mac]) => ({
+		key: Buffer.from(key),
+		mac: Buffer.from(mac),
+	}));
 }
 
 async function encryptContent({ algorithm, algorithmSize, key, inputFormat, input, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: z.infer<typeof embededInputBase>['bitStrength']; key: CipherKey; inputFormat: z.infer<typeof embededInput>['inputFormat'] | 'buffer'; input: z.infer<typeof embededInput>['input'] | ArrayBufferLike; containerDo: DurableObjectNamespace<PqcContainerSidecar>; url: string | URL }) {
-	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.base64ToBuffer(input as string)).then((arrayBuffer) => Buffer.from(arrayBuffer)) : Buffer.from(input as string, inputFormat);
+	const resolvedInput = inputFormat === 'buffer' ? Buffer.from(input as ArrayBufferLike) : inputFormat === 'base64' ? Buffer.from(await BufferHelpers.base64ToBuffer(input as string)) : Buffer.from(input as string, inputFormat);
 
 	switch (algorithm) {
 		case EncryptionAlgorithms['AES-GCM']: {
 			// AES-GCM uses a 96-bit iv
 			const gcmIv = crypto.getRandomValues(new Uint8Array(96 / 8));
+			const cipher = createCipheriv(`aes-${algorithmSize}-gcm`, key, gcmIv);
 
-			return import('node:crypto')
-				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-gcm`, key, gcmIv))
-				.then(async (cipher) => {
-					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
-					const authTag = cipher.getAuthTag();
+			const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+			const authTag = cipher.getAuthTag();
 
-					return {
-						cipherBuffer: new Uint8Array(Buffer.concat([cipherText, authTag])),
-						preamble: gcmIv,
-					};
-				});
+			return {
+				cipherBuffer: new Uint8Array(Buffer.concat([cipherText, authTag])),
+				preamble: gcmIv,
+			};
 		}
 		case EncryptionAlgorithms['AES-CBC']: {
 			// AES-CBC uses a 128-bit iv
 			const cbcIv = crypto.getRandomValues(new Uint8Array(128 / 8));
+			const cipher = createCipheriv(`aes-${algorithmSize}-cbc`, key, cbcIv);
 
-			return import('node:crypto')
-				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-cbc`, key, cbcIv))
-				.then(async (cipher) => {
-					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+			const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 
-					return {
-						cipherBuffer: new Uint8Array(cipherText),
-						preamble: cbcIv,
-					};
-				});
+			return {
+				cipherBuffer: new Uint8Array(cipherText),
+				preamble: cbcIv,
+			};
 		}
 		case EncryptionAlgorithms['AES-CTR']: {
 			// AES-CTR uses a 128-bit counter
 			const ctrCounter = crypto.getRandomValues(new Uint8Array(128 / 8));
+			const cipher = createCipheriv(`aes-${algorithmSize}-ctr`, key, ctrCounter);
 
-			return import('node:crypto')
-				.then(({ createCipheriv }) => createCipheriv(`aes-${algorithmSize}-ctr`, key, ctrCounter))
-				.then(async (cipher) => {
-					const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
+			const cipherText = Buffer.concat([cipher.update(resolvedInput), cipher.final()]);
 
-					return {
-						cipherBuffer: new Uint8Array(cipherText),
-						preamble: ctrCounter,
-					};
-				});
+			return {
+				cipherBuffer: new Uint8Array(cipherText),
+				preamble: ctrCounter,
+			};
 		}
 		case EncryptionAlgorithms['ChaCha20-Poly1305']: {
 			// AES-GCM uses a 96-bit iv
 			const chaIv = crypto.getRandomValues(new Uint8Array(96 / 8));
 
-			return Promise.all([
-				//
-				import('hono/client'),
-				import('@cloudflare/containers').then(({ getRandom }) => getRandom(containerDo, 1)),
-			])
-				.then(([{ hc }, stub]) =>
+			return getRandom(containerDo, 1)
+				.then((stub) =>
 					hc<containerRoutes>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).encrypt[':algo'].$post({
 						param: { algo: 'chacha20-poly1305' },
 						json: {
@@ -478,7 +454,7 @@ app.openapi(embededRoute, async (c) => {
 
 					return {
 						// Get the base64url encoded keyring id (the key of the permission object)
-						kr_id: await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url)),
+						kr_id: await BufferHelpers.uuidConvert(kr_id_base64url),
 						// Carry over the name for lookup
 						name,
 					};
@@ -512,19 +488,17 @@ app.openapi(embededRoute, async (c) => {
 				.then((rows) =>
 					Promise.all(
 						rows.map(({ key_type, key_size, hash, ...row }) =>
-							import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-									dk_id,
-									kr_id,
-									generation_count,
-									key_type,
-									key_size,
-									hash,
-									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-									// Merge back name for lookup
-									name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
-								})),
-							),
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+								// Merge back name for lookup
+								name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
+							})),
 						),
 					),
 				);
@@ -547,12 +521,12 @@ app.openapi(embededRoute, async (c) => {
 				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
-							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(([key, value, note]) => {
+							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
 								const [, kr_id_utf8] = key.split('/');
 								const { dk_id, name, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+								return {
 									name,
 									key_type,
 									key_size,
@@ -563,7 +537,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								}));
+								};
 							}),
 						),
 					),
@@ -610,66 +584,57 @@ app.openapi(embededRoute, async (c) => {
 									mergedBuffer.set(preamble, 0);
 									mergedBuffer.set(cipherBuffer, preamble.length);
 
-									return import('node:crypto')
-										.then(({ createHmac }) => createHmac(bwKey.hash, key))
-										.then((hmac) => hmac.update(mergedBuffer).digest())
-										.then((signature) => {
-											endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
+									endTime(c, `${allowedInput.reference && `${allowedInput.reference}|`}encrypt-sign`);
 
-											/**
-											 * Update encryption counter
-											 *
-											 * Potential inconsistency, but can't be resolved until D1 supports transactions
-											 * @link https://github.com/cloudflare/workers-sdk/issues/2733
-											 */
-											c.executionCtx.waitUntil(
-												c.var
-													.t_db()
-													.select({ generation_count: datakeys.generation_count })
-													.from(datakeys)
-													.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-													.limit(1)
-													.then((rows) =>
-														import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-															Promise.all(
-																rows.map(async (row) => ({
-																	...row,
-																	generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-																})),
-															),
-														),
-													)
-													.then(([row]) => {
-														if (row) {
-															return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-																c.var
-																	.t_db()
-																	.update(datakeys)
-																	.set({
-																		generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-																	})
-																	.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-																	.limit(1),
-															);
-														} else {
-															throw new Error('Datakey not found');
-														}
-													}),
-											);
+									/**
+									 * Update encryption counter
+									 *
+									 * Potential inconsistency, but can't be resolved until D1 supports transactions
+									 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+									 */
+									c.executionCtx.waitUntil(
+										c.var
+											.t_db()
+											.select({ generation_count: datakeys.generation_count })
+											.from(datakeys)
+											.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+											.limit(1)
+											.then((rows) =>
+												Promise.all(
+													rows.map(async (row) => ({
+														...row,
+														generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+													})),
+												),
+											)
+											.then(async ([row]) => {
+												if (row) {
+													return c.var
+														.t_db()
+														.update(datakeys)
+														.set({
+															generation_count: sql`unhex(${await BufferHelpers.bigintToHex(++row.generation_count)})`,
+														})
+														.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+														.limit(1);
+												} else {
+													throw new Error('Datakey not found');
+												}
+											}),
+									);
 
-											// Append back
-											returningCiphertexts.push({
-												value: cipherText0(allowedInput.outputFormat, {
-													dk_id: bwKey.dk_id,
-													algorithm: allowedInput.algorithm,
-													bitStrength: allowedInput.bitStrength,
-													preamble,
-													cipherBuffer,
-													signature: signature,
-												}),
-												reference: allowedInput.reference,
-											});
-										});
+									// Append back
+									returningCiphertexts.push({
+										value: cipherText0(allowedInput.outputFormat, {
+											dk_id: bwKey.dk_id,
+											algorithm: allowedInput.algorithm,
+											bitStrength: allowedInput.bitStrength,
+											preamble,
+											cipherBuffer,
+											signature: createHmac(bwKey.hash, key).update(mergedBuffer).digest(),
+										}),
+										reference: allowedInput.reference,
+									});
 								});
 							});
 						} else {
@@ -694,7 +659,7 @@ app.openapi(embededRoute, async (c) => {
 
 		if (keyring_permissions) {
 			const [kr_id_base64url, keyring_permission] = keyring_permissions;
-			const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
+			const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
 
 			startTime(c, 'db-fetch-datakeys');
 			const receivedDatakeys = await c.var
@@ -715,19 +680,17 @@ app.openapi(embededRoute, async (c) => {
 				// versions is 0 based
 				.limit(keyring_permission.generation_versions + 1)
 				.then((rows) =>
-					import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-						Promise.all(
-							rows.map(({ key_type, key_size, hash, ...row }) =>
-								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-									dk_id,
-									kr_id,
-									generation_count,
-									key_type,
-									key_size,
-									hash,
-									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-								})),
-							),
+					Promise.all(
+						rows.map(({ key_type, key_size, hash, ...row }) =>
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+							})),
 						),
 					),
 				);
@@ -753,7 +716,7 @@ app.openapi(embededRoute, async (c) => {
 								const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+								return {
 									key_type,
 									key_size,
 									hash,
@@ -763,7 +726,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								}));
+								};
 							}),
 						),
 					),
@@ -808,71 +771,62 @@ app.openapi(embededRoute, async (c) => {
 							mergedBuffer.set(preamble, 0);
 							mergedBuffer.set(cipherBuffer, preamble.length);
 
-							return import('node:crypto')
-								.then(({ createHmac }) => createHmac(bwKey.hash, key))
-								.then((hmac) => hmac.update(mergedBuffer).digest())
-								.then((signature) => {
-									endTime(c, 'encrypt-sign');
+							endTime(c, 'encrypt-sign');
 
-									/**
-									 * Update encryption counter
-									 *
-									 * Potential inconsistency, but can't be resolved until D1 supports transactions
-									 * @link https://github.com/cloudflare/workers-sdk/issues/2733
-									 */
-									c.executionCtx.waitUntil(
-										c.var
-											.t_db()
-											.select({ generation_count: datakeys.generation_count })
-											.from(datakeys)
-											.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-											.limit(1)
-											.then((rows) =>
-												import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-													Promise.all(
-														rows.map(async (row) => ({
-															...row,
-															generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-														})),
-													),
-												),
-											)
-											.then(([row]) => {
-												if (row) {
-													return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-														c.var
-															.t_db()
-															.update(datakeys)
-															.set({
-																generation_count: sql`unhex(${BufferHelpers.bigintToHex(++row.generation_count)})`,
-															})
-															.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-															.limit(1),
-													);
-												} else {
-													throw new Error('Datakey not found');
-												}
-											}),
-									);
+							/**
+							 * Update encryption counter
+							 *
+							 * Potential inconsistency, but can't be resolved until D1 supports transactions
+							 * @link https://github.com/cloudflare/workers-sdk/issues/2733
+							 */
+							c.executionCtx.waitUntil(
+								c.var
+									.t_db()
+									.select({ generation_count: datakeys.generation_count })
+									.from(datakeys)
+									.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+									.limit(1)
+									.then((rows) =>
+										Promise.all(
+											rows.map(async (row) => ({
+												...row,
+												generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+											})),
+										),
+									)
+									.then(async ([row]) => {
+										if (row) {
+											return c.var
+												.t_db()
+												.update(datakeys)
+												.set({
+													generation_count: sql`unhex(${await BufferHelpers.bigintToHex(++row.generation_count)})`,
+												})
+												.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+												.limit(1);
+										} else {
+											throw new Error('Datakey not found');
+										}
+									}),
+							);
 
-									return c.json(
-										{
-											success: true,
-											result: {
-												value: cipherText0(json.outputFormat, {
-													dk_id: bwKey.dk_id,
-													algorithm: json.algorithm,
-													bitStrength: json.bitStrength,
-													preamble,
-													cipherBuffer,
-													signature: signature,
-												}),
-												reference: json.reference,
-											},
-										},
-										200,
-									);
-								});
+							return c.json(
+								{
+									success: true,
+									result: {
+										value: cipherText0(json.outputFormat, {
+											dk_id: bwKey.dk_id,
+											algorithm: json.algorithm,
+											bitStrength: json.bitStrength,
+											preamble,
+											cipherBuffer,
+											signature: createHmac(bwKey.hash, key).update(mergedBuffer).digest(),
+										}),
+										reference: json.reference,
+									},
+								},
+								200,
+							);
 						});
 					});
 				} else {
@@ -960,7 +914,7 @@ app.openapi(uploadedRoute, async (c) => {
 		const returningCiphertexts: z.infer<typeof uploadedOutput>[] = [];
 
 		const [kr_id_base64url, keyring_permission] = keyring_permissions;
-		const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
+		const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
 
 		startTime(c, 'db-fetch-datakeys');
 		const receivedDatakeys = await c.var
@@ -981,19 +935,17 @@ app.openapi(uploadedRoute, async (c) => {
 			// versions is 0 based
 			.limit(keyring_permission.generation_versions + 1)
 			.then((rows) =>
-				import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-					Promise.all(
-						rows.map(({ key_type, key_size, hash, ...row }) =>
-							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-								dk_id,
-								kr_id,
-								generation_count,
-								key_type,
-								key_size,
-								hash,
-								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-							})),
-						),
+				Promise.all(
+					rows.map(({ key_type, key_size, hash, ...row }) =>
+						Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+							dk_id,
+							kr_id,
+							generation_count,
+							key_type,
+							key_size,
+							hash,
+							...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+						})),
 					),
 				),
 			);
@@ -1019,7 +971,7 @@ app.openapi(uploadedRoute, async (c) => {
 							const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 							const jsonNote = JSON.parse(note) as SecretNote;
 
-							return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+							return {
 								key_type,
 								key_size,
 								hash,
@@ -1029,7 +981,7 @@ app.openapi(uploadedRoute, async (c) => {
 								...jsonNote,
 								salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 								macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-							}));
+							};
 						}),
 					),
 				),
@@ -1078,25 +1030,20 @@ app.openapi(uploadedRoute, async (c) => {
 							mergedBuffer.set(preamble, 0);
 							mergedBuffer.set(cipherBuffer, preamble.length);
 
-							return import('node:crypto')
-								.then(({ createHmac }) => createHmac(bwKey.hash, key))
-								.then((hmac) => hmac.update(mergedBuffer).digest())
-								.then((signature) => {
-									endTime(c, `${part.filename}|encrypt-sign`);
+							endTime(c, `${part.filename}|encrypt-sign`);
 
-									// Append back
-									returningCiphertexts.push({
-										value: cipherText0('base64', {
-											dk_id: bwKey.dk_id,
-											algorithm: param.algorithm,
-											bitStrength: param.bitStrength,
-											preamble,
-											cipherBuffer,
-											signature: signature,
-										}),
-										filename: part.filename!,
-									});
-								});
+							// Append back
+							returningCiphertexts.push({
+								value: cipherText0('base64', {
+									dk_id: bwKey.dk_id,
+									algorithm: param.algorithm,
+									bitStrength: param.bitStrength,
+									preamble,
+									cipherBuffer,
+									signature: createHmac(bwKey.hash, key).update(mergedBuffer).digest(),
+								}),
+								filename: part.filename!,
+							});
 						});
 					}
 				});
@@ -1115,27 +1062,23 @@ app.openapi(uploadedRoute, async (c) => {
 						.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
 						.limit(1)
 						.then((rows) =>
-							import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-								Promise.all(
-									rows.map(async (row) => ({
-										...row,
-										generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
-									})),
-								),
+							Promise.all(
+								rows.map(async (row) => ({
+									...row,
+									generation_count: await BufferHelpers.bufferToBigint(row.generation_count),
+								})),
 							),
 						)
-						.then(([row]) => {
+						.then(async ([row]) => {
 							if (row) {
-								return import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-									c.var
-										.t_db()
-										.update(datakeys)
-										.set({
-											generation_count: sql`unhex(${BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
-										})
-										.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
-										.limit(1),
-								);
+								return c.var
+									.t_db()
+									.update(datakeys)
+									.set({
+										generation_count: sql`unhex(${await BufferHelpers.bigintToHex(row.generation_count + BigInt(returningCiphertexts.length))})`,
+									})
+									.where(eq(datakeys.dk_id, sql`unhex(${bwKey.dk_id.hex})`))
+									.limit(1);
 							} else {
 								throw new Error('Datakey not found');
 							}

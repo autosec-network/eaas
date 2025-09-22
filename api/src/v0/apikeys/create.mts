@@ -1,81 +1,86 @@
-import type { z } from '@hono/zod-openapi';
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { CryptoHelpers } from '@chainfuse/helpers/crypto';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
+import { inArray, sql } from 'drizzle-orm/sql';
+import { bearerAuth } from 'hono/bearer-auth';
 import type { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
-import type { createApikeyOutput } from '~/v0/apikeys/shared.mjs';
+import { apikeyEditable, createApikeyOutput } from '~/v0/apikeys/shared.mjs';
+import { api_keys_tenants } from '~shared/db-preview/schemas/root';
+import { api_keys, api_keys_keyrings, keyrings as keyringsTable } from '~shared/db-preview/schemas/tenant';
+import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 import { Permissions, type ISODateString } from '~shared/types/d1/index.mjs';
 
-const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-app.use('*', (c, next) =>
-	Promise.all([import('hono/bearer-auth'), import('node:crypto')]).then(([{ bearerAuth }, { createHash }]) =>
-		bearerAuth({
-			/**
-			 * Use sha512 (default uses sha256)
-			 * Use node crypto for optimization
-			 */
-			hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
-			verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false)),
-		})(c, next),
-	),
-);
-
-export const route = await Promise.all([import('@hono/zod-openapi'), import('~/v0/apikeys/shared.mjs')]).then(([{ createRoute, z }, { apikeyEditable, createApikeyOutput }]) =>
-	createRoute({
-		tags: ['apikey management'],
-		method: 'post',
-		path: '/',
-		description: 'Create a new API key.',
-		request: {
-			body: {
-				content: {
-					'application/json': {
-						schema: apikeyEditable,
-					},
-				},
-			},
-		},
-		responses: {
-			201: {
-				content: {
-					'application/json': {
-						schema: createApikeyOutput,
-					},
-				},
-				description: 'API key created successfully.',
-			},
-			400: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							error: z.string(),
-						}),
-					},
-				},
-				description: 'Bad request - invalid keyrings.',
-			},
-			403: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							error: z.string(),
-						}),
-					},
-				},
-				description: 'Insufficient permissions.',
-			},
-			500: {
-				content: {
-					'application/json': {
-						schema: z.object({
-							error: z.string(),
-						}),
-					},
-				},
-				description: 'Internal server error.',
-			},
-		},
+app.use(
+	'*',
+	bearerAuth({
+		/**
+		 * Use sha512 (default uses sha256)
+		 * Use node crypto for optimization
+		 */
+		hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
+		verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false)),
 	}),
 );
+
+export const route = createRoute({
+	tags: ['apikey management'],
+	method: 'post',
+	path: '/',
+	description: 'Create a new API key.',
+	request: {
+		body: {
+			content: {
+				'application/json': {
+					schema: apikeyEditable,
+				},
+			},
+		},
+	},
+	responses: {
+		201: {
+			content: {
+				'application/json': {
+					schema: createApikeyOutput,
+				},
+			},
+			description: 'API key created successfully.',
+		},
+		400: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						error: z.string(),
+					}),
+				},
+			},
+			description: 'Bad request - invalid keyrings.',
+		},
+		403: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						error: z.string(),
+					}),
+				},
+			},
+			description: 'Insufficient permissions.',
+		},
+		500: {
+			content: {
+				'application/json': {
+					schema: z.object({
+						error: z.string(),
+					}),
+				},
+			},
+			description: 'Internal server error.',
+		},
+	},
+});
 
 app.openapi(route, (c) => {
 	const { name, apikeysPermission, keyringsPermission, keyrings, ...body } = c.req.valid('json');
@@ -88,25 +93,20 @@ app.openapi(route, (c) => {
 		return (async () => {
 			if (Object.keys(keyrings).length > 0) {
 				const keyringNames = Object.keys(keyrings);
-				return Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')])
-					.then(([{ keyrings: keyringsTable }, { inArray }]) => {
-						return c.var
-							.t_db()
-							.select({
-								kr_id: keyringsTable.kr_id,
-								name: keyringsTable.name,
-							})
-							.from(keyringsTable)
-							.where(inArray(keyringsTable.name, keyringNames));
+				return c.var
+					.t_db()
+					.select({
+						kr_id: keyringsTable.kr_id,
+						name: keyringsTable.name,
 					})
+					.from(keyringsTable)
+					.where(inArray(keyringsTable.name, keyringNames))
 					.then((rows) =>
-						import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-							Promise.all(
-								rows.map(async (row) => ({
-									...row,
-									kr_id: await BufferHelpers.uuidConvert(row.kr_id),
-								})),
-							),
+						Promise.all(
+							rows.map(async (row) => ({
+								...row,
+								kr_id: await BufferHelpers.uuidConvert(row.kr_id),
+							})),
 						),
 					)
 					.then((keyringLookups) => {
@@ -126,92 +126,80 @@ app.openapi(route, (c) => {
 		})()
 			.then((validatedKeyrings) =>
 				// Generation
-				import('@chainfuse/helpers/buffers')
-					.then(({ BufferHelpers }) =>
+				Promise.all([
+					// Generate API key ID
+					BufferHelpers.generateUuid7(),
+					// Generate API key secret
+					CryptoHelpers.secretBytes(512 / 8).then((ak_secret) =>
 						Promise.all([
-							// Generate API key ID
-							BufferHelpers.generateUuid7(),
-							import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) =>
-								// Generate API key secret
-								CryptoHelpers.secretBytes(512 / 8).then((ak_secret) =>
-									Promise.all([
-										// Convert to format for user response
-										BufferHelpers.bufferToBase64(ak_secret.buffer, true),
-										// Hash to store in db
-										CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
-									]).then(([ak_secret_base64url, ak_secret_hash]) => ({ ak_secret_base64url, ak_secret_hash })),
-								),
-							),
-						]).then(([ak_id, { ak_secret_base64url, ak_secret_hash }]) =>
-							import('~shared/types/bw/index.mjs').then(({ ApiKeyVersions }) => ({
-								ak_id,
-								ak_secret_hash,
-								// Create the bearer token
-								token: [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.'),
-							})),
-						),
-					)
+							// Convert to format for user response
+							BufferHelpers.bufferToBase64(ak_secret.buffer, true),
+							// Hash to store in db
+							CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
+						]).then(([ak_secret_base64url, ak_secret_hash]) => ({ ak_secret_base64url, ak_secret_hash })),
+					),
+				])
+					.then(([ak_id, { ak_secret_base64url, ak_secret_hash }]) => ({
+						ak_id,
+						ak_secret_hash,
+						// Create the bearer token
+						token: [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.'),
+					}))
 					// DB Operations
 					.then(({ ak_id, token, ak_secret_hash }) =>
 						Promise.all([
 							// Save to root for authentication
-							Promise.all([import('~shared/db-preview/schemas/root'), import('drizzle-orm')]).then(([{ api_keys_tenants }, { sql }]) =>
-								c.var
-									.r_db()
-									.insert(api_keys_tenants)
-									.values({
-										ak_id: sql`unhex(${ak_id.hex})`,
-										expires: expires.toISOString() as ISODateString,
-										t_id: sql`unhex(${c.var.t_id.hex})`,
-									}),
-							),
+							c.var
+								.r_db()
+								.insert(api_keys_tenants)
+								.values({
+									ak_id: sql`unhex(${ak_id.hex})`,
+									expires: expires.toISOString() as ISODateString,
+									t_id: sql`unhex(${c.var.t_id.hex})`,
+								}),
 							// Save to tenant for lookup
-							Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ api_keys }, { sql }]) =>
-								c.var
-									.t_db()
-									.insert(api_keys)
-									.values({
-										ak_id: sql`unhex(${ak_id.hex})`,
-										expires: expires.toISOString() as ISODateString,
-										hash: sql`unhex(${ak_secret_hash})`,
-										name,
-										r_apikeys: apikeysPermission,
-										r_keyrings: keyringsPermission,
-									})
-									.returning({
-										b_time: api_keys.b_time,
-										m_time: api_keys.m_time,
-										c_time: api_keys.c_time,
-									}),
-							),
+							c.var
+								.t_db()
+								.insert(api_keys)
+								.values({
+									ak_id: sql`unhex(${ak_id.hex})`,
+									expires: expires.toISOString() as ISODateString,
+									hash: sql`unhex(${ak_secret_hash})`,
+									name,
+									r_apikeys: apikeysPermission,
+									r_keyrings: keyringsPermission,
+								})
+								.returning({
+									b_time: api_keys.b_time,
+									m_time: api_keys.m_time,
+									c_time: api_keys.c_time,
+								}),
 						]).then(async ([, [row]]) => {
 							if (validatedKeyrings.length > 0) {
 								/**
 								 * Save keyring permissions
 								 * @todo refactor to use batch due to 100 parameter per query limit
 								 */
-								await Promise.all([import('~shared/db-preview/schemas/tenant'), import('drizzle-orm')]).then(([{ api_keys_keyrings }, { sql }]) =>
-									c.var
-										.t_db()
-										.insert(api_keys_keyrings)
-										.values(
-											validatedKeyrings.map((keyring) => {
-												const permissions = keyrings[keyring.name]!;
+								await c.var
+									.t_db()
+									.insert(api_keys_keyrings)
+									.values(
+										validatedKeyrings.map((keyring) => {
+											const permissions = keyrings[keyring.name]!;
 
-												return {
-													ak_id: sql<Buffer>`unhex(${ak_id.hex})` as unknown as Buffer,
-													kr_id: sql<Buffer>`unhex(${keyring.kr_id.hex})` as unknown as Buffer,
-													r_datakeys: permissions.r_datakeys,
-													r_encrypt: permissions.r_encrypt,
-													r_decrypt: permissions.r_decrypt,
-													r_rewrap: permissions.r_rewrap,
-													r_sign: permissions.r_sign,
-													r_verify: permissions.r_verify,
-													r_hmac: permissions.r_hmac,
-												} satisfies typeof api_keys_keyrings.$inferInsert;
-											}),
-										),
-								);
+											return {
+												ak_id: sql<Buffer>`unhex(${ak_id.hex})` as unknown as Buffer,
+												kr_id: sql<Buffer>`unhex(${keyring.kr_id.hex})` as unknown as Buffer,
+												r_datakeys: permissions.r_datakeys,
+												r_encrypt: permissions.r_encrypt,
+												r_decrypt: permissions.r_decrypt,
+												r_rewrap: permissions.r_rewrap,
+												r_sign: permissions.r_sign,
+												r_verify: permissions.r_verify,
+												r_hmac: permissions.r_hmac,
+											} satisfies typeof api_keys_keyrings.$inferInsert;
+										}),
+									);
 							}
 
 							return { ak_id, token, validatedKeyrings, row: row! };

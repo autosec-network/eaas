@@ -1,10 +1,15 @@
+import { OpenAPIHono } from '@hono/zod-openapi';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import create from '~/v0/apikeys/create.mjs';
+import deleteRoute from '~/v0/apikeys/delete.mjs';
+import list from '~/v0/apikeys/list.mjs';
+import specific from '~/v0/apikeys/specific.mjs';
 
-const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
-await import('~/v0/apikeys/create.mjs').then(({ default: create }) => app.route('/', create));
-await import('~/v0/apikeys/list.mjs').then(({ default: list }) => app.route('/', list));
-await import('~/v0/apikeys/specific.mjs').then(({ default: specific }) => app.route('/:token_id', specific));
-await import('~/v0/apikeys/delete.mjs').then(({ default: deleteRoute }) => app.route('/:token_id', deleteRoute));
+app.route('/', create);
+app.route('/', list);
+app.route('/:token_id', specific);
+app.route('/:token_id', deleteRoute);
 
 export default app;

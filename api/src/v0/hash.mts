@@ -1,12 +1,13 @@
-import { createRoute, z } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
+import * as zm from 'zod/mini';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
-const app = await import('@hono/zod-openapi').then(({ OpenAPIHono }) => new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>());
+const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 const example = 'Hello world';
 
@@ -101,93 +102,87 @@ export const embededRoute = createRoute({
 	},
 });
 
-app.openapi(embededRoute, (c) => {
+app.openapi(embededRoute, async (c) => {
 	// Needs to be set to a variable or else type isn't inferred
 	const json = c.req.valid('json');
 
-	return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => {
-		if ('batch_input' in json) {
-			return c.json(
-				{
-					success: true,
-					result: await Promise.all(
-						json.batch_input.map(async (item) => {
-							const { input, format, reference } = item;
+	if ('batch_input' in json) {
+		return c.json(
+			{
+				success: true,
+				result: await Promise.all(
+					json.batch_input.map(async (item) => {
+						const { input, format, reference } = item;
 
-							startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
-							const value = createHash(item.algorithm)
-								.update(
-									Buffer.from(
-										input,
-										format === 'base64'
-											? await import('zod/v4').then(({ z }) =>
-													Promise.any([
-														z
-															.base64()
-															.trim()
-															.parseAsync(input)
-															.then(() => 'base64' as const),
-														z
-															.base64url()
-															.trim()
-															.parseAsync(input)
-															.then(() => 'base64url' as const),
-													]),
-												)
-											: format,
-									),
-								)
-								.digest('hex');
-							endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+						startTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
+						const value = createHash(item.algorithm)
+							.update(
+								Buffer.from(
+									input,
+									format === 'base64'
+										? await Promise.any([
+												zm
+													.base64()
+													.check(zm.trim())
+													.parseAsync(input)
+													.then(() => 'base64' as const),
+												zm
+													.base64url()
+													.check(zm.trim())
+													.parseAsync(input)
+													.then(() => 'base64url' as const),
+											])
+										: format,
+								),
+							)
+							.digest('hex');
+						endTime(c, `hashItem-${reference ?? json.batch_input.indexOf(item)}`);
 
-							return {
-								value,
-								reference,
-							};
-						}),
-					),
+						return {
+							value,
+							reference,
+						};
+					}),
+				),
+			},
+			200,
+		);
+	} else {
+		startTime(c, 'hashItem');
+		const value = createHash(json.algorithm)
+			.update(
+				Buffer.from(
+					json.input,
+					json.format === 'base64'
+						? await Promise.any([
+								zm
+									.base64()
+									.check(zm.trim())
+									.parseAsync(json.input)
+									.then(() => 'base64' as const),
+								zm
+									.base64url()
+									.check(zm.trim())
+									.parseAsync(json.input)
+									.then(() => 'base64url' as const),
+							])
+						: json.format,
+				),
+			)
+			.digest('hex');
+		endTime(c, 'hashItem');
+
+		return c.json(
+			{
+				success: true,
+				result: {
+					value,
+					reference: json.reference,
 				},
-				200,
-			);
-		} else {
-			startTime(c, 'hashItem');
-			const value = createHash(json.algorithm)
-				.update(
-					Buffer.from(
-						json.input,
-						json.format === 'base64'
-							? await import('zod/v4').then(({ z }) =>
-									Promise.any([
-										z
-											.base64()
-											.trim()
-											.parseAsync(json.input)
-											.then(() => 'base64' as const),
-										z
-											.base64url()
-											.trim()
-											.parseAsync(json.input)
-											.then(() => 'base64url' as const),
-									]),
-								)
-							: json.format,
-					),
-				)
-				.digest('hex');
-			endTime(c, 'hashItem');
-
-			return c.json(
-				{
-					success: true,
-					result: {
-						value,
-						reference: json.reference,
-					},
-				},
-				200,
-			);
-		}
-	});
+			},
+			200,
+		);
+	}
 });
 
 const zodFileObject = z
@@ -210,9 +205,8 @@ const uploadedInput = z.object({
 
 const uploadedOutput = z.object({
 	value: z
-		.string()
+		.hex()
 		.trim()
-		.refine((value) => isHexadecimal(value))
 		.describe('The hash of the input data, hex encoded.')
 		.openapi({ example: createHash('sha256').update(Buffer.from(example, 'utf8')).digest('hex') }),
 	filename: z.string().trim(),

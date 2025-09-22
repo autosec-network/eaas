@@ -1,9 +1,13 @@
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { getRandom } from '@cloudflare/containers';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { parseMultipartRequest } from '@mjackson/multipart-parser';
 import { desc, eq, inArray, sql } from 'drizzle-orm';
+import { hc } from 'hono/client';
 import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
-import { createSecretKey, timingSafeEqual, type CipherKey } from 'node:crypto';
+import { createDecipheriv, createHash, createHmac, createSecretKey, hkdf, timingSafeEqual, type CipherKey } from 'node:crypto';
+import { promisify } from 'node:util';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
 import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
@@ -223,10 +227,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			// Merge keys
 			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
-				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
-				.then((key) => Buffer.from(key));
+			keyMaterial = await promisify(hkdf)(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8).then((key) => Buffer.from(key));
 			break;
 		}
 		case KeyAlgorithms.ECDSA: {
@@ -292,10 +293,7 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			// Merge keys
 			const combinedRawKeys = Buffer.concat((await Promise.all(importPromises).then((importedKeys) => Promise.all(importedKeys.map((importedKey) => crypto.subtle.exportKey('raw', importedKey))))).map((rawKey) => Buffer.from(rawKey)));
 
-			keyMaterial = await Promise.all([import('node:util'), import('node:crypto')])
-				.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-				.then((hkdfAsync) => hkdfAsync(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8))
-				.then((key) => Buffer.from(key));
+			keyMaterial = await promisify(hkdf)(hash, combinedRawKeys, salt, Buffer.from(new Uint8Array()), parseInt(algorithmSize) / 8).then((key) => Buffer.from(key));
 			break;
 		}
 		case KeyAlgorithms['ML-KEM']:
@@ -320,36 +318,27 @@ async function generateKey({ key_type, key_size, hash, privateKey, publicKey, sa
 			throw new Error('Unsupported key type');
 	}
 
-	return Promise.all([import('node:util'), import('node:crypto')])
-		.then(([{ promisify }, { hkdf }]) => promisify(hkdf))
-		.then((hkdfAsync) =>
-			Promise.all([
-				hkdfAsync(
-					//
-					hash,
-					keyMaterial,
-					salt,
-					Buffer.from(new Uint8Array()),
-					parseInt(algorithmSize) / 8,
-				),
-				import('node:crypto')
-					.then(({ createHash }) => createHash(hash).digest().byteLength)
-					.then((byteLength) =>
-						hkdfAsync(
-							//
-							hash,
-							keyMaterial,
-							salt,
-							macInfo,
-							byteLength,
-						),
-					),
-			]),
-		)
-		.then(([key, mac]) => ({
-			key: Buffer.from(key),
-			mac: Buffer.from(mac),
-		}));
+	return Promise.all([
+		promisify(hkdf)(
+			//
+			hash,
+			keyMaterial,
+			salt,
+			Buffer.from(new Uint8Array()),
+			parseInt(algorithmSize) / 8,
+		),
+		promisify(hkdf)(
+			//
+			hash,
+			keyMaterial,
+			salt,
+			macInfo,
+			createHash(hash).digest().byteLength,
+		),
+	]).then(([key, mac]) => ({
+		key: Buffer.from(key),
+		mac: Buffer.from(mac),
+	}));
 }
 
 async function decryptContent({ algorithm, algorithmSize, key, ciphertext, containerDo, url }: { algorithm: EncryptionAlgorithms; algorithmSize: '128' | '192' | '256'; key: CipherKey; ciphertext: string; containerDo: DurableObjectNamespace<PqcContainerSidecar>; url: string | URL }) {
@@ -358,51 +347,41 @@ async function decryptContent({ algorithm, algorithmSize, key, ciphertext, conta
 
 	switch (algorithm) {
 		case EncryptionAlgorithms['AES-GCM']: {
-			return import('node:crypto')
-				.then(({ createDecipheriv }) => createDecipheriv(`aes-${algorithmSize}-gcm`, key, parsedCiphertext.preamble))
-				.then(async (decipher) => {
-					// For GCM, auth tag is at the end of the cipher buffer
-					const authTagLength = 16;
-					const actualCipherText = parsedCiphertext.cipherBuffer.subarray(0, -authTagLength);
-					const authTag = parsedCiphertext.cipherBuffer.subarray(-authTagLength);
+			const decipher = createDecipheriv(`aes-${algorithmSize}-gcm`, key, parsedCiphertext.preamble);
 
-					decipher.setAuthTag(authTag);
-					const plainText = Buffer.concat([decipher.update(actualCipherText), decipher.final()]);
+			// For GCM, auth tag is at the end of the cipher buffer
+			const authTagLength = 16;
+			const actualCipherText = parsedCiphertext.cipherBuffer.subarray(0, -authTagLength);
+			const authTag = parsedCiphertext.cipherBuffer.subarray(-authTagLength);
 
-					return {
-						plainTextBuffer: new Uint8Array(plainText),
-					};
-				});
+			decipher.setAuthTag(authTag);
+			const plainText = Buffer.concat([decipher.update(actualCipherText), decipher.final()]);
+
+			return {
+				plainTextBuffer: new Uint8Array(plainText),
+			};
 		}
 		case EncryptionAlgorithms['AES-CBC']: {
-			return import('node:crypto')
-				.then(({ createDecipheriv }) => createDecipheriv(`aes-${algorithmSize}-cbc`, key, parsedCiphertext.preamble))
-				.then(async (decipher) => {
-					const plainText = Buffer.concat([decipher.update(parsedCiphertext.cipherBuffer), decipher.final()]);
+			const decipher = createDecipheriv(`aes-${algorithmSize}-cbc`, key, parsedCiphertext.preamble);
 
-					return {
-						plainTextBuffer: new Uint8Array(plainText),
-					};
-				});
+			const plainText = Buffer.concat([decipher.update(parsedCiphertext.cipherBuffer), decipher.final()]);
+
+			return {
+				plainTextBuffer: new Uint8Array(plainText),
+			};
 		}
 		case EncryptionAlgorithms['AES-CTR']: {
-			return import('node:crypto')
-				.then(({ createDecipheriv }) => createDecipheriv(`aes-${algorithmSize}-ctr`, key, parsedCiphertext.preamble))
-				.then(async (decipher) => {
-					const plainText = Buffer.concat([decipher.update(parsedCiphertext.cipherBuffer), decipher.final()]);
+			const decipher = createDecipheriv(`aes-${algorithmSize}-ctr`, key, parsedCiphertext.preamble);
 
-					return {
-						plainTextBuffer: new Uint8Array(plainText),
-					};
-				});
+			const plainText = Buffer.concat([decipher.update(parsedCiphertext.cipherBuffer), decipher.final()]);
+
+			return {
+				plainTextBuffer: new Uint8Array(plainText),
+			};
 		}
 		case EncryptionAlgorithms['ChaCha20-Poly1305']: {
-			return Promise.all([
-				//
-				import('hono/client'),
-				import('@cloudflare/containers').then(({ getRandom }) => getRandom(containerDo, 1)),
-			])
-				.then(([{ hc }, stub]) =>
+			return getRandom(containerDo, 1)
+				.then((stub) =>
 					hc<containerRoutes>(new URL(url).origin, { fetch: stub.fetch.bind(stub) }).decrypt[':algo'].$post({
 						param: { algo: 'chacha20-poly1305' },
 						json: {
@@ -455,7 +434,7 @@ app.openapi(embededRoute, async (c) => {
 
 					return {
 						// Get the base64url encoded keyring id (the key of the permission object)
-						kr_id: await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url)),
+						kr_id: await BufferHelpers.uuidConvert(kr_id_base64url),
 						// Carry over the name for lookup
 						name,
 					};
@@ -489,19 +468,17 @@ app.openapi(embededRoute, async (c) => {
 				.then((rows) =>
 					Promise.all(
 						rows.map(({ key_type, key_size, hash, ...row }) =>
-							import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-									dk_id,
-									kr_id,
-									generation_count,
-									key_type,
-									key_size,
-									hash,
-									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-									// Merge back name for lookup
-									name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
-								})),
-							),
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+								// Merge back name for lookup
+								name: keyringPermissions.find((keyrings) => timingSafeEqual(new Uint8Array(keyrings.kr_id.blob), new Uint8Array(kr_id.blob)))!.name,
+							})),
 						),
 					),
 				);
@@ -521,7 +498,7 @@ app.openapi(embededRoute, async (c) => {
 
 				// Get all the unique keys from bitwarden and parse them into formats needed + carry over db metadata (for filtering purposes)
 				startTime(c, 'bitwarden-fetch-datakeys');
-				const bwKeys = await Promise.all([bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)), import('@chainfuse/helpers/buffers')]).then(([retreivedKeys, { BufferHelpers }]) =>
+				const bwKeys = await bws.getSecrets(bwDatakeys.map(({ bw_id }) => bw_id.utf8)).then((retreivedKeys) =>
 					Promise.all(
 						retreivedKeys.map((retreivedKey) =>
 							Promise.all([bws.decryptSecret(retreivedKey.key), bws.decryptSecret(retreivedKey.value), bws.decryptSecret(retreivedKey.note)]).then(async ([key, value, note]) => {
@@ -579,7 +556,9 @@ app.openapi(embededRoute, async (c) => {
 							mergedBuffer.set(parsedCiphertext.preamble, 0);
 							mergedBuffer.set(parsedCiphertext.cipherBuffer, parsedCiphertext.preamble.length);
 
-							const computedSignature = await import('node:crypto').then(({ createHmac }) => createHmac(bwKey.hash, key as Buffer)).then((hmac) => hmac.update(mergedBuffer).digest());
+							const computedSignature = createHmac(bwKey.hash, key as Buffer)
+								.update(mergedBuffer)
+								.digest();
 
 							const signatureValid = timingSafeEqual(computedSignature, parsedCiphertext.signature);
 
@@ -647,7 +626,7 @@ app.openapi(embededRoute, async (c) => {
 
 		if (keyring_permissions) {
 			const [kr_id_base64url, keyring_permission] = keyring_permissions;
-			const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
+			const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
 
 			startTime(c, 'db-fetch-datakeys');
 			const receivedDatakeys = await c.var
@@ -668,19 +647,17 @@ app.openapi(embededRoute, async (c) => {
 				// versions is 0 based
 				.limit(keyring_permission.generation_versions + 1)
 				.then((rows) =>
-					import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-						Promise.all(
-							rows.map(({ key_type, key_size, hash, ...row }) =>
-								Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-									dk_id,
-									kr_id,
-									generation_count,
-									key_type,
-									key_size,
-									hash,
-									...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-								})),
-							),
+					Promise.all(
+						rows.map(({ key_type, key_size, hash, ...row }) =>
+							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+								dk_id,
+								kr_id,
+								generation_count,
+								key_type,
+								key_size,
+								hash,
+								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+							})),
 						),
 					),
 				);
@@ -706,7 +683,7 @@ app.openapi(embededRoute, async (c) => {
 								const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 								const jsonNote = JSON.parse(note) as SecretNote;
 
-								return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+								return {
 									key_type,
 									key_size,
 									hash,
@@ -716,7 +693,7 @@ app.openapi(embededRoute, async (c) => {
 									...jsonNote,
 									salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 									macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-								}));
+								};
 							}),
 						),
 					),
@@ -753,7 +730,9 @@ app.openapi(embededRoute, async (c) => {
 					mergedBuffer.set(parsedCiphertext.preamble, 0);
 					mergedBuffer.set(parsedCiphertext.cipherBuffer, parsedCiphertext.preamble.length);
 
-					const computedSignature = await import('node:crypto').then(({ createHmac }) => createHmac(bwKey.hash, key as Buffer)).then((hmac) => hmac.update(mergedBuffer).digest());
+					const computedSignature = createHmac(bwKey.hash, key as Buffer)
+						.update(mergedBuffer)
+						.digest();
 
 					const signatureValid = timingSafeEqual(computedSignature, parsedCiphertext.signature);
 
@@ -912,7 +891,7 @@ app.openapi(uploadedRoute, async (c) => {
 		const returningPlaintexts: z.infer<typeof uploadedOutput>[] = [];
 
 		const [kr_id_base64url, keyring_permission] = keyring_permissions;
-		const kr_id = await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(kr_id_base64url));
+		const kr_id = await BufferHelpers.uuidConvert(kr_id_base64url);
 
 		startTime(c, 'db-fetch-datakeys');
 		const receivedDatakeys = await c.var
@@ -933,19 +912,17 @@ app.openapi(uploadedRoute, async (c) => {
 			// versions is 0 based
 			.limit(keyring_permission.generation_versions + 1)
 			.then((rows) =>
-				import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-					Promise.all(
-						rows.map(({ key_type, key_size, hash, ...row }) =>
-							Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
-								dk_id,
-								kr_id,
-								generation_count,
-								key_type,
-								key_size,
-								hash,
-								...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
-							})),
-						),
+				Promise.all(
+					rows.map(({ key_type, key_size, hash, ...row }) =>
+						Promise.all([BufferHelpers.uuidConvert(row.dk_id), BufferHelpers.uuidConvert(row.kr_id), BufferHelpers.bufferToBigint(row.generation_count)]).then(async ([dk_id, kr_id, generation_count]) => ({
+							dk_id,
+							kr_id,
+							generation_count,
+							key_type,
+							key_size,
+							hash,
+							...(row.bw_id && { bw_id: await BufferHelpers.uuidConvert(row.bw_id) }),
+						})),
 					),
 				),
 			);
@@ -971,7 +948,7 @@ app.openapi(uploadedRoute, async (c) => {
 							const { dk_id, key_type, key_size, hash } = bwDatakeys.find((datakeys) => datakeys.kr_id.utf8 === kr_id_utf8)!;
 							const jsonNote = JSON.parse(note) as SecretNote;
 
-							return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+							return {
 								key_type,
 								key_size,
 								hash,
@@ -981,7 +958,7 @@ app.openapi(uploadedRoute, async (c) => {
 								...jsonNote,
 								salt: await BufferHelpers.base64ToBuffer(jsonNote.salt),
 								macInfo: await BufferHelpers.base64ToBuffer(jsonNote.macInfo),
-							}));
+							};
 						}),
 					),
 				),
@@ -1024,7 +1001,7 @@ app.openapi(uploadedRoute, async (c) => {
 					mergedBuffer.set(parsedCiphertext.preamble, 0);
 					mergedBuffer.set(parsedCiphertext.cipherBuffer, parsedCiphertext.preamble.length);
 
-					const computedSignature = await import('node:crypto').then(({ createHmac }) => createHmac(bwKey.hash, key)).then((hmac) => hmac.update(mergedBuffer).digest());
+					const computedSignature = createHmac(bwKey.hash, key).update(mergedBuffer).digest();
 
 					const signatureValid = timingSafeEqual(computedSignature, parsedCiphertext.signature);
 
