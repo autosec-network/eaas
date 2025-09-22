@@ -4,6 +4,7 @@ import { parseCronExpression } from 'cron-schedule';
 import { desc, inArray, sql } from 'drizzle-orm/sql';
 import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { APITags } from '~/v0/extras.mjs';
 import { keyringOutput } from '~/v0/keyrings/shared.mjs';
 import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
 import { Permissions } from '~shared/types/d1/index.mjs';
@@ -11,7 +12,7 @@ import { Permissions } from '~shared/types/d1/index.mjs';
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 export const route = createRoute({
-	tags: ['keyring management'],
+	tags: [APITags['Keyring Management']],
 	method: 'get',
 	path: '/',
 	description: 'Get a list of keyrings.',

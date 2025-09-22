@@ -3,13 +3,14 @@ import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { randomBytes } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { APITags } from '~/v0/extras.mjs';
 
 const app = await new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
 
 const example = new Uint8Array(32);
 
 export const route = createRoute({
-	tags: ['free'],
+	tags: [APITags.Free],
 	method: 'post',
 	path: '/',
 	security: [],

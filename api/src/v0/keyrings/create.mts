@@ -4,6 +4,7 @@ import { parseCronExpression } from 'cron-schedule';
 import { sql } from 'drizzle-orm/sql';
 import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { APITags } from '~/v0/extras.mjs';
 import { keyringEditable, keyringOutput } from '~/v0/keyrings/shared.mjs';
 import { keyrings } from '~shared/db-preview/schemas/tenant';
 import type { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
@@ -25,7 +26,7 @@ app.use('*', async (c, next) => {
 });
 
 export const route = createRoute({
-	tags: ['keyring management'],
+	tags: [APITags['Keyring Management']],
 	method: 'post',
 	path: '/',
 	description: 'Create a new keyring.',

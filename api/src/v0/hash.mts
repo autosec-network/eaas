@@ -5,6 +5,7 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import * as zm from 'zod/mini';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
+import { APITags } from '~/v0/extras.mjs';
 import { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();
@@ -64,7 +65,7 @@ const embededOutput = z.object({
 });
 
 export const embededRoute = createRoute({
-	tags: ['free'],
+	tags: [APITags.Free],
 	method: 'post',
 	path: '/',
 	security: [],
@@ -213,7 +214,7 @@ const uploadedOutput = z.object({
 });
 
 export const uploadedRoute = createRoute({
-	tags: ['free'],
+	tags: [APITags.Free],
 	method: 'post',
 	path: '/{algorithm}',
 	security: [],

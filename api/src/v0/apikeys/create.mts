@@ -7,6 +7,7 @@ import type { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyEditable, createApikeyOutput } from '~/v0/apikeys/shared.mjs';
+import { APITags } from '~/v0/extras.mjs';
 import { api_keys_tenants } from '~shared/db-preview/schemas/root';
 import { api_keys, api_keys_keyrings, keyrings as keyringsTable } from '~shared/db-preview/schemas/tenant';
 import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
@@ -27,7 +28,7 @@ app.use(
 );
 
 export const route = createRoute({
-	tags: ['apikey management'],
+	tags: [APITags['API Key Management']],
 	method: 'post',
 	path: '/',
 	description: 'Create a new API key.',
