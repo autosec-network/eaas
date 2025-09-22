@@ -23,7 +23,7 @@ app.use(
 		 * Use node crypto for optimization
 		 */
 		hashFunction: (data: string) => createHash('sha512').update(data).digest('hex'),
-		verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c, false)),
+		verifyToken: (token, c) => import('~/base.mjs').then(({ verifyToken }) => verifyToken(token, c)),
 	}),
 );
 
