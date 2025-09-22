@@ -2,12 +2,12 @@ import { NetHelpers } from '@chainfuse/helpers/net';
 import type { SchemaListResponse } from 'cloudflare/resources/schema-validation.mjs';
 import type { OperationBulkEditParams, OperationListResponse } from 'cloudflare/resources/schema-validation/settings/operations';
 import { readdir, readFile } from 'node:fs/promises';
-import * as z from 'zod/mini';
+import * as zm from 'zod/mini';
 
-const { CF_API_TOKEN, ZONE_ID } = await z
+const { CF_API_TOKEN, ZONE_ID } = await zm
 	.object({
-		CF_API_TOKEN: z.string().check(z.trim(), z.minLength(1)),
-		ZONE_ID: z.hex().check(z.maxLength(32)),
+		CF_API_TOKEN: zm.string().check(zm.trim(), zm.minLength(1)),
+		ZONE_ID: zm.hex().check(zm.maxLength(32)),
 	})
 	.parseAsync(process.env);
 

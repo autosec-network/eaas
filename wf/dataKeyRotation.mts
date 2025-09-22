@@ -3,7 +3,7 @@ import { NonRetryableError } from 'cloudflare:workflows';
 import { eq, sql } from 'drizzle-orm';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
-import { z as z4 } from 'zod/v4';
+import * as zm from 'zod/mini';
 import type { EnvVars } from '../api/src/types.mjs';
 import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
 import { tenants } from '../shared/db-preview/schemas/root';
@@ -13,7 +13,7 @@ import type { SecretNote } from '../shared/types/bw/index.mjs';
 import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
 import { ZodUuidExportInput } from '../shared/types/d1/index.mjs';
 
-export const workflowParams = z4.object({
+export const workflowParams = zm.object({
 	t_id: ZodUuidExportInput,
 	kr_id: ZodUuidExportInput,
 });

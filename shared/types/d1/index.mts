@@ -1,6 +1,6 @@
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
-import { z as z4 } from 'zod/v4';
+import * as zm from 'zod/mini';
 
 export type PrefixedUuid = `${'t_'}${UuidExport['utf8']}${'' | '_p'}`;
 export interface UuidExport {
@@ -11,19 +11,13 @@ export interface UuidExport {
 	base64: string;
 	base64url: string;
 }
-export const ZodUuidExportInput = z4.union([
-	z4
-		.string()
-		.trim()
-		.regex(new RegExp(/^(t_)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(_p)?$/i)),
-	z4.uuid().trim(),
-	z4
-		.string()
-		.trim()
-		.length(32)
-		.refine((value) => isHexadecimal(value)),
-	z4.base64().trim(),
-	z4.base64url().trim(),
+export const ZodUuidExportInput = zm.union([
+	//
+	zm.string().check(zm.trim(), zm.regex(new RegExp(/^(t_)?[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}(_p)?$/i))),
+	zm.uuid().check(zm.trim()),
+	zm.hex().check(zm.trim(), zm.length(32)),
+	zm.base64().check(zm.trim()),
+	zm.base64url().check(zm.trim()),
 ]);
 
 // Filter to check and return only enum types, excluding specified properties
