@@ -137,7 +137,7 @@ app.openapi(route, async (c) => {
 					.set({
 						hash: sql<Buffer>`unhex(${ak_secret_hash})`,
 						expires: expires.toISOString() as ISODateString,
-						// m_time will be automatically updated by the $onUpdate trigger
+						m_time: new Date().toISOString() as ISODateString,
 					})
 					.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
 					.returning({
