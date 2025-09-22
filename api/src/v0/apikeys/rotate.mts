@@ -1,7 +1,7 @@
 import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import { CryptoHelpers } from '@chainfuse/helpers/crypto';
 import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
-import { eq, sql } from 'drizzle-orm/sql';
+import { count, eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
@@ -95,82 +95,83 @@ app.openapi(route, async (c) => {
 	// Set default expiration if not provided (90 days from now)
 	const expires = body.expires ? new Date(body.expires) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
 
-	const ak_id = await BufferHelpers.uuidConvert(token_id);
+	// Check permissions first
+	if ((c.var.globalPermissions?.r_apikeys ?? Permissions.None) >= Permissions.Write) {
+		const ak_id = await BufferHelpers.uuidConvert(token_id);
 
-	// First, verify the API key exists
-	const [row] = await c.var
-		.t_db()
-		.select({
-			name: api_keys.name,
-			r_apikeys: api_keys.r_apikeys,
-			r_keyrings: api_keys.r_keyrings,
-			b_time: api_keys.b_time,
-			c_time: api_keys.c_time,
-		})
-		.from(api_keys)
-		.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
-		.limit(1);
+		// First, verify the API key exists
+		const [row] = await c.var
+			.t_db()
+			.select({
+				count: count(),
+			})
+			.from(api_keys)
+			.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
+			.limit(1);
 
-	if (row) {
-		// Generate new API key secret
-		const ak_secret = await CryptoHelpers.secretBytes(512 / 8);
-		const [ak_secret_base64url, ak_secret_hash] = await Promise.all([
-			// Convert to format for user response
-			BufferHelpers.bufferToBase64(ak_secret.buffer, true),
-			// Hash to store in db
-			CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
-		]);
+		if ((row?.count ?? 0) > 0) {
+			// Generate new API key secret
+			const ak_secret = await CryptoHelpers.secretBytes(512 / 8);
+			const [ak_secret_base64url, ak_secret_hash] = await Promise.all([
+				// Convert to format for user response
+				BufferHelpers.bufferToBase64(ak_secret.buffer, true),
+				// Hash to store in db
+				CryptoHelpers.getHash('SHA-512', ak_secret.buffer),
+			]);
 
-		// Create the new bearer token
-		const token = [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.');
+			// Create the new bearer token
+			const token = [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.');
 
-		// Update both databases in parallel
-		const [, [updatedRow]] = await Promise.all([
-			// Update root database (expires only)
-			c.var
-				.r_db()
-				.update(api_keys_tenants)
-				.set({
-					expires: expires.toISOString() as ISODateString,
-				})
-				.where(sql`${api_keys_tenants.ak_id} = unhex(${ak_id.hex}) AND ${api_keys_tenants.t_id} = unhex(${c.var.t_id.hex})`),
-			// Update tenant database (hash, expires, m_time auto-updates)
-			c.var
-				.t_db()
-				.update(api_keys)
-				.set({
-					hash: sql<Buffer>`unhex(${ak_secret_hash})`,
-					expires: expires.toISOString() as ISODateString,
-					// m_time will be automatically updated by the $onUpdate trigger
-				})
-				.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
-				.returning({
-					m_time: api_keys.m_time,
-				}),
-		]);
+			// Update both databases in parallel
+			const [, [updatedRow]] = await Promise.all([
+				// Update root database (expires only)
+				c.var
+					.r_db()
+					.update(api_keys_tenants)
+					.set({
+						expires: expires.toISOString() as ISODateString,
+					})
+					.where(sql`${api_keys_tenants.ak_id} = unhex(${ak_id.hex}) AND ${api_keys_tenants.t_id} = unhex(${c.var.t_id.hex})`),
+				// Update tenant database (hash, expires, m_time auto-updates)
+				c.var
+					.t_db()
+					.update(api_keys)
+					.set({
+						hash: sql<Buffer>`unhex(${ak_secret_hash})`,
+						expires: expires.toISOString() as ISODateString,
+						// m_time will be automatically updated by the $onUpdate trigger
+					})
+					.where(eq(api_keys.ak_id, sql<Buffer>`unhex(${ak_id.hex})`))
+					.returning({
+						m_time: api_keys.m_time,
+					}),
+			]);
 
-		if (!updatedRow) {
-			return c.json({ error: 'Failed to update API key' }, 500);
+			if (!updatedRow) {
+				return c.json({ error: 'Failed to update API key' }, 500);
+			}
+
+			// Return the rotated API key details including the new token
+			const response = {
+				created: row.b_time,
+				expired: expires < new Date(),
+				expires: expires.toISOString() as ISODateString,
+				lastModified: updatedRow.m_time,
+				lastRotation: row.c_time,
+				name: row.name,
+				token,
+				token_id: ak_id.base64url,
+				apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
+				keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
+				keyrings: {}, // Note: This endpoint doesn't return keyring permissions for simplicity
+			};
+
+			return c.json(response, 200);
+		} else {
+			return c.json({ error: 'API key not found' }, 404);
 		}
-
-		// Return the rotated API key details including the new token
-		const response = {
-			created: row.b_time,
-			expired: expires < new Date(),
-			expires: expires.toISOString() as ISODateString,
-			lastModified: updatedRow.m_time,
-			lastRotation: row.c_time,
-			name: row.name,
-			token,
-			token_id: ak_id.base64url,
-			apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
-			keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
-			keyrings: {}, // Note: This endpoint doesn't return keyring permissions for simplicity
-		};
-
-		return c.json(response, 200);
 	} else {
-		return c.json({ error: 'API key not found' }, 404);
+		return c.json({ error: 'Insufficient permissions to rotate API keys' }, 403);
 	}
 });
 
