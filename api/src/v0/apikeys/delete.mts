@@ -3,6 +3,7 @@ import { createRoute, OpenAPIHono, z } from '@hono/zod-openapi';
 import { eq, sql } from 'drizzle-orm/sql';
 import { bearerAuth } from 'hono/bearer-auth';
 import type { Buffer } from 'node:buffer';
+import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { api_keys_tenants } from '~shared/db-preview/schemas/root';
