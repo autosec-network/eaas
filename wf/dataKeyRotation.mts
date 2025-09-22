@@ -134,7 +134,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 		};
 
 		const kr_id = await step.do('Convert keyring ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
-		const dk_id = await step.do('Generate datakey ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const dk_id = await step.do('Generate datakey ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid7()).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const { key_type, key_size, hash } = await step.do('Get keyring info', DataKeyRotation.cfApiCallRetry, () =>
 			t_db()

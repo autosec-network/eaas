@@ -55,7 +55,7 @@ yargs(hideBin(process.argv))
 					choices: ['wnam', 'enam', 'weur', 'eeur', 'apac', 'oc'],
 				}),
 		(args) =>
-			BufferHelpers.generateUuid.then((t_id) =>
+			BufferHelpers.generateUuid7().then((t_id) =>
 				NetHelpers.cfApi(CICD_CF_API_TOKEN!)
 					.then((cf) =>
 						cf.d1.database.create({
@@ -184,7 +184,7 @@ yargs(hideBin(process.argv))
 					default: 2 ** 32,
 				}),
 		(args) =>
-			Promise.all([args.t_id, BufferHelpers.generateUuid]).then(([t_id, kr_id]) =>
+			Promise.all([args.t_id, BufferHelpers.generateUuid7()]).then(([t_id, kr_id]) =>
 				DBManager.getDrizzle(
 					{
 						accountId: CF_ACCOUNT_ID!,
@@ -209,7 +209,7 @@ yargs(hideBin(process.argv))
 							})),
 						),
 					)
-					.then(([row]) => {
+					.then(async ([row]) => {
 						if (row) {
 							return (
 								DBManager.getDrizzle(
@@ -230,7 +230,7 @@ yargs(hideBin(process.argv))
 										key_type: args.key_type,
 										key_size: args.key_size,
 										hash: args.hash,
-										count_rotation: sql`unhex(${BufferHelpers.bigintToHex(BigInt(args.count_rotation))})`,
+										count_rotation: sql`unhex(${await BufferHelpers.bigintToHex(BigInt(args.count_rotation))})`,
 									})
 									.returning()
 									.then(console.log)
@@ -296,7 +296,7 @@ yargs(hideBin(process.argv))
 					default: api_keys_keyrings.r_hmac.default,
 				}),
 		(args) =>
-			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid, CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
+			Promise.all([args.t_id, args.kr_id, BufferHelpers.generateUuid7(), CryptoHelpers.secretBytes(512 / 8)]).then(([t_id, kr_id, ak_id, ak_secret]) =>
 				// Hono's bearerAuth only accepts url safe characters
 				Promise.all([BufferHelpers.bufferToBase64(ak_secret.buffer, true), CryptoHelpers.getHash('SHA-512', ak_secret.buffer)]).then(async ([ak_secret_base64url, ak_secret_hash]) => {
 					console.log('Bearer', [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_base64url].join('.'));

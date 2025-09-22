@@ -130,7 +130,7 @@ app.openapi(route, (c) => {
 					.then(({ BufferHelpers }) =>
 						Promise.all([
 							// Generate API key ID
-							BufferHelpers.generateUuid,
+							BufferHelpers.generateUuid7(),
 							import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) =>
 								// Generate API key secret
 								CryptoHelpers.secretBytes(512 / 8).then((ak_secret) =>
