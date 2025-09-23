@@ -1,7 +1,7 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 
-export { PqcContainerSidecar } from '~pqc/do/index.mjs';
+export { PqcContainerSidecar } from '~do/pqc.mjs';
 export { DataKeyRotation } from '~wf/dataKeyRotation.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {

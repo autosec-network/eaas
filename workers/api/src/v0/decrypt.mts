@@ -10,8 +10,8 @@ import { createDecipheriv, createHash, createHmac, createSecretKey, hkdf, timing
 import { promisify } from 'node:util';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { datakeys, keyrings } from '~db/tenant';
+import type { PqcContainerSidecar } from '~do/pqc.mjs';
 import type { routes as containerRoutes } from '~pqc/container/src/index.mjs';
-import type { PqcContainerSidecar } from '~pqc/do/index.mjs';
 import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
 import { parseCipherText0, type SecretNote } from '~shared/types/bw/index.mjs';
 import { EncryptionAlgorithms, KeyAlgorithms } from '~shared/types/crypto/index.mjs';
