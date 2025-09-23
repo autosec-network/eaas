@@ -11,5 +11,5 @@
 		"types": ["./worker-configuration.d.ts", "node"]
 	},
 	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs", "apiGateway.mts"],
-	"include": ["src", "dist", "../shared"]
+	"include": ["../shared", "../wf", "src", "dist"]
 }
