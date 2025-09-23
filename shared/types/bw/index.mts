@@ -1,3 +1,4 @@
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
 import type { EncryptionAlgorithms } from '../crypto/index.mjs';
 import type { UuidExport } from '../d1/index.mjs';
 
@@ -85,12 +86,12 @@ export async function parseCipherText0(cipherText: string): Promise<{ dk_id: Uui
 		encoding = 'hex';
 	}
 
-	return import('@chainfuse/helpers/buffers').then(async ({ BufferHelpers }) => ({
+	return {
 		dk_id: await BufferHelpers.uuidConvert(dk_id_str),
 		algorithm: Buffer.from(algorithm_str, encoding).toString('utf8') as EncryptionAlgorithms,
 		bitStrength: Buffer.from(bitStrength_str, encoding).toString('utf8') as '128' | '192' | '256',
 		preamble: new Uint8Array(Buffer.from(preamble_str, encoding)),
 		cipherBuffer: new Uint8Array(Buffer.from(cipherBuffer_str, encoding)),
 		signature: new Uint8Array(Buffer.from(signature_str, encoding)),
-	}));
+	};
 }

@@ -1,3 +1,9 @@
+import { BufferHelpers } from '@chainfuse/helpers/buffers';
+import { Helpers } from '@chainfuse/helpers/common';
+import { CryptoHelpers } from '@chainfuse/helpers/crypto';
+import { ml_dsa44, ml_dsa65, ml_dsa87 } from '@noble/post-quantum/ml-dsa';
+import { ml_kem1024, ml_kem512, ml_kem768 } from '@noble/post-quantum/ml-kem';
+import { slh_dsa_sha2_128f, slh_dsa_sha2_128s, slh_dsa_sha2_192f, slh_dsa_sha2_192s, slh_dsa_sha2_256f, slh_dsa_sha2_256s, slh_dsa_shake_128f, slh_dsa_shake_128s, slh_dsa_shake_192f, slh_dsa_shake_192s, slh_dsa_shake_256f, slh_dsa_shake_256s } from '@noble/post-quantum/slh-dsa';
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep, type WorkflowStepConfig } from 'cloudflare:workers';
 import { NonRetryableError } from 'cloudflare:workflows';
 import { eq, sql } from 'drizzle-orm';
@@ -57,11 +63,11 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 		);
 
 		// Convert tenant ID with error handling
-		const t_id = await step.do('Convert tenant ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.t_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const t_id = await step.do('Convert tenant ID', () => BufferHelpers.uuidConvert(parsedPayload.t_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const t_db_setup = await step.do('Tenant DB lookup', DataKeyRotation.cfApiCallRetry, async () => {
-			if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
-				const potentialVipBinding = (await import('@chainfuse/helpers/crypto').then(({ CryptoHelpers }) => CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`))).toUpperCase();
+			if (!Helpers.isLocal(this.env.CF_VERSION_METADATA)) {
+				const potentialVipBinding = (await CryptoHelpers.getHash('SHA-256', `t_${t_id.utf8}${this.env.NODE_ENV !== 'production' && '_p'}`)).toUpperCase();
 
 				if (potentialVipBinding in this.env) {
 					return { binding: potentialVipBinding };
@@ -69,7 +75,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			}
 
 			let r_db: ReturnType<typeof DBManager.getDrizzle>;
-			if (!(await import('@chainfuse/helpers/common').then(({ Helpers }) => Helpers.isLocal(this.env.CF_VERSION_METADATA)))) {
+			if (!Helpers.isLocal(this.env.CF_VERSION_METADATA)) {
 				r_db = DBManager.getDrizzle(
 					{
 						accountId: this.env.CF_ACCOUNT_ID,
@@ -92,14 +98,12 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				.where(eq(tenants.t_id, sql`unhex(${t_id.hex})`))
 				.limit(1)
 				.then((rows) =>
-					import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) =>
-						Promise.all(
-							rows.map((row) =>
-								BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
-									...row,
-									d1_id,
-								})),
-							),
+					Promise.all(
+						rows.map((row) =>
+							BufferHelpers.uuidConvert(row.d1_id).then((d1_id) => ({
+								...row,
+								d1_id,
+							})),
 						),
 					),
 				)
@@ -133,8 +137,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 			return t_db;
 		};
 
-		const kr_id = await step.do('Convert keyring ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(parsedPayload.kr_id)).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
-		const dk_id = await step.do('Generate datakey ID', () => import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.generateUuid7()).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const kr_id = await step.do('Convert keyring ID', () => BufferHelpers.uuidConvert(parsedPayload.kr_id).then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
+		const dk_id = await step.do('Generate datakey ID', () => BufferHelpers.generateUuid7().then(({ utf8, hex, base64, base64url }) => ({ utf8, hex, base64, base64url })));
 
 		const { key_type, key_size, hash } = await step.do('Get keyring info', DataKeyRotation.cfApiCallRetry, () =>
 			t_db()
@@ -446,11 +450,11 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							return (async () => {
 								switch (normalizedMlkemKeySize) {
 									case 512:
-										return import('@noble/post-quantum/ml-kem').then(({ ml_kem512 }) => ml_kem512);
+										return ml_kem512;
 									case 768:
-										return import('@noble/post-quantum/ml-kem').then(({ ml_kem768 }) => ml_kem768);
+										return ml_kem768;
 									case 1024:
-										return import('@noble/post-quantum/ml-kem').then(({ ml_kem1024 }) => ml_kem1024);
+										return ml_kem1024;
 								}
 							})().then((ml_kem) => {
 								const { publicKey, secretKey } = ml_kem.keygen();
@@ -508,11 +512,11 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 							return (async () => {
 								switch (normalizedMldsaKeySize) {
 									case 44:
-										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa44 }) => ml_dsa44);
+										return ml_dsa44;
 									case 65:
-										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa65 }) => ml_dsa65);
+										return ml_dsa65;
 									case 87:
-										return import('@noble/post-quantum/ml-dsa').then(({ ml_dsa87 }) => ml_dsa87);
+										return ml_dsa87;
 								}
 							})().then((ml_dsa) => {
 								const { publicKey, secretKey } = ml_dsa.keygen(crypto.getRandomValues(new Uint8Array(256 / 8)));
@@ -577,21 +581,21 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 											case 's':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_128s }) => slh_dsa_sha2_128s);
+														return slh_dsa_sha2_128s;
 													case 192:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_192s }) => slh_dsa_sha2_192s);
+														return slh_dsa_sha2_192s;
 													case 256:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_256s }) => slh_dsa_sha2_256s);
+														return slh_dsa_sha2_256s;
 												}
 											// eslint-disable-next-line no-fallthrough
 											case 'f':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_128f }) => slh_dsa_sha2_128f);
+														return slh_dsa_sha2_128f;
 													case 192:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_192f }) => slh_dsa_sha2_192f);
+														return slh_dsa_sha2_192f;
 													case 256:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_sha2_256f }) => slh_dsa_sha2_256f);
+														return slh_dsa_sha2_256f;
 												}
 										}
 
@@ -601,21 +605,21 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 											case 's':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_128s }) => slh_dsa_shake_128s);
+														return slh_dsa_shake_128s;
 													case 192:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_192s }) => slh_dsa_shake_192s);
+														return slh_dsa_shake_192s;
 													case 256:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_256s }) => slh_dsa_shake_256s);
+														return slh_dsa_shake_256s;
 												}
 											// eslint-disable-next-line no-fallthrough
 											case 'f':
 												switch (normalizedSlhdsaKeySize) {
 													case 128:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_128f }) => slh_dsa_shake_128f);
+														return slh_dsa_shake_128f;
 													case 192:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_192f }) => slh_dsa_shake_192f);
+														return slh_dsa_shake_192f;
 													case 256:
-														return import('@noble/post-quantum/slh-dsa').then(({ slh_dsa_shake_256f }) => slh_dsa_shake_256f);
+														return slh_dsa_shake_256f;
 												}
 										}
 								}
@@ -687,7 +691,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, Params> {
 				.values({
 					dk_id: sql`unhex(${dk_id.hex})`,
 					kr_id: sql`unhex(${kr_id.hex})`,
-					bw_id: sql`unhex(${(await import('@chainfuse/helpers/buffers').then(({ BufferHelpers }) => BufferHelpers.uuidConvert(uploadedSecret.id))).hex})`,
+					bw_id: sql`unhex(${(await BufferHelpers.uuidConvert(uploadedSecret.id)).hex})`,
 				})
 				.returning({
 					dk_id: datakeys.dk_id,

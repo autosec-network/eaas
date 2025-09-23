@@ -1,4 +1,4 @@
-import type { NetHelpers } from '@chainfuse/helpers/net';
+import { NetHelpers } from '@chainfuse/helpers/net';
 import { DefaultLogger, type LogWriter } from 'drizzle-orm';
 import type { Cache as DrizzleCache } from 'drizzle-orm/cache/core';
 import { drizzle as drizzleD1 } from 'drizzle-orm/d1';
@@ -79,7 +79,7 @@ export class DBManager {
 			return drizzleRest<TSchema>(
 				async (sql, params, method) => {
 					try {
-						const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params })));
+						const responses = await NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql, params }));
 
 						if (responses.result[0]?.success) {
 							const results = (responses.result[0].results ?? []) as Record<string, any>[];
@@ -109,7 +109,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const promises = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params })))));
+							const promises = await Promise.allSettled(queries.map((query) => NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: query.sql, params: query.params }))));
 
 							promises.forEach((promise) => {
 								if (promise.status === 'fulfilled') {
@@ -149,7 +149,7 @@ export class DBManager {
 						try {
 							const batchResponse: { rows: any[][] | any[] }[] = [];
 
-							const responses = await import('@chainfuse/helpers/net').then(({ NetHelpers }) => NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') })));
+							const responses = await NetHelpers.cfApi(dbRef.apiToken, config.cfLogging).then((cf) => cf.d1.database.query(dbRef.databaseId, { account_id: dbRef.accountId, sql: queries.map((query) => query.sql).join(';') }));
 
 							// Merge back together into final result
 							responses.result.forEach((response, index) => {
