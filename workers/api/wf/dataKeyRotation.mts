@@ -11,13 +11,13 @@ import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import * as zm from 'zod/mini';
 import type { EnvVars } from '~/types.mjs';
+import { tenants } from '~db/root';
 import { datakeys, keyrings } from '~db/tenant';
-import { tenants } from '../db/root';
-import { DBManager, StaticDatabase } from '../shared/db-core/db.mjs';
-import { BitwardenHelper } from '../shared/helpers/bitwarden.mjs';
-import type { SecretNote } from '../shared/types/bw/index.mjs';
-import { KeyAlgorithms } from '../shared/types/crypto/index.mjs';
-import { ZodUuidExportInput } from '../shared/types/d1/index.mjs';
+import { DBManager, StaticDatabase } from '~shared/db-core/db.mjs';
+import { BitwardenHelper } from '~shared/helpers/bitwarden.mjs';
+import type { SecretNote } from '~shared/types/bw/index.mjs';
+import { KeyAlgorithms } from '~shared/types/crypto/index.mjs';
+import { ZodUuidExportInput } from '~shared/types/d1/index.mjs';
 
 export const workflowParams = zm.object({
 	t_id: ZodUuidExportInput,

@@ -8,10 +8,10 @@
 			"~do/*": ["./do/*"],
 			"~shared/*": ["../../shared/*"],
 			"~pqc/*": ["./pqc/*"],
-			"~wf/*": ["../../wf/*"]
+			"~wf/*": ["./wf/*"]
 		},
 		"types": ["./worker-configuration.d.ts", "node"]
 	},
 	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mjs", "apiGateway.mts"],
-	"include": ["../../db", "./do", "../../wf", "src"]
+	"include": ["../../db", "./do", "./wf", "src"]
 }
