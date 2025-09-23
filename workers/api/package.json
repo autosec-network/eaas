@@ -27,7 +27,7 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/tree/production/api#readme",
 	"dependencies": {
-		"@chainfuse/helpers": "^4.1.0",
+		"@chainfuse/helpers": "^4.1.1",
 		"@cloudflare/containers": "^0.0.28",
 		"@hono/node-server": "^1.19.4",
 		"@hono/zod-openapi": "^1.1.3",
