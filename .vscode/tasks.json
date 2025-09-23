@@ -35,7 +35,7 @@
 		{
 			"label": "PQC Container Types",
 			"type": "typescript",
-			"tsconfig": "api/pqc/container/tsconfig.json",
+			"tsconfig": "api/container/pqc/tsconfig.json",
 			"option": "watch",
 			"problemMatcher": ["$tsc-watch"],
 			"isBackground": true,

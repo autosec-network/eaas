@@ -31,7 +31,7 @@ RUN --mount=type=cache,target=/root/.npm npm run-script install --if-present
 RUN --mount=type=cache,target=/root/.npm npm cache clean --force
 
 # Copy built application from the build stage
-COPY workers/api/pqc/container/dist ./workers/api/pqc/container/dist
+COPY workers/api/container/pqc/dist ./workers/api/container/pqc/dist
 
 EXPOSE 8080
 
