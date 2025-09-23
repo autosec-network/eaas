@@ -2,7 +2,7 @@ import { WorkerEntrypoint } from 'cloudflare:workers';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 export { PqcContainerSidecar } from '~pqc/do/index.mjs';
-export { DataKeyRotation } from '../../wf/dataKeyRotation.mjs';
+export { DataKeyRotation } from '~wf/dataKeyRotation.mjs';
 
 export default class extends WorkerEntrypoint<EnvVars> {
 	override async fetch(request: Request) {

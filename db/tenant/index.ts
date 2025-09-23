@@ -1,10 +1,10 @@
 import { sql, type SQL } from 'drizzle-orm';
 import { sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-import type { BaseBitwardenServer } from '../../../types/bw/index.mjs';
-import type { KeyAlgorithms } from '../../../types/crypto/index.mjs';
-import { workersCryptoCatalog } from '../../../types/crypto/workers-crypto-catalog.mjs';
-import type { EmailAddress, ISODateString, Permissions, UuidExport } from '../../../types/d1/index.mjs';
-import type { TenantFlagsObject, UserFlagsObject } from '../../../types/d1/tenants/index.mjs';
+import type { BaseBitwardenServer } from '../../shared/types/bw/index.mjs';
+import type { KeyAlgorithms } from '../../shared/types/crypto/index.mjs';
+import { workersCryptoCatalog } from '../../shared/types/crypto/workers-crypto-catalog.mjs';
+import type { EmailAddress, ISODateString, Permissions, UuidExport } from '../../shared/types/d1/index.mjs';
+import type { TenantFlagsObject, UserFlagsObject } from '../../shared/types/d1/tenants/index.mjs';
 
 // It fails if it's imported
 /**

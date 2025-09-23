@@ -13,9 +13,9 @@ import type { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import api0 from '~/v0/index.mjs';
+import { api_keys_tenants, tenants } from '~db/root';
+import { api_keys, api_keys_keyrings, keyrings } from '~db/tenant';
 import { DBManager } from '~shared/db-core/db.mjs';
-import { api_keys_tenants, tenants } from '~shared/db-preview/schemas/root';
-import { api_keys, api_keys_keyrings, keyrings } from '~shared/db-preview/schemas/tenant';
 import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 
 const app = await new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>();

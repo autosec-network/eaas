@@ -1,7 +1,7 @@
 import type { AdapterAccount } from '@auth/core/adapters';
 import { sql, type SQL } from 'drizzle-orm';
 import { primaryKey, sqliteTable, unique, uniqueIndex, type AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
-// import type { EmailAddress, ISODateString, UuidExport } from '../../shared/types/d1/index.mjs';
+import type { EmailAddress, ISODateString, UuidExport } from '../../shared/types/d1/index.mjs';
 
 // It fails if it's imported
 /**

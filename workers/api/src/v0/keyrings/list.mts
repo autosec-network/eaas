@@ -6,7 +6,7 @@ import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { APITags } from '~/v0/extras.mjs';
 import { keyringOutput } from '~/v0/keyrings/shared.mjs';
-import { datakeys, keyrings } from '~shared/db-preview/schemas/tenant';
+import { datakeys, keyrings } from '~db/tenant';
 import { Permissions } from '~shared/types/d1/index.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();

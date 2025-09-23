@@ -7,8 +7,8 @@ import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { APITags } from '~/v0/extras.mjs';
-import { api_keys_tenants } from '~shared/db-preview/schemas/root';
-import { api_keys } from '~shared/db-preview/schemas/tenant';
+import { api_keys_tenants } from '~db/root';
+import { api_keys } from '~db/tenant';
 import { Permissions } from '~shared/types/d1/index.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>();

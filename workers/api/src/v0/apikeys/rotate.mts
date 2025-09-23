@@ -8,8 +8,8 @@ import { createHash } from 'node:crypto';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyEditable, createApikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { APITags } from '~/v0/extras.mjs';
-import { api_keys_tenants } from '~shared/db-preview/schemas/root';
-import { api_keys } from '~shared/db-preview/schemas/tenant';
+import { api_keys_tenants } from '~db/root';
+import { api_keys } from '~db/tenant';
 import { ApiKeyVersions } from '~shared/types/bw/index.mjs';
 import { Permissions, type ISODateString } from '~shared/types/d1/index.mjs';
 

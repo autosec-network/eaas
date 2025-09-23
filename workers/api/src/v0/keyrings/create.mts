@@ -6,7 +6,7 @@ import type { Buffer } from 'node:buffer';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { APITags } from '~/v0/extras.mjs';
 import { keyringEditable, keyringOutput } from '~/v0/keyrings/shared.mjs';
-import { keyrings } from '~shared/db-preview/schemas/tenant';
+import { keyrings } from '~db/tenant';
 import type { workersCryptoCatalog } from '~shared/types/crypto/workers-crypto-catalog.mjs';
 import type { workflowParams } from '~wf/dataKeyRotation.mjs';
 

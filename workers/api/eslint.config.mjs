@@ -1,6 +1,6 @@
 import drizzlePlugin from 'eslint-plugin-drizzle';
 import tseslint from 'typescript-eslint';
-import rootConfig from '../eslint.config.mjs';
+import rootConfig from '../../eslint.config.mjs';
 
 export default tseslint.config({
 	extends: [...rootConfig],
