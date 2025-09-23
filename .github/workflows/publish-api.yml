@@ -10,12 +10,12 @@ on:
       - 'package*.json'
       - 'tsconfig.json'
       - 'shared/**'
-      - 'api/package*.json'
-      - 'api/src/**'
-      - 'api/dist/**'
-      - 'api/tsconfig.json'
-      - 'api/wrangler.jsonc'
-      - 'api/staticApi.mts'
+      - 'workers/api/package*.json'
+      - 'workers/api/src/**'
+      - 'workers/api/dist/**'
+      - 'workers/api/tsconfig.json'
+      - 'workers/api/wrangler.jsonc'
+      - 'workers/api/staticApi.mts'
       - 'wf/**'
   workflow_dispatch:
     inputs:
@@ -62,12 +62,12 @@ jobs:
       - run: npm ci --ignore-scripts --include-workspace-root --workspace api
       - run: npm run-script install --if-present
       - run: npm -w api run build:types:cf
-      - run: npx prettier --write api/worker-configuration.d.ts
-      - run: git commit -m "Generate cf types" api/worker-configuration.d.ts || echo "No type generation done"
+      - run: npx prettier --write workers/api/worker-configuration.d.ts
+      - run: git commit -m "Generate cf types" workers/api/worker-configuration.d.ts || echo "No type generation done"
       - run: git push
       - run: npm -w api run build:pqc
       - run: npm -w api run build:static
-      - run: git add api/dist/**
+      - run: git add workers/api/dist/**
       - run: git commit -m "Generated static assets" || echo "static assets not touched"
       - run: git push
       - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
@@ -79,7 +79,7 @@ jobs:
           apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
           environment: ${{ (vars.ENVIRONMENT == 'production' && vars.ENVIRONMENT) || '' }}
-          workingDirectory: api
+          workingDirectory: workers/api
           vars: |
             CF_ACCOUNT_ID
             GIT_HASH

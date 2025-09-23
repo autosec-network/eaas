@@ -40,7 +40,7 @@ jobs:
       - run: cargo install svg-hush --force
       - name: Clean SVGs in `src`
         run: |
-          for file in $(find ${{ github.workspace }}/frontend -iname '*.svg'); do
+          for file in $(find ${{ github.workspace }}/workers/frontend -iname '*.svg'); do
             echo "Sanitizing: $file"
             svg-hush $file > ${file}.tmp
             mv -f ${file}.tmp $file

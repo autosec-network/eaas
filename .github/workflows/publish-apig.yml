@@ -7,7 +7,7 @@ on:
       - preview
     paths:
       - '.github/workflows/publish-apig.yml'
-      - 'api/dist/*/*.cf-apig.openapi.json'
+      - 'workers/api/dist/*/*.cf-apig.openapi.json'
       - 'apiGateway.mts'
   workflow_dispatch:
     inputs:
