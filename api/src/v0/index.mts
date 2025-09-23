@@ -18,7 +18,7 @@ const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>(
 });
 
 const title = 'EaaS API';
-// const description = 'Description';
+const description = 'Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.';
 // const termsOfService = 'https://example.com';
 const contact: oas31.ContactObject = {
 	name: 'Issues',
@@ -30,6 +30,7 @@ app.doc31('/generate/openapi31', (c) => ({
 	openapi: '3.1.0',
 	info: {
 		title,
+		description,
 		contact,
 		version,
 	},
@@ -51,6 +52,7 @@ app.doc('/generate/openapi', (c) => ({
 	openapi: '3.0.0',
 	info: {
 		title,
+		description,
 		contact,
 		version,
 	},
@@ -72,6 +74,7 @@ app.doc('/generate/v0.eaas.cf-apig.openapi', {
 	openapi: '3.0.0',
 	info: {
 		title,
+		description,
 		contact,
 		version,
 	},
