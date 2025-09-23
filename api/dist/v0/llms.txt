@@ -3,6 +3,8 @@
 - **OpenAPI Version:** `3.1.0`
 - **API Version:** `0.0.0`
 
+Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.
+
 ## Servers
 
 - **URL:** `/v0`
