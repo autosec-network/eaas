@@ -93,7 +93,13 @@ app.openapi(route, async (c) => {
 	const body = c.req.valid('json');
 
 	// Set default expiration if not provided (90 days from now)
-	const expires = body.expires ? new Date(body.expires) : new Date(Date.now() + 90 * 24 * 60 * 60 * 1000);
+	const expires = body.expires
+		? new Date(body.expires)
+		: new Date(
+				Date.now() +
+					// days * hours * minutes * seconds * milliseconds
+					90 * 24 * 60 * 60 * 1000,
+			);
 
 	// Check permissions first
 	if ((c.var.globalPermissions?.r_apikeys ?? Permissions.None) >= Permissions.Write) {
