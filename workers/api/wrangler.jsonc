@@ -75,7 +75,7 @@
 			},
 			"containers": [
 				{
-					"image": "../Dockerfile",
+					"image": "../../Dockerfile",
 					"class_name": "PqcContainerSidecar",
 					"instance_type": "dev",
 					"max_instances": 10,
