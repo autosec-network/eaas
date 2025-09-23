@@ -80,7 +80,6 @@ updates:
           - '@cloudflare/workers-types'
       ci-cd:
         patterns:
-          - 'yargs'
           - '@scalar/openapi-to-markdown'
       code-management:
         patterns:
