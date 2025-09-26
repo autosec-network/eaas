@@ -39,7 +39,7 @@
 		"@auth/core": "^0.40.0",
 		"@changesets/changelog-github": "^0.5.1",
 		"@changesets/cli": "^2.29.7",
-		"@cloudflare/workers-types": "^4.20250923.0",
+		"@cloudflare/workers-types": "^4.20250926.0",
 		"@demosjarco/prettier-config": "^1.0.2",
 		"@eslint/js": "^9.36.0",
 		"@types/node": "^22.18.6",
