@@ -36,7 +36,7 @@
 		"@noble/post-quantum": "^0.4.1",
 		"cron-schedule": "^5.0.4",
 		"cron-validate": "^1.4.5",
-		"hono": "^4.9.8",
+		"hono": "^4.11.4",
 		"validator": "^13.15.15"
 	},
 	"devDependencies": {
