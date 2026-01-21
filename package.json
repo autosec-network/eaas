@@ -31,7 +31,7 @@
 		"workers/*"
 	],
 	"dependencies": {
-		"drizzle-orm": "^0.44.5",
+		"drizzle-orm": "^0.45.1",
 		"jose": "^6.1.0",
 		"zod": "^4.1.11"
 	},
@@ -43,7 +43,7 @@
 		"@demosjarco/prettier-config": "^1.0.2",
 		"@eslint/js": "^9.36.0",
 		"@types/node": "^22.18.6",
-		"drizzle-kit": "^0.31.4",
+		"drizzle-kit": "^0.31.8",
 		"eslint": "^9.36.0",
 		"eslint-config-prettier": "^10.1.8",
 		"lerna": "^8.2.4",
