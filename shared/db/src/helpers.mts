@@ -1,4 +1,5 @@
-import { sql, type AnyColumn, type SQL } from 'drizzle-orm';
+import type { AnyColumn } from 'drizzle-orm/column';
+import { sql, type SQL } from 'drizzle-orm/sql';
 import type { AnySQLiteColumn } from 'drizzle-orm/sqlite-core';
 
 export type AnySQL = AnySQLiteColumn | SQL;
