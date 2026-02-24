@@ -37,7 +37,7 @@
 		"cron-schedule": "^5.0.4",
 		"cron-validate": "^1.4.5",
 		"hono": "^4.9.8",
-		"validator": "^13.15.15"
+		"validator": "^13.15.26"
 	},
 	"devDependencies": {
 		"@scalar/openapi-to-markdown": "^0.2.38",
