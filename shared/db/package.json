@@ -1,0 +1,59 @@
+{
+	"name": "db",
+	"type": "module",
+	"main": "./src/index.mts",
+	"directories": {
+		"lib": "src"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"types": "./dist/index.d.mts"
+		},
+		"./schemas/root": {
+			"import": "./dist/schema/index.js",
+			"types": "./dist/schema/index.d.ts"
+		},
+		"./core": {
+			"import": "./dist/core.mjs",
+			"types": "./dist/core.d.mts"
+		},
+		"./helpers": {
+			"import": "./dist/helpers.mjs",
+			"types": "./dist/helpers.d.mts"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:types && npm run build:db",
+		"build:types": "tsc",
+		"build:db": "drizzle-kit generate --dialect=sqlite --schema=\"./src/schema/index.ts\" --out=\"./src/schema\"",
+		"postbuild:db": "prettier --write ./src/schema",
+		"publish:dev": "wrangler d1 migrations apply --remote eaas_root_p",
+		"publish:prod": "wrangler d1 migrations apply --remote eaas_root"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/db/README.md",
+	"dependencies": {
+		"drizzle-orm": "^0.45.1"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260305.0",
+		"drizzle-kit": "^0.31.9",
+		"eslint-plugin-drizzle": "^0.2.3"
+	}
+}
