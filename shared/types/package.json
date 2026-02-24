@@ -1,0 +1,45 @@
+{
+	"name": "types",
+	"type": "module",
+	"main": "index.mts",
+	"directories": {
+		"lib": "src"
+	},
+	"exports": {
+		".": {
+			"import": "./src/index.mts",
+			"types": "./src/index.mts"
+		},
+		"./bw": {
+			"import": "./src/bw/index.mts",
+			"types": "./src/bw/index.mts"
+		},
+		"./bw/schemas": {
+			"import": "./src/bw/schemas.ts",
+			"types": "./src/bw/schemas.ts"
+		},
+		"./crypto": {
+			"import": "./src/crypto/index.mts",
+			"types": "./src/crypto/index.mts"
+		},
+		"./crypto/catalog": {
+			"import": "./src/crypto/workers-crypto-catalog.mjs",
+			"types": "./src/crypto/workers-crypto-catalog.mts"
+		}
+	},
+	"scripts": {},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/types/README.md"
+}
