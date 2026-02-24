@@ -36,7 +36,7 @@
 		"zod": "^4.1.11"
 	},
 	"devDependencies": {
-		"@auth/core": "^0.40.0",
+		"@auth/core": "^0.41.1",
 		"@changesets/changelog-github": "^0.5.1",
 		"@changesets/cli": "^2.29.7",
 		"@cloudflare/workers-types": "^4.20250923.0",
