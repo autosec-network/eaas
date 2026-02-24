@@ -1,0 +1,294 @@
+{
+	"version": "6",
+	"dialect": "sqlite",
+	"id": "5a0e20b2-9b86-402a-a7d3-617256708d10",
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"tables": {
+		"api_keys_tenants": {
+			"name": "api_keys_tenants",
+			"columns": {
+				"ak_id": {
+					"name": "ak_id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"t_id": {
+					"name": "t_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires": {
+					"name": "expires",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"api_keys_tenants_ak_id_t_id_unique": {
+					"name": "api_keys_tenants_ak_id_t_id_unique",
+					"columns": ["ak_id", "t_id"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {
+				"api_keys_tenants_t_id_tenants_t_id_fk": {
+					"name": "api_keys_tenants_t_id_tenants_t_id_fk",
+					"tableFrom": "api_keys_tenants",
+					"tableTo": "tenants",
+					"columnsFrom": ["t_id"],
+					"columnsTo": ["t_id"],
+					"onDelete": "cascade",
+					"onUpdate": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"tenants": {
+			"name": "tenants",
+			"columns": {
+				"t_id": {
+					"name": "t_id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"do_id": {
+					"name": "do_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"tenants_do_id_unique": {
+					"name": "tenants_do_id_unique",
+					"columns": ["do_id"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"users": {
+			"name": "users",
+			"columns": {
+				"u_id": {
+					"name": "u_id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"do_id": {
+					"name": "do_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"key_hash": {
+					"name": "key_hash",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"email_key": {
+					"name": "email_key",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"user_init": {
+					"name": "user_init",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": false
+				}
+			},
+			"indexes": {
+				"users_do_id_unique": {
+					"name": "users_do_id_unique",
+					"columns": ["do_id"],
+					"isUnique": true
+				},
+				"users_email_key_unique": {
+					"name": "users_email_key_unique",
+					"columns": ["email_key"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"users_auth_accounts": {
+			"name": "users_auth_accounts",
+			"columns": {
+				"u_id": {
+					"name": "u_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"key_hash": {
+					"name": "key_hash",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider": {
+					"name": "provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider_account_id": {
+					"name": "provider_account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"users_auth_accounts_u_id_users_u_id_fk": {
+					"name": "users_auth_accounts_u_id_users_u_id_fk",
+					"tableFrom": "users_auth_accounts",
+					"tableTo": "users",
+					"columnsFrom": ["u_id"],
+					"columnsTo": ["u_id"],
+					"onDelete": "cascade",
+					"onUpdate": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {
+				"users_auth_accounts_provider_provider_account_id_pk": {
+					"columns": ["provider", "provider_account_id"],
+					"name": "users_auth_accounts_provider_provider_account_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"users_auth_sessions": {
+			"name": "users_auth_sessions",
+			"columns": {
+				"u_id": {
+					"name": "u_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"session_token": {
+					"name": "session_token",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires": {
+					"name": "expires",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"users_auth_sessions_u_id_users_u_id_fk": {
+					"name": "users_auth_sessions_u_id_users_u_id_fk",
+					"tableFrom": "users_auth_sessions",
+					"tableTo": "users",
+					"columnsFrom": ["u_id"],
+					"columnsTo": ["u_id"],
+					"onDelete": "cascade",
+					"onUpdate": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"users_tenants": {
+			"name": "users_tenants",
+			"columns": {
+				"u_id": {
+					"name": "u_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"t_id": {
+					"name": "t_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {
+				"users_tenants_u_id_users_u_id_fk": {
+					"name": "users_tenants_u_id_users_u_id_fk",
+					"tableFrom": "users_tenants",
+					"tableTo": "users",
+					"columnsFrom": ["u_id"],
+					"columnsTo": ["u_id"],
+					"onDelete": "cascade",
+					"onUpdate": "cascade"
+				},
+				"users_tenants_t_id_tenants_t_id_fk": {
+					"name": "users_tenants_t_id_tenants_t_id_fk",
+					"tableFrom": "users_tenants",
+					"tableTo": "tenants",
+					"columnsFrom": ["t_id"],
+					"columnsTo": ["t_id"],
+					"onDelete": "cascade",
+					"onUpdate": "cascade"
+				}
+			},
+			"compositePrimaryKeys": {
+				"users_tenants_u_id_t_id_pk": {
+					"columns": ["u_id", "t_id"],
+					"name": "users_tenants_u_id_t_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		}
+	},
+	"views": {},
+	"enums": {},
+	"_meta": {
+		"schemas": {},
+		"tables": {},
+		"columns": {}
+	},
+	"internal": {
+		"indexes": {}
+	}
+}
