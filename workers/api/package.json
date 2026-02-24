@@ -40,7 +40,7 @@
 		"validator": "^13.15.15"
 	},
 	"devDependencies": {
-		"@scalar/openapi-to-markdown": "^0.2.38",
+		"@scalar/openapi-to-markdown": "^0.3.50",
 		"@types/validator": "^13.15.3"
 	}
 }
