@@ -1,0 +1,227 @@
+{
+	"version": "6",
+	"dialect": "sqlite",
+	"id": "d9ff7a3b-0016-4eb6-8c4f-143780f5e3a5",
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"tables": {
+		"auth_accounts": {
+			"name": "auth_accounts",
+			"columns": {
+				"type": {
+					"name": "type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider": {
+					"name": "provider",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"provider_account_id": {
+					"name": "provider_account_id",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"refresh_token": {
+					"name": "refresh_token",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"access_token": {
+					"name": "access_token",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"expires_at": {
+					"name": "expires_at",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"token_type": {
+					"name": "token_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"scope": {
+					"name": "scope",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"id_token": {
+					"name": "id_token",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"session_state": {
+					"name": "session_state",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {
+				"auth_accounts_provider_provider_account_id_pk": {
+					"columns": ["provider", "provider_account_id"],
+					"name": "auth_accounts_provider_provider_account_id_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"auth_verification_token": {
+			"name": "auth_verification_token",
+			"columns": {
+				"identifier": {
+					"name": "identifier",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"hashed_token": {
+					"name": "hashed_token",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"timestamp": {
+					"name": "timestamp",
+					"type": "text(24)",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {
+				"auth_verification_token_identifier_hashed_token_pk": {
+					"columns": ["identifier", "hashed_token"],
+					"name": "auth_verification_token_identifier_hashed_token_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"auth_webauthn": {
+			"name": "auth_webauthn",
+			"columns": {
+				"credential_id": {
+					"name": "credential_id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"name": {
+					"name": "name",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"aa_guid": {
+					"name": "aa_guid",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"credential_public_key": {
+					"name": "credential_public_key",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"counter": {
+					"name": "counter",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"credential_device_type": {
+					"name": "credential_device_type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"credential_backed_up": {
+					"name": "credential_backed_up",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"transports": {
+					"name": "transports",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"a_time": {
+					"name": "a_time",
+					"type": "text(24)",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": "(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))"
+				},
+				"b_time": {
+					"name": "b_time",
+					"type": "text(24)",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": "(strftime('%FT%H:%M:%fZ', CURRENT_TIMESTAMP))"
+				}
+			},
+			"indexes": {
+				"auth_webauthn_name_unique": {
+					"name": "auth_webauthn_name_unique",
+					"columns": ["name"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		}
+	},
+	"views": {},
+	"enums": {},
+	"_meta": {
+		"schemas": {},
+		"tables": {},
+		"columns": {}
+	},
+	"internal": {
+		"indexes": {}
+	}
+}

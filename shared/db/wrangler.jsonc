@@ -1,0 +1,19 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT_DEV",
+			"database_name": "eaas_root_dev",
+			"database_id": "e06d4bdd-d766-4692-a59b-d1efb2c717f3",
+			"migrations_dir": "src/schemas/root",
+			"remote": true
+		},
+		{
+			"binding": "DB_ROOT_PROD",
+			"database_name": "eaas_root_prod",
+			"database_id": "b65299dd-87d5-487b-90fd-86e17465e1d5",
+			"migrations_dir": "src/schemas/root",
+			"remote": true
+		}
+	]
+}
