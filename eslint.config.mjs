@@ -1,11 +1,13 @@
 import eslint from '@eslint/js';
 import eslintConfigPrettier from 'eslint-config-prettier/flat';
+import eslintPluginZod from 'eslint-plugin-zod';
+import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 
-export default tseslint.config({
+export default defineConfig({
 	// config with just ignores is the replacement for `.eslintignore`
-	ignores: ['dist/*', 'server/*', 'tmp/*'],
-	extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked, eslintConfigPrettier],
+	ignores: ['dist/*', 'server/*', 'tmp/*', '**/worker-configuration.d.ts'],
+	extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked, ...tseslint.configs.stylisticTypeChecked, eslintConfigPrettier, eslintPluginZod.configs.recommended],
 	plugins: {
 		'@typescript-eslint': tseslint.plugin,
 	},
@@ -23,6 +25,11 @@ export default tseslint.config({
 		},
 	},
 	rules: {
+		'zod/array-style': ['error', 'function'],
+		'zod/consistent-import-source': ['error', { sources: ['zod/mini', 'zod/v4'] }],
+		'zod/no-any-schema': 'warn',
+		'zod/no-empty-custom-schema': 'warn',
+		'zod/require-error-message': 'warn',
 		'@typescript-eslint/no-explicit-any': 'off',
 		'@typescript-eslint/explicit-module-boundary-types': 'off',
 		'@typescript-eslint/no-inferrable-types': 'off',
