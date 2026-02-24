@@ -1,0 +1,77 @@
+{
+	"name": "db",
+	"type": "module",
+	"main": "./src/index.mts",
+	"directories": {
+		"lib": "src"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"types": "./dist/index.d.mts"
+		},
+		"./core": {
+			"import": "./dist/core.mjs",
+			"types": "./dist/core.d.mts"
+		},
+		"./schemas/root": {
+			"import": "./dist/schemas/root/index.js",
+			"types": "./dist/schemas/root/index.d.ts"
+		},
+		"./schemas/tenant": {
+			"import": "./dist/schemas/tenant/index.js",
+			"types": "./dist/schemas/tenant/index.d.ts"
+		},
+		"./schemas/tenant/migrations": {
+			"import": "./src/schemas/tenant/migrations.js",
+			"types": "./src/schemas/tenant/migrations.js"
+		},
+		"./schemas/user": {
+			"import": "./dist/schemas/user/index.js",
+			"types": "./dist/schemas/user/index.d.ts"
+		},
+		"./schemas/user/migrations": {
+			"import": "./src/schemas/user/migrations.js",
+			"types": "./src/schemas/user/migrations.js"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:types && npm run build:db",
+		"build:types": "tsc",
+		"build:db:root": "drizzle-kit generate --dialect=sqlite --schema=\"src/schemas/root/index.ts\" --out=\"src/schemas/root\"",
+		"postbuild:db:root": "prettier --write src/schemas/root",
+		"build:db:tenant": "drizzle-kit generate --dialect=sqlite --driver durable-sqlite --casing=snake_case --schema=\"src/schemas/tenant/index.ts\" --out=\"src/schemas/tenant\"",
+		"postbuild:db:tenant": "prettier --write src/schemas/tenant",
+		"build:db:user": "drizzle-kit generate --dialect=sqlite --driver durable-sqlite --casing=snake_case --schema=\"src/schemas/user/index.ts\" --out=\"src/schemas/user\"",
+		"postbuild:db:user": "prettier --write src/schemas/user",
+		"build:db": "npm run build:db:root && npm run build:db:tenant && npm run build:db:user",
+		"publish:dev": "wrangler d1 migrations apply --remote eaas_root_dev",
+		"publish:prod": "wrangler d1 migrations apply --remote eaas_root_prod"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/db/README.md",
+	"dependencies": {
+		"drizzle-orm": "^0.45.1",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "^4.20260317.1",
+		"drizzle-kit": "^0.31.9",
+		"eslint-plugin-drizzle": "^0.2.3"
+	}
+}
