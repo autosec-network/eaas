@@ -91,6 +91,9 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+      db:
+        patterns:
+          - 'drizzle-*'
       typescript-core:
         patterns:
           - 'typescript'
@@ -100,3 +103,7 @@ updates:
           - '@types/*'
           - '@cloudflare/workers-types'
           - 'turnstile-types'
+      validation:
+        patterns:
+          - 'zod'
+          - 'validator'
