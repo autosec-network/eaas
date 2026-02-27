@@ -7,8 +7,9 @@ on:
       - preview
     paths:
       - '.github/workflows/publish-apig.yml'
+      - 'workers/api/staticApi.mts'
+      - 'workers/api/apiGateway.mts'
       - 'workers/api/dist/*/*.cf-apig.openapi.json'
-      - 'apiGateway.mts'
   workflow_dispatch:
     inputs:
       environment:
@@ -28,8 +29,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment:
-      name: ${{ inputs.environment || github.ref_name }}
-      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.sushidata.ai
+      name: ${{ (inputs.environment || github.ref_name) == 'production' && 'production' || 'dev' }}
+      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.eaas.autosec.network
     permissions:
       contents: write
     steps:
@@ -45,7 +46,7 @@ jobs:
           cache: 'npm'
       - run: npm ci --ignore-scripts --include-workspace-root --workspace api
       - run: npm run-script install --if-present
-      - run: npm -w api run publish:static
+      - run: npm --workspace api run publish:static
         env:
           CF_API_TOKEN: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
           ZONE_ID: ${{ secrets.AUTOSEC_ZONE_ID }}
