@@ -10,13 +10,7 @@ on:
       - 'package*.json'
       - 'tsconfig.json'
       - 'shared/**'
-      - 'workers/api/package*.json'
-      - 'workers/api/src/**'
-      - 'workers/api/dist/**'
-      - 'workers/api/tsconfig.json'
-      - 'workers/api/wrangler.jsonc'
-      - 'workers/api/staticApi.mts'
-      - 'wf/**'
+      - 'workers/api/**'
   workflow_dispatch:
     inputs:
       environment:
@@ -53,23 +47,20 @@ jobs:
           node-version: lts/*
           check-latest: true
           cache: 'npm'
-      - run: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
-      - run: sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
-      - run: sudo apt update
-      - uses: awalsh128/cache-apt-pkgs-action@acb598e5ddbc6f68a970c5da0688d2f3a9f04d05 # v1.6.0
-        with:
-          packages: docker-ce
-      - run: npm ci --ignore-scripts --include-workspace-root --workspace api
-      - run: npm run-script install --if-present
-      - run: npm -w api run build:types:cf
-      - run: npx prettier --write workers/api/worker-configuration.d.ts
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace api --workspace db --workspace types
+      - run: npm run-script install --if-present --include-workspace-root --workspace api --workspace db --workspace types
+      - run: npm --workspace api run build:types:cf
+        if: github.actor != 'autosec-prettier[bot]'
       - run: git commit -m "Generate cf types" workers/api/worker-configuration.d.ts || echo "No type generation done"
+        if: github.actor != 'autosec-prettier[bot]'
       - run: git push
-      - run: npm -w api run build:pqc
-      - run: npm -w api run build:static
+        if: github.actor != 'autosec-prettier[bot]'
+        continue-on-error: true
+      - run: npm --workspace api run build:static
       - run: git add workers/api/dist/**
       - run: git commit -m "Generated static assets" || echo "static assets not touched"
       - run: git push
+        continue-on-error: true
       - run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
         id: npm_wrangler_version
       - uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
@@ -78,8 +69,8 @@ jobs:
           wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
           apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
           accountId: ${{ secrets.CF_ACCOUNT_ID }}
-          environment: ${{ (vars.ENVIRONMENT == 'production' && vars.ENVIRONMENT) || '' }}
           workingDirectory: workers/api
+          environment: ${{ (vars.ENVIRONMENT == 'production' && 'prod') || '' }}
           vars: |
             CF_ACCOUNT_ID
             GIT_HASH
