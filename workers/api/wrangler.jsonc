@@ -1,0 +1,91 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-api-dev",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.api.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	// Max possible worker limits (5*60*1000 ms CPU time, 10 million subrequests)
+	"limits": { "cpu_ms": 300000, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development"
+	},
+	"assets": {
+		"directory": "./dist",
+		"run_worker_first": false
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "ffa8fdcf-3606-4057-9083-570637870344",
+			"migrations_dir": "../../shared/db/src/schema",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "2ba4a6e",
+			"new_sqlite_classes": ["BitwardenSession", "TenantD0"]
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-api-prod",
+			"route": { "pattern": "api.eaas.autosec.network", "custom_domain": true },
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production"
+			},
+			"assets": {
+				"directory": "./dist",
+				"run_worker_first": false
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "96293b84-f813-4d4e-8ac0-f7a2b8e8f39c",
+					"migrations_dir": "../../shared/db/src/schema",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "BITWARDEN_SESSION",
+						"class_name": "BitwardenSession"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "2ba4a6e",
+					"new_sqlite_classes": ["BitwardenSession", "TenantD0"]
+				}
+			]
+		}
+	}
+}
