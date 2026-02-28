@@ -50,6 +50,6 @@
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"tailwindcss": "^4.2.1",
 		"turnstile-types": "^1.2.3",
-		"vite-tsconfig-paths": "^4.2.1"
+		"vite-tsconfig-paths": "^6.1.1"
 	}
 }
