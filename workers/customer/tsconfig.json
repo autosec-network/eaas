@@ -14,5 +14,5 @@
 		"types": ["./worker-configuration.d.ts", "node", "turnstile-types"]
 	},
 	"files": ["./prettier.config.mjs", "eslint.config.mjs"],
-	"include": ["adapters", "do", "src", "./*.d.ts", "./*.config.ts"]
+	"include": ["adapters", "do", "project.inlang", "src", "./*.d.ts", "./*.config.ts"]
 }
