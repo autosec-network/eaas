@@ -1,0 +1,10 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"login_page_title": "Log in",
+	"login_page_subtitle": "Continuă la contul tău",
+	"login_page_footer": "Protejat de turnichet Cloudflare",
+	"login_passkey_cta": "Continuați cu cheia de acces",
+	"login_passkey_cancelled": "Operațiunea cu cheia de acces a fost anulată.",
+	"login_passkey_failed": "Operarea cu cheia de acces a eșuat.",
+	"login_passkey_loading": "Se așteaptă cheia de acces..."
+}

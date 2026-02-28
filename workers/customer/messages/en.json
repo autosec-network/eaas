@@ -1,0 +1,10 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"login_page_title": "Login",
+	"login_page_subtitle": "Continue to your account",
+	"login_page_footer": "Protected by Cloudflare Turnstile",
+	"login_passkey_cta": "Continue with Passkey",
+	"login_passkey_loading": "Waiting for passkey...",
+	"login_passkey_cancelled": "Passkey operation was cancelled.",
+	"login_passkey_failed": "Passkey operation failed."
+}

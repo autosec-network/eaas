@@ -6,8 +6,9 @@ import { turnstileVerify } from '~/helpers/turnstile';
 import { useTurnstileKey } from '~/routes/layout-preauth';
 import { useSignIn } from '~/routes/plugin@auth';
 
-/** Auth.js base path for this app */
-const AUTH_BASE = '/auth';
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore this gets generated automatically later in the build process
+import * as m from '~/paraglide/messages';
 
 /**
  * Performs the client-side WebAuthn flow that `useSignIn` cannot handle.
@@ -24,7 +25,7 @@ const AUTH_BASE = '/auth';
 async function passkeyFlow(useConditionalUI = false) {
 	// Fetch WebAuthn options from the Auth.js endpoint (no email = authenticate)
 	// This also sets a challenge cookie required for callback verification
-	const optionsUrl = new URL(`${AUTH_BASE}/webauthn-options/passkey`, window.location.origin);
+	const optionsUrl = new URL('/auth/webauthn-options/passkey', window.location.origin);
 
 	const optionsRes = await fetch(optionsUrl);
 	if (!optionsRes.ok) {
@@ -40,7 +41,7 @@ async function passkeyFlow(useConditionalUI = false) {
 	// Submit via a hidden form POST so the browser follows Auth.js redirects
 	const form = document.createElement('form');
 	form.method = 'POST';
-	form.action = `${AUTH_BASE}/callback/passkey`;
+	form.action = '/auth/callback/passkey';
 	form.style.display = 'none';
 
 	for (const [name, value] of Object.entries({
@@ -134,8 +135,8 @@ export default component$(() => {
 				<div class="w-full max-w-sm">
 					<div class="border-surface-light/60 shadow-primary-accent/5 dark:border-surface-dark/60 dark:bg-surface-dark/70 rounded-2xl border bg-white/70 p-8 shadow-xl backdrop-blur-md">
 						<div class="mb-8 text-center">
-							<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">Sign in</h1>
-							<p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">Continue to your account</p>
+							<h1 class="text-2xl font-semibold tracking-tight text-gray-900 dark:text-white">{m.login_page_title()}</h1>
+							<p class="mt-1.5 text-sm text-gray-500 dark:text-gray-400">{m.login_page_subtitle()}</p>
 						</div>
 
 						{showLogin.value ? (
@@ -164,9 +165,9 @@ export default component$(() => {
 												return passkeyFlow().catch((error: Error) => {
 													passkeyLoading.value = false;
 													if (error.name === 'NotAllowedError') {
-														passkeyError.value = 'Passkey operation was cancelled.';
+														passkeyError.value = m.login_passkey_cancelled();
 													} else {
-														passkeyError.value = error.message || 'Passkey operation failed.';
+														passkeyError.value = error.message || m.login_passkey_failed();
 														console.error('Passkey flow error:', error);
 													}
 												});
@@ -180,14 +181,14 @@ export default component$(() => {
 										}
 									})}>
 									<LuKeyRound class="h-5 w-5" />
-									{passkeyLoading.value ? 'Waiting for passkey…' : 'Continue with Passkey'}
+									{passkeyLoading.value ? m.login_passkey_loading() : m.login_passkey_cta()}
 								</button>
 							</div>
 						) : null}
 
 						<div class="relative z-0 mx-auto mt-6 h-[65px] w-[300px]" ref={turnstileWidget}></div>
 					</div>
-					<footer class="mt-6 text-center text-xs text-gray-400 dark:text-gray-500">Protected by Cloudflare Turnstile</footer>
+					<footer class="mt-6 text-center text-xs text-gray-400 dark:text-gray-500">{m.login_page_footer()}</footer>
 				</div>
 			</div>
 		</>
