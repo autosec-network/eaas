@@ -1,6 +1,15 @@
-import type { Session } from '@auth/qwik';
 import { routeLoader$, type RequestHandler } from '@builder.io/qwik-city';
 import { locales as inlangLocales } from '../../project.inlang/settings.json' with { type: 'json' };
+
+export const useTurnstileKey = routeLoader$(({ platform }) =>
+	!('GIT_HASH' in platform.env)
+		? /**
+			 * Test successful form submissions
+			 * @link https://developers.cloudflare.com/turnstile/troubleshooting/testing/#test-sitekeys
+			 */
+			'1x00000000000000000000AA'
+		: platform.env.TURNSTILE_SITE_KEY,
+);
 
 // @ts-expect-error this gets generated automatically later in the build process
 import { setLocale } from '~/paraglide/runtime';
@@ -14,12 +23,7 @@ interface Accept {
 /**
  * @link https://github.com/honojs/hono/blob/main/src/middleware/language/language.ts
  */
-export const onRequest: RequestHandler = async ({ sharedMap, redirect, url, locale, request }) => {
-	const session = sharedMap.get('session') as Session | null;
-	if (!session || new Date(session.expires) < new Date()) {
-		throw redirect(302, `/auth/signin?callbackUrl=${url.pathname}`);
-	}
-
+export const onRequest: RequestHandler = async ({ locale, request }) => {
 	const parseParams = (paramParts: string[]): Record<string, string> => {
 		return paramParts.reduce<Record<string, string>>((acc, param) => {
 			const [key, val] = param.split('=').map((s) => s.trim());
