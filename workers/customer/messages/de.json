@@ -1,0 +1,14 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"login_page_title": "Login",
+	"login_page_subtitle": "Weiter zu Ihrem Konto",
+	"login_page_footer": "Geschützt durch Cloudflare Turnstile",
+	"login_passkey_cta": "Mit Passkey fortfahren",
+	"login_passkey_cancelled": "Die Passkey-Operation wurde abgebrochen.",
+	"login_passkey_failed": "Die Passkey-Operation ist fehlgeschlagen.",
+	"login_passkey_loading": "Warte auf Passkey...",
+	"login_email_placeholder": "E-Mail-Adresse",
+	"login_email_sent": "Prüfen Sie Ihre E-Mails auf einen Link zum Anmelden.",
+	"login_email_failed": "Der magische Link konnte nicht gesendet werden.",
+	"login_or": "oder"
+}

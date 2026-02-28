@@ -1,0 +1,14 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"login_page_title": "Se connecter",
+	"login_page_subtitle": "Accédez à votre compte",
+	"login_page_footer": "Tourniquet protégé par Cloudflare",
+	"login_passkey_cta": "Continuer avec le code d'accès",
+	"login_passkey_cancelled": "L'opération par code d'accès a été annulée.",
+	"login_passkey_failed": "L'opération par code d'accès a échoué.",
+	"login_passkey_loading": "En attente du code d'accès...",
+	"login_email_placeholder": "Adresse email",
+	"login_email_sent": "Consultez votre boîte mail pour trouver un lien magique pour vous connecter.",
+	"login_email_failed": "Échec de l'envoi du lien magique.",
+	"login_or": "ou"
+}

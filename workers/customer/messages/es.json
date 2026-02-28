@@ -1,0 +1,14 @@
+{
+	"$schema": "https://inlang.com/schema/inlang-message-format",
+	"login_page_title": "Acceso",
+	"login_page_subtitle": "Continuar a su cuenta",
+	"login_page_footer": "Protegido por Cloudflare Turnstile",
+	"login_passkey_cta": "Continuar con clave de acceso",
+	"login_passkey_cancelled": "Se canceló la operación de clave de paso.",
+	"login_passkey_failed": "La operación de clave de acceso falló.",
+	"login_passkey_loading": "Esperando la clave de acceso...",
+	"login_email_placeholder": "Dirección de correo electrónico",
+	"login_email_sent": "Revise su correo electrónico para encontrar un enlace mágico para iniciar sesión.",
+	"login_email_failed": "Error al enviar el enlace mágico.",
+	"login_or": "o"
+}
