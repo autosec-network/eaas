@@ -1,5 +1,9 @@
 import type { Session } from '@auth/qwik';
 import { routeLoader$, type RequestHandler } from '@builder.io/qwik-city';
+import { locales as inlangLocales } from '../../project.inlang/settings.json' with { type: 'json' };
+
+// @ts-expect-error this gets generated automatically later in the build process
+import { setLocale } from '~/paraglide/runtime';
 
 interface Accept {
 	type: string;
@@ -10,7 +14,7 @@ interface Accept {
 /**
  * @link https://github.com/honojs/hono/blob/main/src/middleware/language/language.ts
  */
-export const onRequest: RequestHandler = ({ sharedMap, redirect, url, locale, request }) => {
+export const onRequest: RequestHandler = async ({ sharedMap, redirect, url, locale, request }) => {
 	const session = sharedMap.get('session') as Session | null;
 	if (!session || new Date(session.expires) < new Date()) {
 		throw redirect(302, `/auth/signin?callbackUrl=${url.pathname}`);
@@ -98,6 +102,12 @@ export const onRequest: RequestHandler = ({ sharedMap, redirect, url, locale, re
 	if (request.headers.has('Accept-Language')) {
 		const parsedLocales = parseAcceptLanguage(request.headers.get('Accept-Language')!);
 		locale(parsedLocales[0]?.lang);
+
+		// Make `Set` to avoid O(n²)
+		const paraglideLocalesSet = new Set(inlangLocales);
+		// Runtime check (since JSON isn't strongly typed)
+		const paraglideLocale = Array.from(new Set(parsedLocales.map(({ lang }) => lang.split('-')[0]).filter((lang) => lang !== undefined))).find((lang) => paraglideLocalesSet.has(lang)) as Parameters<typeof setLocale>[0] | undefined;
+		await setLocale(paraglideLocale ?? 'en');
 	}
 };
 
