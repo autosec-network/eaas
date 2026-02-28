@@ -2,6 +2,10 @@ import { component$, useTask$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
 import { useSession } from '~/routes/plugin@auth';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore this gets generated automatically later in the build process
+// import * as m from '~/paraglide/messages';
+
 export default component$(() => {
 	const sessionDump = useSession();
 

@@ -161,3 +161,7 @@ functions/**/*.js
 !workers/*/dist
 workers/admin/dist
 workers/customer/dist
+
+# Inlang
+project.inlang
+!project.inlang/settings.json
