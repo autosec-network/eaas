@@ -45,6 +45,10 @@ jobs:
           disable-sudo-and-containers: true
           egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
       - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         with:
           node-version: lts/*
@@ -64,6 +68,16 @@ jobs:
             customer-ts-${{ github.ref_name }}-
           enableCrossOsArchive: true
       - run: npm --workspace customer run build:types:cf
+      - name: Restore i18n build cache
+        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            workers/customer/project.inlang/cache/**
+            workers/customer/src/paraglide/**
+          key: customer-i18n-${{ github.ref_name }}-${{ hashFiles('workers/customer/messages/**', 'workers/customer/project.inlang/settings.json') }}
+          restore-keys: |
+            customer-i18n-${{ github.ref_name }}-
+          enableCrossOsArchive: true
       - run: npm --workspace customer run build:types:tsc
         env:
           NODE_OPTIONS: --max-old-space-size=4096
