@@ -56,7 +56,7 @@
 		"@tailwindcss/vite": "^4.2.1",
 		"@vitejs/plugin-basic-ssl": "^2.1.4",
 		"eslint-plugin-drizzle": "^0.2.3",
-		"eslint-plugin-qwik": "^1.19.0",
+		"eslint-plugin-qwik": "^1.19.1",
 		"flowbite": "^4.0.1",
 		"prettier-plugin-tailwindcss": "^0.7.2",
 		"tailwindcss": "^4.2.1",
