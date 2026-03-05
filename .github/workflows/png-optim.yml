@@ -1,0 +1,77 @@
+name: Optimize PNGs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/png-optim.yml'
+      - '**.png'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  optimize:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@fa2e9d605c4eeb9fcad4c99c224cee0c6c7f3594 # v2.16.0
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      # https://github.com/actions/cache/blob/main/examples.md#rust---cargo
+      # https://github.com/rust-lang/cargo/issues/4725
+      # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+      - name: Rust Package Cache
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # https://doc.rust-lang.org/cargo/guide/continuous-integration.html#github-actions
+      - run: rustup update stable && rustup default stable
+      - run: |
+          if ! command -v oxipng &> /dev/null
+          then
+            echo "oxipng is not installed. Installing now..."
+            cargo install oxipng
+            exit
+          fi
+
+          installed_version=$(oxipng --version)
+          latest_version=$(curl -s https://crates.io/api/v1/crates/oxipng | jq -r '.crate.max_version')
+
+          if [[ $installed_version != *$latest_version* ]]; then
+            echo "oxipng is out of date. Updating now..."
+            cargo install oxipng --force
+          else
+            echo "oxipng is up to date."
+          fi
+      - run: echo "core_count=$(nproc)" >> $GITHUB_OUTPUT
+        id: ga_core_count
+      - run: oxipng --opt max --recursive --preserve --strip safe --alpha --interlace keep --zopfli -t ${{ steps.ga_core_count.outputs.core_count }} ${{ github.workspace }}/workers/admin
+      - run: oxipng --opt max --recursive --preserve --strip safe --alpha --interlace keep --zopfli -t ${{ steps.ga_core_count.outputs.core_count }} ${{ github.workspace }}/workers/customer
+      - name: Check for Changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Git Setup
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git commit -am "Optimized PNGs"
+        if: steps.changes.outputs.changes == 'true'
+      - run: git push
+        if: steps.changes.outputs.changes == 'true'
