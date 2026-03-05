@@ -107,6 +107,13 @@ updates:
           - 'hono'
           - '@hono/*'
           - '@scalar/hono-api-reference'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'vite-*'
+          - '@vitejs/*'
+          - '@inlang/*'
       typescript-core:
         patterns:
           - 'typescript'
