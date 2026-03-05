@@ -102,6 +102,12 @@ updates:
       db:
         patterns:
           - 'drizzle-*'
+      design:
+        patterns:
+          - '@tailwindcss/*'
+          - 'tailwind*'
+          - 'flowbite'
+          - '@qwikest/icons'
       hono:
         patterns:
           - 'hono'
@@ -110,6 +116,13 @@ updates:
       internal:
         patterns:
           - '@autosec/*'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'vite-*'
+          - '@vitejs/*'
+          - '@inlang/*'
       typescript-core:
         patterns:
           - 'typescript'
