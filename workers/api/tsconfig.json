@@ -1,0 +1,12 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"paths": {
+			"~/*": ["./src/*"],
+			"~do/*": ["./do/*"]
+		},
+		"types": ["./worker-configuration.d.ts", "node"]
+	},
+	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.mts", "apiGateway.mts"],
+	"include": ["src", "do"]
+}
