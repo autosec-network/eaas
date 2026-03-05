@@ -1,0 +1,40 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-logging",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat", "no_nodejs_compat_v2", "queue_consumer_no_wait_for_wait_until"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	"limits": { "cpu_ms": 10, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"vars": {},
+	"durable_objects": { "bindings": [] },
+	"migrations": [],
+	"queues": {
+		"consumers": [
+			{
+				"queue": "eaas-logs",
+				"max_batch_size": 100,
+				"max_batch_timeout": 60,
+				"max_retries": 100
+			}
+		]
+	},
+	"r2_buckets": [
+		{
+			"binding": "CATALOG_ROW",
+			"bucket_name": "eaas-logs-row",
+			"remote": true
+		},
+		{
+			"binding": "CATALOG_EU",
+			"bucket_name": "eaas-logs-eu",
+			"jurisdiction": "eu",
+			"remote": true
+		}
+	]
+}
