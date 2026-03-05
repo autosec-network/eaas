@@ -1,0 +1,106 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-customer-dev",
+	"main": "src/entry.cloudflare-workers.ts",
+	"compatibility_date": "2026-02-24",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.dashboard.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	"limits": { "cpu_ms": 10, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development",
+		"SQL_TTL": "900",
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+	},
+	"secrets": {
+		"required": ["AUTH_SECRET", "TURNSTILE_SECRET_KEY"]
+	},
+	"assets": {
+		"binding": "ASSET",
+		"directory": "./dist"
+		// "not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "ffa8fdcf-3606-4057-9083-570637870344",
+			"migrations_dir": "../../shared/db/src/schema",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "USER_SESSION",
+				"class_name": "UserSession"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0",
+				"script_name": "eaas-api-dev"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "bcd76dc",
+			"new_sqlite_classes": ["UserSession"]
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-customer-prod",
+			"route": { "pattern": "dashboard.eaas.autosec.network", "custom_domain": true },
+			"upload_source_maps": true,
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production",
+				"SQL_TTL": "900",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+			},
+			"secrets": {
+				"required": ["AUTH_SECRET", "TURNSTILE_SECRET_KEY"]
+			},
+			"assets": {
+				"binding": "ASSET",
+				"directory": "./dist"
+				// "not_found_handling": "single-page-application"
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "96293b84-f813-4d4e-8ac0-f7a2b8e8f39c",
+					"migrations_dir": "../../shared/db/src/schema",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "USER_SESSION",
+						"class_name": "UserSession"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0",
+						"script_name": "eaas-api-prod"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "bcd76dc",
+					"new_sqlite_classes": ["UserSession"]
+				}
+			]
+		}
+	}
+}
