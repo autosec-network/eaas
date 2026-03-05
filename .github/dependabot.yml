@@ -55,6 +55,8 @@ updates:
     directory: '/'
     schedule:
       interval: 'weekly'
+    cooldown:
+      semver-major-days: 30
     versioning-strategy: increase
     open-pull-requests-limit: 999
     ignore:
@@ -92,6 +94,8 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+        exclude-patterns:
+          - 'eslint-plugin-qwik'
       db:
         patterns:
           - 'drizzle-*'
@@ -100,6 +104,14 @@ updates:
           - 'hono'
           - '@hono/*'
           - '@scalar/hono-api-reference'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'eslint-plugin-qwik'
+          - '@inlang/*'
+          - 'vite-*'
+          - '@vitejs/*'
       typescript-core:
         patterns:
           - 'typescript'
