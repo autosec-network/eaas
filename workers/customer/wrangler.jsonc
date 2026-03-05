@@ -1,0 +1,143 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-customer-dev",
+	"main": "src/entry.cloudflare-workers.ts",
+	"compatibility_date": "2026-03-17",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.dash.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	"limits": { "cpu_ms": 50, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"send_metrics": false,
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development",
+		// 8 * 60 * 60
+		"SESSION_TTL": "28800",
+		"SQL_TTL": "900",
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+	},
+	"secrets": {
+		"required": ["AUTH_SECRET", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN", "TURNSTILE_SECRET_KEY"]
+	},
+	"assets": {
+		"binding": "ASSET",
+		"directory": "./dist"
+		// "not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "e06d4bdd-d766-4692-a59b-d1efb2c717f3",
+			"migrations_dir": "../../shared/db/src/schemas/root",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "USER_SESSION",
+				"class_name": "UserSession"
+			},
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession",
+				"script_name": "eaas-api-dev"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0",
+				"script_name": "eaas-api-dev"
+			},
+			{
+				"name": "USER_D0",
+				"class_name": "UserD0",
+				"script_name": "eaas-api-dev"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "bcd76dc",
+			"new_sqlite_classes": ["UserSession"]
+		}
+	],
+	"send_email": [
+		{
+			"name": "EMAIL",
+			"remote": true
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-customer-prod",
+			"route": { "pattern": "dash.eaas.autosec.network", "custom_domain": true },
+			"upload_source_maps": true,
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production",
+				// 8 * 60 * 60
+				"SESSION_TTL": "28800",
+				"SQL_TTL": "900",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+			},
+			"secrets": {
+				"required": ["AUTH_SECRET", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN", "TURNSTILE_SECRET_KEY"]
+			},
+			"assets": {
+				"binding": "ASSET",
+				"directory": "./dist"
+				// "not_found_handling": "single-page-application"
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "b65299dd-87d5-487b-90fd-86e17465e1d5",
+					"migrations_dir": "../../shared/db/src/schemas/root",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "USER_SESSION",
+						"class_name": "UserSession"
+					},
+					{
+						"name": "BITWARDEN_SESSION",
+						"class_name": "BitwardenSession",
+						"script_name": "eaas-api-prod"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0",
+						"script_name": "eaas-api-prod"
+					},
+					{
+						"name": "USER_D0",
+						"class_name": "UserD0",
+						"script_name": "eaas-api-prod"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "bcd76dc",
+					"new_sqlite_classes": ["UserSession"]
+				}
+			],
+			"send_email": [
+				{
+					"name": "EMAIL",
+					"remote": true
+				}
+			]
+		}
+	}
+}
