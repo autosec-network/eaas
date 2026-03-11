@@ -225,7 +225,7 @@ export function D0Adapter(platform: QwikCityPlatform, r_db: DrizzleD1Database<ty
 				);
 			for (const dbPlaceholder of toUpdate) {
 				const doNamespace = dbPlaceholder.jurisdiction ? platform.env.USER_D0.jurisdiction(dbPlaceholder.jurisdiction) : platform.env.USER_D0;
-				const doId = doNamespace.idFromString(dbPlaceholder.do_id!);
+				const doId = doNamespace.idFromString(dbPlaceholder.do_id);
 				const doStub = platform.env.USER_D0.get(doId);
 				// Get raw email
 				const { email } = await doStub
