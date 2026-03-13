@@ -1,7 +1,14 @@
-import { component$ } from '@builder.io/qwik';
+import { component$, useTask$ } from '@builder.io/qwik';
 import type { DocumentHead } from '@builder.io/qwik-city';
+import { useSession } from '~/routes/plugin@auth';
 
 export default component$(() => {
+	const sessionDump = useSession();
+
+	useTask$(({ track }) => {
+		track(() => sessionDump.value);
+	});
+
 	return (
 		<div class="text-black dark:text-white">
 			<h1>Hi 👋</h1>
@@ -10,6 +17,7 @@ export default component$(() => {
 				<br />
 				Happy coding.
 			</div>
+			<pre>{JSON.stringify(sessionDump.value, null, '\t')}</pre>
 		</div>
 	);
 });
