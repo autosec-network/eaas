@@ -330,7 +330,10 @@ export class UserD0 extends BaseD0 {
 						Object.entries(keys).map(([key]) => key),
 						{ allowConcurrency: lazy },
 					)
-					.then((kv) => zm.pick(UserPropertiesSchema, keys).parseAsync(Object.fromEntries(kv.entries()))),
+					.then((kv) => {
+						if (kv.has('email_verified')) console.debug('UserD0', 'getProperties', kv.get('email_verified') instanceof Date, typeof kv.get('email_verified') === 'string', kv.get('email_verified'));
+						return zm.pick(UserPropertiesSchema, keys).parseAsync(Object.fromEntries(kv.entries()));
+					}),
 			)
 			.then((properties) => properties);
 	}
@@ -380,6 +383,7 @@ export class UserD0 extends BaseD0 {
 			.partial(UserPropertiesSchema)
 			.parseAsync(_properties)
 			.then(async (properties) => {
+				if ('email_verified' in properties) console.debug('UserD0', 'updateProperties', properties.email_verified instanceof Date, typeof properties.email_verified === 'string', properties.email_verified);
 				const savingPromise = this.ctx.storage.put(properties, { allowConcurrency: lazy });
 				if (background) {
 					this.ctx.waitUntil(savingPromise);
