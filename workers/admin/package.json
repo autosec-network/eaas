@@ -39,7 +39,7 @@
 	},
 	"engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
 	"dependencies": {
-		"@getbrevo/brevo": "^4.0.1",
+		"@getbrevo/brevo": "^5.0.1",
 		"@qwikest/icons": "^0.0.13",
 		"cloudflare": "^5.2.0",
 		"drizzle-orm": "^0.45.1",
