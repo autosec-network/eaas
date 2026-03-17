@@ -1,4 +1,5 @@
 import { routeLoader$, type RequestHandler } from '@builder.io/qwik-city';
+import { locales as inlangLocales } from '../../project.inlang/settings.json' with { type: 'json' };
 
 export const useTurnstileKey = routeLoader$(({ platform }) =>
 	!('GIT_HASH' in platform.env)
@@ -9,6 +10,9 @@ export const useTurnstileKey = routeLoader$(({ platform }) =>
 			'1x00000000000000000000AA'
 		: platform.env.TURNSTILE_SITE_KEY,
 );
+
+// @ts-expect-error this gets generated automatically later in the build process
+import { setLocale } from '~/paraglide/runtime';
 
 interface Accept {
 	type: string;
@@ -24,7 +28,7 @@ export const onRequest: RequestHandler = async ({ platform, request, locale, sha
 
 	await Promise.allSettled([
 		// Locale
-		// eslint-disable-next-line @typescript-eslint/require-await
+
 		(async () => {
 			const parseParams = (paramParts: string[]): Record<string, string> => {
 				return paramParts.reduce<Record<string, string>>((acc, param) => {
@@ -106,8 +110,14 @@ export const onRequest: RequestHandler = async ({ platform, request, locale, sha
 			}
 
 			if (request.headers.has('Accept-Language')) {
-				const [primaryLocale] = parseAcceptLanguage(headers.get('Accept-Language')!);
-				locale(primaryLocale?.lang);
+				const parsedLocales = parseAcceptLanguage(request.headers.get('Accept-Language')!);
+				locale(parsedLocales[0]?.lang);
+
+				// Make `Set` to avoid O(n²)
+				const paraglideLocalesSet = new Set(inlangLocales);
+				// Runtime check (since JSON isn't strongly typed)
+				const paraglideLocale = Array.from(new Set(parsedLocales.map(({ lang }) => lang.split('-')[0]).filter((lang) => lang !== undefined))).find((lang) => paraglideLocalesSet.has(lang)) as Parameters<typeof setLocale>[0] | undefined;
+				await setLocale(paraglideLocale ?? 'en');
 			}
 		})(),
 		// Browser cache

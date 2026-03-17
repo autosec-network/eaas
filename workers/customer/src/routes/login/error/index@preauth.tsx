@@ -4,6 +4,10 @@ import { Link, routeLoader$ } from '@builder.io/qwik-city';
 import { LuAlertTriangle, LuArrowLeft, LuServerCrash, LuShieldAlert, LuUserPlus } from '@qwikest/icons/lucide';
 import * as zm from 'zod/mini';
 
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore this gets generated automatically later in the build process
+import * as m from '~/paraglide/messages';
+
 type ErrorType = ErrorPageParam | 'default';
 
 const useError = routeLoader$(({ query }) =>
@@ -18,26 +22,26 @@ const useError = routeLoader$(({ query }) =>
 const errorConfig: Record<ErrorType, { icon: typeof LuAlertTriangle; heading: () => string; message: () => string; iconColor: string }> = {
 	default: {
 		icon: LuAlertTriangle,
-		heading: () => 'Something went wrong',
-		message: () => 'An unexpected error occurred. Please try again.',
+		heading: () => m.error_heading_default(),
+		message: () => m.error_message_default(),
 		iconColor: 'text-amber-500 dark:text-amber-400',
 	},
 	Configuration: {
 		icon: LuServerCrash,
-		heading: () => 'Server Error',
-		message: () => 'There is a problem with the server configuration. Please contact support if the issue persists.',
+		heading: () => m.error_heading_configuration(),
+		message: () => m.error_message_configuration(),
 		iconColor: 'text-red-500 dark:text-red-400',
 	},
 	AccessDenied: {
 		icon: LuUserPlus,
-		heading: () => 'Invitation Required',
-		message: () => 'This service is invite-only. You need an invitation from an existing member to sign in.',
+		heading: () => m.error_heading_access_denied(),
+		message: () => m.error_message_access_denied(),
 		iconColor: 'text-blue-500 dark:text-blue-400',
 	},
 	Verification: {
 		icon: LuShieldAlert,
-		heading: () => 'Unable to sign in',
-		message: () => 'The sign-in link is no longer valid. It may have been used already or it may have expired.',
+		heading: () => m.error_heading_verification(),
+		message: () => m.error_message_verification(),
 		iconColor: 'text-orange-500 dark:text-orange-400',
 	},
 };
@@ -67,7 +71,7 @@ export default component$(() => {
 					{/* Back to login button */}
 					<Link prefetch="js" href="/login" class="bg-primary-accent hover:bg-primary-accent/85 hover:shadow-primary-accent/25 flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-150 hover:shadow-md active:scale-[0.98]">
 						<LuArrowLeft class="h-4 w-4" />
-						Back to login
+						{m.error_back_to_login()}
 					</Link>
 				</div>
 			</div>
