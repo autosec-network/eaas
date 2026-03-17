@@ -94,6 +94,8 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+        exclude-patterns:
+          - 'eslint-plugin-qwik'
       db:
         patterns:
           - 'drizzle-*'
@@ -109,6 +111,7 @@ updates:
         patterns:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
+          - 'eslint-plugin-qwik'
           - '@inlang/*'
           - 'vite-*'
           - '@vitejs/*'
