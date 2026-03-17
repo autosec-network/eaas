@@ -109,6 +109,7 @@ updates:
         patterns:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
+          - '@inlang/*'
           - 'vite-*'
           - '@vitejs/*'
       typescript-core:
