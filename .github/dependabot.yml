@@ -112,6 +112,7 @@ updates:
           - '@builder.io/qwik'
           - '@builder.io/qwik*'
           - 'eslint-plugin-qwik'
+          - '@inlang/*'
           - 'vite-*'
           - '@vitejs/*'
       typescript-core:
