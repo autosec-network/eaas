@@ -1,9 +1,9 @@
 import type { Session } from '@auth/qwik';
 import { Resource, component$, useResource$, useSignal, type ClassList } from '@builder.io/qwik';
-import { Form, routeAction$, routeLoader$, server$, z, zod$ } from '@builder.io/qwik-city';
+import { Form, routeAction$, routeLoader$, server$, useLocation, z, zod$ } from '@builder.io/qwik-city';
 import { LuLoader } from '@qwikest/icons/lucide';
 import { SiBitwarden } from '@qwikest/icons/simpleicons';
-import { TenantByoBwNoteSchema } from 'db';
+import { TenantByoBwNoteSchema, TenantPropertiesSchema } from 'db';
 import * as rootSchema from 'db/schemas/root';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
@@ -50,6 +50,21 @@ const getProjects = server$(async function (jurisdiction: DOJurisdictions | null
 
 const useOnboardTenantBaseSchema = z.object({
 	name: z.string().nonempty(),
+	avatar: z.union([
+		z
+			.string()
+			.trim()
+			.length(0)
+			.transform(() => undefined),
+		z
+			.string()
+			.trim()
+			.nonempty()
+			.url()
+			// Use zod3 to do zod4
+			.refine((url) => TenantPropertiesSchema.def.shape.avatar.safeParse(url).success)
+			.optional(),
+	]),
 	jurisdiction: z.union([z.nativeEnum(DOJurisdictions), z.literal('none').transform(() => null)]),
 });
 // eslint-disable-next-line qwik/loader-location
@@ -147,6 +162,7 @@ const useOnboardTenant = routeAction$(
 		await t_doStub.updateProperties(
 			{
 				name: data.name,
+				avatar: data.avatar,
 				m_time: new Date(),
 			},
 			false,
@@ -191,6 +207,7 @@ const inputClass: ClassList = 'focus:border-primary-accent focus:ring-primary-ac
 const labelClass: ClassList = 'mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-300';
 
 export default component$(() => {
+	const location = useLocation();
 	const action = useOnboardTenant();
 	const isEU = useEu();
 
@@ -199,6 +216,8 @@ export default component$(() => {
 	const bwRegion = useSignal<'us' | 'eu' | 'custom'>(isEU.value ? 'eu' : 'us');
 	const customBase = useSignal<string>('');
 	const customAuth = useSignal<string>('');
+	const teamNamePreview = useSignal<string>('');
+	const avatarPreview = useSignal<string>('');
 	const baseEndpoint = useSignal<string>(isEU.value ? CLOUD_PRESETS.eu.base : CLOUD_PRESETS.us.base);
 	const authEndpoint = useSignal<string>(isEU.value ? CLOUD_PRESETS.eu.auth : CLOUD_PRESETS.us.auth);
 	const apiKey = useSignal('');
@@ -236,11 +255,38 @@ export default component$(() => {
 			<div class="border-surface-light/60 shadow-primary-accent/5 dark:border-surface-dark/60 dark:bg-surface-dark/70 rounded-2xl border bg-white/70 p-8 shadow-xl backdrop-blur-md">
 				<Form action={action} class="space-y-5">
 					{/* Team Name */}
-					<div>
-						<label for="name" class={labelClass}>
-							Team Name
-						</label>
-						<input id="name" name="name" autoComplete="username" type="text" placeholder="e.g. Acme Corp" required class={inputClass} />
+					<div class="flex flex-col gap-4 md:flex-row md:items-end">
+						<div class="flex items-center justify-center md:mb-1">
+							<div class="border-primary-accent/20 bg-primary-accent/10 text-primary-accent flex h-14 w-14 items-center justify-center overflow-hidden rounded-full border text-lg font-semibold">{avatarPreview.value ? <img src={avatarPreview.value} width={56} height={56} alt="Team avatar preview" class="h-full w-full object-cover" /> : <span>{teamNamePreview.value.trim().charAt(0).toUpperCase() || '?'}</span>}</div>
+						</div>
+						<div class="flex-1">
+							<label for="name" class={labelClass}>
+								Team Name
+							</label>
+							<input id="name" name="name" autoComplete="username" type="text" placeholder="e.g. Acme Corp" required class={inputClass} onInput$={(_, el) => (teamNamePreview.value = el.value)} />
+						</div>
+						<div class="flex-1">
+							<label for="avatar" class={labelClass}>
+								Avatar URL
+							</label>
+							<input
+								id="avatar"
+								name="avatar"
+								type="url"
+								autoComplete="url"
+								inputMode="url"
+								placeholder="https://example.com/avatar.png"
+								pattern="https://.*"
+								class={[inputClass, 'font-mono']}
+								onInput$={(_, el) => {
+									if (TenantPropertiesSchema.def.shape.avatar.safeParse(el.value).success) {
+										const proxyUrl = new URL('/image/proxy', location.url.origin);
+										proxyUrl.searchParams.set('url', avatarPreview.value);
+										avatarPreview.value = proxyUrl.href;
+									}
+								}}
+							/>
+						</div>
 					</div>
 
 					{/* Jurisdiction */}
@@ -253,6 +299,7 @@ export default component$(() => {
 							<option selected={!isEU.value} value="none">
 								Anywhere
 							</option>
+							el.value.startsWith("https://"
 							<option selected={isEU.value} value={DOJurisdictions['The European Union']}>
 								The European Union
 							</option>
@@ -461,7 +508,7 @@ export default component$(() => {
 					) : null}
 
 					{/* Submit */}
-					<button type="submit" class="bg-primary-accent hover:bg-primary-accent/85 hover:shadow-primary-accent/25 mx-auto mt-2 flex max-w-lg w-full cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-150 hover:shadow-md active:scale-[0.98] disabled:cursor-wait disabled:opacity-60" disabled={action.isRunning}>
+					<button type="submit" class="bg-primary-accent hover:bg-primary-accent/85 hover:shadow-primary-accent/25 mx-auto mt-2 flex w-full max-w-lg cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-medium text-white transition-all duration-150 hover:shadow-md active:scale-[0.98] disabled:cursor-wait disabled:opacity-60" disabled={action.isRunning}>
 						{action.isRunning ? (
 							<>
 								<LuLoader class="h-4 w-4 animate-spin" />
