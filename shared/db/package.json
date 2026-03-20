@@ -71,7 +71,7 @@
 	},
 	"devDependencies": {
 		"@cloudflare/workers-types": "^4.20260317.1",
-		"drizzle-kit": "^0.31.9",
+		"drizzle-kit": "^0.31.10",
 		"eslint-plugin-drizzle": "^0.2.3"
 	}
 }
