@@ -400,7 +400,7 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 				])
 					.then(([session, user]) => ({ session, user }) satisfies Exclude<Awaited<ReturnType<Exclude<Adapter['getSessionAndUser'], undefined>>>, null>)
 					.catch((error) => {
-						console.error('Error getting session and user', error);
+						console.error('Error getting session and user', error instanceof zm.core.$ZodError ? zm.prettifyError(error) : error);
 
 						// Nuke
 						const doStub = platform.env.USER_SESSION.get(doId);
