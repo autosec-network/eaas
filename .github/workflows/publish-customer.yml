@@ -60,7 +60,7 @@ jobs:
       - run: npm --workspace db run build
       - run: npm --workspace helpers run build
       - name: Restore TS build cache
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             workers/customer/tmp/tsconfig.tsbuildinfo
@@ -75,7 +75,7 @@ jobs:
         if: github.actor != 'autosec-prettier[bot]'
         continue-on-error: true
       - name: Restore i18n build cache
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             workers/customer/project.inlang/cache/**
@@ -88,7 +88,7 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
       - name: Save TS build cache
-        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         if: ${{ github.ref_name == 'production' || github.ref_name == 'dev' }}
         with:
           path: |
@@ -96,7 +96,7 @@ jobs:
           key: customer-ts-${{ github.ref_name }}-${{ hashFiles('workers/customer/tmp/tsconfig.tsbuildinfo') }}
           enableCrossOsArchive: true
       - name: Restore Vite client build cache
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             workers/customer/dist/.vite
@@ -106,7 +106,7 @@ jobs:
           enableCrossOsArchive: true
       - run: npm --workspace customer run build.client
       - name: Save Vite client build cache
-        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         if: ${{ github.event_name != 'pull_request_target' }}
         with:
           path: |
@@ -114,7 +114,7 @@ jobs:
           key: customer-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/customer/vite.config.ts', 'workers/customer/tsconfig.json') }}
           enableCrossOsArchive: true
       - name: Restore Vite server build cache
-        uses: actions/cache/restore@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/restore@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
           path: |
             workers/customer/server/.vite
@@ -124,7 +124,7 @@ jobs:
           enableCrossOsArchive: true
       - run: npm --workspace customer run build.server
       - name: Save Vite server build cache
-        uses: actions/cache/save@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        uses: actions/cache/save@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         if: ${{ github.event_name != 'pull_request_target' }}
         with:
           path: |
