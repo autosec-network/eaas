@@ -1,0 +1,41 @@
+{
+	"name": "api",
+	"type": "module",
+	"scripts": {
+		"build:types:cf": "wrangler types",
+		"postbuild:types:cf": "prettier --write worker-configuration.d.ts",
+		"build:static": "tsx staticApi.mts",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"start": "wrangler dev --live-reload --persist-to ../.wrangler/state",
+		"publish:static": "tsx apiGateway.mts"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/workers/api/README.md",
+	"dependencies": {
+		"@hono/zod-openapi": "^1.2.3",
+		"@hono/zod-validator": "^0.7.6",
+		"cron-schedule": "^6.0.0",
+		"drizzle-orm": "^0.45.1",
+		"hono": "^4.12.8",
+		"jose": "^6.2.2",
+		"uuid": "^13.0.0",
+		"zod": "^4.3.6"
+	},
+	"devDependencies": {
+		"@scalar/openapi-to-markdown": "^0.4.12",
+		"cloudflare": "^5.2.0"
+	}
+}
