@@ -102,6 +102,7 @@ export const usePermissions = routeLoader$(async ({ sharedMap }) => {
 				r_users: tenantSchema.users.r_users,
 				r_roles: tenantSchema.users.r_roles,
 				r_billing: tenantSchema.users.r_billing,
+				r_apikeys: tenantSchema.users.r_apikeys,
 				r_keyring: tenantSchema.users.r_keyring,
 				r_datakey: tenantSchema.users.r_datakey,
 				r_logs: tenantSchema.users.r_logs,
