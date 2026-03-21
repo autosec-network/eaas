@@ -1,0 +1,136 @@
+# EaaS API
+
+- **OpenAPI Version:** `3.1.0`
+- **API Version:** `0.0.0`
+
+***Undergoing rearchitect/rewrite***
+
+Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.
+
+## Servers
+
+- **URL:** `/v0`
+
+## Operations
+
+### POST /random
+
+- **Method:** `POST`
+- **Path:** `/random`
+- **Tags:** Free
+
+This endpoint returns high-quality random bytes of the specified length
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`bytes` (required)**
+
+  `integer` — Specifies the number of bytes to return
+
+- **`format` (required)**
+
+  `string`, possible values: `"hex", "base64", "base64url", "raw"` — Specifies the output encoding
+
+- **`sink`**
+
+  `boolean`, default: `false` — When true, continuously streams random bytes in chunks of the specified \`bytes\` size until the client disconnects. Uses \`application/octet-stream\` for \`raw\` format, or \`text/plain\` with each line containing a formatted chunk.
+
+- **`source`**
+
+  `string`, possible values: `"lavarand", "platform", "all"`, default: `"lavarand"` — Specifies the source of the requested bytes. \`lavarand\`, the default, sources from Cloudflare's physical sources of entropy. \`platform\` sources bytes from the platform's entropy source. \`all\` mixes bytes from all available sources.
+
+**Example:**
+
+```json
+{
+  "bytes": 32,
+  "format": "hex",
+  "source": "lavarand",
+  "sink": false
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns high-quality random bytes
+
+###### Content-Type: application/json
+
+**Any of:**
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+###### Content-Type: application/octet-stream
+
+`string`, format: `binary`
+
+**Example:**
+
+```json
+{}
+```
+
+###### Content-Type: text/plain
+
+`string` — Streaming text output of formatted random bytes, one chunk per line
+
+**Example:**
+
+```json
+true
+```
+
+### GET /stats/language
+
+- **Method:** `GET`
+- **Path:** `/stats/language`
+- **Tags:** Stats
+
+Returns the top 20 browser-reported languages and their percentage share of visitor sessions. Each session is counted once to avoid inflating individual users, and results are weighted to account for adaptive sampling.
+
+#### Responses
+
+##### Status: 200 Languages sorted by share of sessions, from most to least common.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`language` (required)**
+
+  `string`
+
+- **`trafficPercentage` (required)**
+
+  `number`
+
+* Min items: `1`
+* Max items: `20`
+
+**Example:**
+
+```json
+[
+  {
+    "language": "en",
+    "trafficPercentage": 0
+  }
+]
+```
