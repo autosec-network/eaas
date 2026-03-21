@@ -1,0 +1,120 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-api-dev",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-03-17",
+	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.api.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	// Max possible worker limits (5*60*1000 ms CPU time, 10 million subrequests)
+	"limits": { "cpu_ms": 300000, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"send_metrics": false,
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development",
+		"SQL_TTL": "900",
+		"WS_AUTH_TTL": "30"
+	},
+	"secrets": {
+		"required": ["CF_API_TOKEN", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN"]
+	},
+	"assets": {
+		"directory": "./dist",
+		"run_worker_first": false
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "e06d4bdd-d766-4692-a59b-d1efb2c717f3",
+			"migrations_dir": "../../shared/db/src/schemas/root",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0"
+			},
+			{
+				"name": "TENANT_D0_LOGS",
+				"class_name": "TenantD0Logs"
+			},
+			{
+				"name": "USER_D0",
+				"class_name": "UserD0"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "2ba4a6e",
+			"new_sqlite_classes": ["BitwardenSession", "TenantD0", "TenantD0Logs", "UserD0"]
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-api-prod",
+			"route": { "pattern": "api.eaas.autosec.network", "custom_domain": true },
+			"upload_source_maps": true,
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production",
+				"SQL_TTL": "900",
+				"WS_AUTH_TTL": "30"
+			},
+			"secrets": {
+				"required": ["CF_API_TOKEN", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN"]
+			},
+			"assets": {
+				"directory": "./dist",
+				"run_worker_first": false
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "b65299dd-87d5-487b-90fd-86e17465e1d5",
+					"migrations_dir": "../../shared/db/src/schemas/root",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "BITWARDEN_SESSION",
+						"class_name": "BitwardenSession"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0"
+					},
+					{
+						"name": "TENANT_D0_LOGS",
+						"class_name": "TenantD0Logs"
+					},
+					{
+						"name": "USER_D0",
+						"class_name": "UserD0"
+					}
+				]
+			},
+			"migrations": [
+				{
+					"tag": "2ba4a6e",
+					"new_sqlite_classes": ["BitwardenSession", "TenantD0", "TenantD0Logs", "UserD0"]
+				}
+			]
+		}
+	}
+}
