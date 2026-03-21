@@ -3,6 +3,7 @@ import type { LogWriter } from 'drizzle-orm/logger';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { drizzle as drizzleRest } from 'drizzle-orm/sqlite-proxy';
 import type { DrizzleConfig } from 'drizzle-orm/utils';
+import * as waeSchema from './schemas/analyticsEngine.js';
 
 export namespace StaticDatabase {
 	export enum Root {
@@ -58,7 +59,7 @@ export declare abstract class BaseD0 extends DurableObject {
 	public nuke(reason?: string): Promise<void>;
 }
 
-export function drizzleD0<TSchema extends Record<string, unknown> = Record<string, never>, D0 extends BaseD0 = BaseD0, TClient extends DurableObjectStub<D0> = DurableObjectStub<D0>>(client: TClient, config?: DrizzleConfig<TSchema>): SqliteRemoteDatabase<TSchema> {
+export function drizzleD0<TSchema extends Record<string, unknown> = Record<string, never>, D0 extends BaseD0 = BaseD0, TClient extends DurableObjectStub<D0> = DurableObjectStub<D0>>(client: TClient, config?: Omit<DrizzleConfig<TSchema>, 'casing'>): SqliteRemoteDatabase<TSchema> {
 	return drizzleRest<TSchema>(
 		async (sql, params, method) => {
 			try {
@@ -111,6 +112,29 @@ export function drizzleD0<TSchema extends Record<string, unknown> = Record<strin
 				return [];
 			}
 		},
-		config,
+		{
+			...config,
+			casing: 'snake_case',
+		},
+	);
+}
+
+export function drizzleAE(
+	client: {
+		read?: {
+			accountId: string;
+			apiKey: string;
+		};
+		write?: Record<keyof typeof waeSchema, AnalyticsEngineDataset>;
+	},
+	config?: Omit<DrizzleConfig<typeof waeSchema>, 'casing' | 'schema'>,
+) {
+	return drizzleRest(
+		(sql, params, method) => {},
+		(queries) => {},
+		{
+			...config,
+			schema: waeSchema,
+		},
 	);
 }
