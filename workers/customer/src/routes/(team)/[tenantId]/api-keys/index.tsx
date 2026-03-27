@@ -573,7 +573,7 @@ export default component$(() => {
 				/>
 			</div>
 
-			<div id="create-api-key-modal" tabIndex={-1} aria-hidden="true" class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden md:inset-0">
+			<div id="create-api-key-modal" tabIndex={-1} aria-hidden="true" class="fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-x-hidden overflow-y-auto md:inset-0">
 				<div class="relative max-h-full w-full max-w-3xl p-4">
 					<div class="relative rounded-lg bg-white shadow-sm dark:bg-gray-700">
 						<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
@@ -680,7 +680,7 @@ export default component$(() => {
 			<button id="show-keyring-modal" type="button" data-modal-target="keyring-policies-modal" data-modal-show="keyring-policies-modal" class="hidden" />
 			<button id="hide-keyring-modal" type="button" data-modal-hide="keyring-policies-modal" class="hidden" />
 
-			<div id="keyring-policies-modal" data-modal-backdrop="static" tabIndex={-1} aria-hidden="true" class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden md:inset-0">
+			<div id="keyring-policies-modal" data-modal-backdrop="static" tabIndex={-1} aria-hidden="true" class="fixed top-0 right-0 left-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-x-hidden overflow-y-auto md:inset-0">
 				<div class="relative max-h-[92dvh] w-full max-w-7xl p-4">
 					<div class="relative flex max-h-[92dvh] flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700">
 						<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
