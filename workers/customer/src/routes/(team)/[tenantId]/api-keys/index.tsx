@@ -1,5 +1,5 @@
 import type { Session } from '@auth/qwik';
-import { $, Resource, component$, getLocale, useSignal, useStore } from '@builder.io/qwik';
+import { $, Resource, component$, getLocale, useSignal, useStore, useVisibleTask$ } from '@builder.io/qwik';
 import { Form, routeAction$, routeLoader$, z, zod$ } from '@builder.io/qwik-city';
 import * as tenantSchema from 'db/schemas/tenant/main';
 import { and, asc, desc, eq, sql } from 'drizzle-orm/sql';
@@ -364,25 +364,28 @@ export default component$(() => {
 	const deleteApiKey = useDeleteApiKey();
 	const editKeyringPoliciesJson = useStore<Record<string, string>>({});
 	const expiresValue = useSignal('');
-	const newApiWizardOpen = useSignal(false);
-	const modalOpen = useSignal(false);
 	const modalMode = useSignal<'create-persist' | 'edit'>('edit');
 	const modalTargetAkId = useSignal<string | null>(null);
 	const modalPolicies = useSignal<KeyringPolicyInput[]>([]);
+
+	// eslint-disable-next-line qwik/no-use-visible-task
+	useVisibleTask$(() => {
+		import('flowbite').then(({ initModals }) => initModals());
+	});
 
 	const openCreateKeyringModal = $((akIdBase64url: string | undefined) => {
 		if (!akIdBase64url) return;
 		modalMode.value = 'create-persist';
 		modalTargetAkId.value = akIdBase64url;
 		modalPolicies.value = [];
-		modalOpen.value = true;
+		document.getElementById('show-keyring-modal')?.click();
 	});
 
 	const openEditKeyringModal = $((akIdBase64url: string, fallbackPolicies: KeyringPolicyInput[]) => {
 		modalMode.value = 'edit';
 		modalTargetAkId.value = akIdBase64url;
 		modalPolicies.value = parseKeyringPoliciesJson(editKeyringPoliciesJson[akIdBase64url] ?? JSON.stringify(fallbackPolicies));
-		modalOpen.value = true;
+		document.getElementById('show-keyring-modal')?.click();
 	});
 
 	const upsertPolicy = $((policy: KeyringPolicyInput) => {
@@ -402,7 +405,7 @@ export default component$(() => {
 		const json = JSON.stringify(modalPolicies.value);
 		if (modalMode.value === 'edit' && modalTargetAkId.value) {
 			editKeyringPoliciesJson[modalTargetAkId.value] = json;
-			modalOpen.value = false;
+			document.getElementById('hide-keyring-modal')?.click();
 			return;
 		}
 
@@ -411,8 +414,7 @@ export default component$(() => {
 				ak_id_base64url: modalTargetAkId.value,
 				keyring_policies: json,
 			});
-			modalOpen.value = false;
-			newApiWizardOpen.value = false;
+			document.getElementById('hide-keyring-modal')?.click();
 		}
 	});
 
@@ -424,7 +426,7 @@ export default component$(() => {
 					<p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{m.apikeys_page_subtitle()}</p>
 				</div>
 				{userPermissions.value && userPermissions.value.r_apikeys >= Permissions.Write ? (
-					<button type="button" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']} onClick$={() => (newApiWizardOpen.value = true)}>
+					<button type="button" data-modal-target="create-api-key-modal" data-modal-toggle="create-api-key-modal" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']}>
 						+ New
 					</button>
 				) : null}
@@ -571,258 +573,245 @@ export default component$(() => {
 				/>
 			</div>
 
-			{newApiWizardOpen.value ? (
-				<>
-					<div class="fixed inset-0 z-40 bg-gray-900/50 dark:bg-gray-900/80" onClick$={() => (newApiWizardOpen.value = false)} />
-					<div tabIndex={-1} class="fixed inset-0 z-50 flex h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-x-hidden overflow-y-auto p-4 md:inset-0">
-						<div class="relative max-h-full w-full max-w-3xl">
-							<div class="relative rounded-lg bg-white shadow-sm dark:bg-gray-700">
-								<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
-									<div>
-										<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{m.apikeys_create_title()}</h3>
-										<p class="text-sm text-gray-500 dark:text-gray-400">{m.apikeys_create_step1_subtitle()}</p>
-									</div>
-									<button type="button" class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white" onClick$={() => (newApiWizardOpen.value = false)}>
-										<svg class="h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-											<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-										</svg>
-										<span class="sr-only">{createApiKey.value?.success ? m.common_close() : m.common_discard()}</span>
-									</button>
-								</div>
-
-								{createApiKey.value?.success && createApiKey.value.ak_id_base64url ? (
-									<>
-										<div class="space-y-4 p-4 md:p-5">
-											<div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-												<p class="font-semibold">{m.apikeys_step1_complete_heading()}</p>
-												<p class="mt-1">{m.apikeys_step1_complete_body()}</p>
-												<pre class="mt-2 overflow-x-auto rounded-lg bg-black/10 p-2 text-xs dark:bg-white/10">{createApiKey.value.token}</pre>
-											</div>
-										</div>
-										<div class="flex items-center justify-end rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
-											<button
-												type="button"
-												class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']}
-												onClick$={() => {
-													const createdAkId = createApiKey.value?.ak_id_base64url;
-													if (!createdAkId) return;
-													newApiWizardOpen.value = false;
-													void openCreateKeyringModal(createdAkId);
-												}}>
-												{m.apikeys_continue_to_step2()}
-											</button>
-										</div>
-									</>
-								) : (
-									<Form
-										action={createApiKey}
-										onSubmit$={(_, form) => {
-											const input = form.querySelector<HTMLInputElement>('input[name="expires"]');
-											if (input?.value) input.value = new Date(input.value).toISOString();
-										}}>
-										<div class="space-y-4 p-4 md:p-5">
-											<div class="flex flex-col gap-3 md:flex-row">
-												<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
-													{m.apikeys_field_name()}
-													<input name="name" required minLength={2} maxLength={120} class={fieldClass} />
-													<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_name_hint()}</span>
-												</label>
-												<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
-													{m.apikeys_field_expiration()}
-													<input name="expires" type="datetime-local" required class={fieldClass} bind:value={expiresValue} />
-													<span class="mt-1.5 flex flex-wrap gap-1">
-														<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 30 * 86_400_000)))}>
-															{m.apikeys_chip_30d()}
-														</button>
-														<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 90 * 86_400_000)))}>
-															{m.apikeys_chip_90d()}
-														</button>
-														<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 365 * 86_400_000)))}>
-															{m.apikeys_chip_1y()}
-														</button>
-													</span>
-													<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_expiration_hint()}</span>
-												</label>
-											</div>
-											<div class="flex flex-col gap-3 md:flex-row">
-												<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
-													{m.apikeys_field_r_keyrings()}
-													<select name="r_keyrings" class={fieldClass} value={String(Number(tenantSchema.api_keys.r_keyrings.default ?? 0))}>
-														<option value={Permissions.None}>{m.apikeys_perm_keyrings_none()}</option>
-														<option value={Permissions.Read}>{m.apikeys_perm_keyrings_read()}</option>
-														<option value={Permissions.Write}>{m.apikeys_perm_keyrings_write()}</option>
-														<option value={Permissions.Admin}>{m.apikeys_perm_keyrings_admin()}</option>
-													</select>
-													<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_r_keyrings_hint()}</span>
-												</label>
-												<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
-													{m.apikeys_field_r_apikeys()}
-													<select name="r_apikeys" class={fieldClass} value={String(Number(tenantSchema.api_keys.r_apikeys.default ?? 0))}>
-														<option value={Permissions.None}>{m.apikeys_perm_apikeys_none()}</option>
-														<option value={Permissions.Read}>{m.apikeys_perm_apikeys_read()}</option>
-														<option value={Permissions.Write}>{m.apikeys_perm_apikeys_write()}</option>
-														<option value={Permissions.Admin}>{m.apikeys_perm_apikeys_admin()}</option>
-													</select>
-													<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_r_apikeys_hint()}</span>
-												</label>
-											</div>
-										</div>
-										<div class="flex items-center justify-end space-x-3 rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
-											<button type="button" class="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-100 focus:outline-none dark:border-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-600" onClick$={() => (newApiWizardOpen.value = false)}>
-												{m.common_discard()}
-											</button>
-											<button type="submit" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']}>
-												{m.apikeys_save_step1()}
-											</button>
-										</div>
-									</Form>
-								)}
+			<div id="create-api-key-modal" tabIndex={-1} aria-hidden="true" class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden md:inset-0">
+				<div class="relative max-h-full w-full max-w-3xl p-4">
+					<div class="relative rounded-lg bg-white shadow-sm dark:bg-gray-700">
+						<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{m.apikeys_create_title()}</h3>
+								<p class="text-sm text-gray-500 dark:text-gray-400">{m.apikeys_create_step1_subtitle()}</p>
 							</div>
+							<button type="button" data-modal-hide="create-api-key-modal" class="ms-auto rounded-lg bg-transparent px-2 py-1 text-sm font-medium text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white">
+								{createApiKey.value?.success ? m.common_close() : m.common_discard()}
+							</button>
 						</div>
-					</div>
-				</>
-			) : null}
 
-			{modalOpen.value ? (
-				<>
-					<div class="fixed inset-0 z-40 bg-gray-900/50 dark:bg-gray-900/80" />
-					<div tabIndex={-1} class="fixed inset-0 z-50 flex h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-x-hidden overflow-y-auto p-4 md:inset-0">
-						<div class="relative max-h-[92dvh] w-full max-w-7xl">
-							<div class="relative flex max-h-[92dvh] flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700">
-								<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
-									<div>
-										<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{m.apikeys_keyrings_modal_title()}</h3>
-										<p class="text-sm text-gray-500 dark:text-gray-400">{m.apikeys_keyrings_modal_subtitle()}</p>
+						{createApiKey.value?.success && createApiKey.value.ak_id_base64url ? (
+							<>
+								<div class="space-y-4 p-4 md:p-5">
+									<div class="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+										<p class="font-semibold">{m.apikeys_step1_complete_heading()}</p>
+										<p class="mt-1">{m.apikeys_step1_complete_body()}</p>
+										<pre class="mt-2 overflow-x-auto rounded-lg bg-black/10 p-2 text-xs dark:bg-white/10">{createApiKey.value.token}</pre>
 									</div>
-									<button type="button" class="ms-auto inline-flex h-8 w-8 items-center justify-center rounded-lg bg-transparent text-sm text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white" onClick$={() => (modalOpen.value = false)}>
-										<svg class="h-3 w-3" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 14 14">
-											<path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6" />
-										</svg>
-										<span class="sr-only">{m.common_cancel()}</span>
+								</div>
+								<div class="flex items-center justify-end rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
+									<button
+										type="button"
+										data-modal-hide="create-api-key-modal"
+										class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']}
+										onClick$={() => {
+											const createdAkId = createApiKey.value?.ak_id_base64url;
+											if (!createdAkId) return;
+											void openCreateKeyringModal(createdAkId);
+										}}>
+										{m.apikeys_continue_to_step2()}
 									</button>
 								</div>
-
-								<div class="flex flex-1 gap-4 overflow-hidden p-4 md:p-5">
-									<div class="w-full max-w-sm overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800/50">
-										<h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{m.apikeys_permission_legend_title()}</h4>
-										<div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
-											<div>
-												<p class="font-semibold">{m.apikeys_legend_keyrings_title()}</p>
-												<p>{m.apikeys_legend_keyrings_body()}</p>
-											</div>
-											<div>
-												<p class="font-semibold">{m.apikeys_legend_apikeys_title()}</p>
-												<p>{m.apikeys_legend_apikeys_body()}</p>
-											</div>
-											<div>
-												<p class="font-semibold">{m.apikeys_legend_datakeys_title()}</p>
-												<p>{m.apikeys_legend_datakeys_body()}</p>
-											</div>
-											<div>
-												<p class="font-semibold">{m.apikeys_legend_ops_title()}</p>
-												<p>{m.apikeys_legend_ops_body()}</p>
-											</div>
-										</div>
+							</>
+						) : (
+							<Form
+								action={createApiKey}
+								onSubmit$={(_, form) => {
+									const input = form.querySelector<HTMLInputElement>('input[name="expires"]');
+									if (input?.value) input.value = new Date(input.value).toISOString();
+								}}>
+								<div class="space-y-4 p-4 md:p-5">
+									<div class="flex flex-col gap-3 md:flex-row">
+										<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+											{m.apikeys_field_name()}
+											<input name="name" required minLength={2} maxLength={120} class={fieldClass} />
+											<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_name_hint()}</span>
+										</label>
+										<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+											{m.apikeys_field_expiration()}
+											<input name="expires" type="datetime-local" required class={fieldClass} bind:value={expiresValue} />
+											<span class="mt-1.5 flex flex-wrap gap-1">
+												<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 30 * 86_400_000)))}>
+													{m.apikeys_chip_30d()}
+												</button>
+												<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 90 * 86_400_000)))}>
+													{m.apikeys_chip_90d()}
+												</button>
+												<button type="button" class="text-2xs rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800" onClick$={() => (expiresValue.value = toDatetimeLocal(new Date(Date.now() + 365 * 86_400_000)))}>
+													{m.apikeys_chip_1y()}
+												</button>
+											</span>
+											<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_expiration_hint()}</span>
+										</label>
 									</div>
+									<div class="flex flex-col gap-3 md:flex-row">
+										<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+											{m.apikeys_field_r_keyrings()}
+											<select name="r_keyrings" class={fieldClass} value={String(Number(tenantSchema.api_keys.r_keyrings.default ?? 0))}>
+												<option value={Permissions.None}>{m.apikeys_perm_keyrings_none()}</option>
+												<option value={Permissions.Read}>{m.apikeys_perm_keyrings_read()}</option>
+												<option value={Permissions.Write}>{m.apikeys_perm_keyrings_write()}</option>
+												<option value={Permissions.Admin}>{m.apikeys_perm_keyrings_admin()}</option>
+											</select>
+											<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_r_keyrings_hint()}</span>
+										</label>
+										<label class="flex-1 text-sm text-gray-600 dark:text-gray-300">
+											{m.apikeys_field_r_apikeys()}
+											<select name="r_apikeys" class={fieldClass} value={String(Number(tenantSchema.api_keys.r_apikeys.default ?? 0))}>
+												<option value={Permissions.None}>{m.apikeys_perm_apikeys_none()}</option>
+												<option value={Permissions.Read}>{m.apikeys_perm_apikeys_read()}</option>
+												<option value={Permissions.Write}>{m.apikeys_perm_apikeys_write()}</option>
+												<option value={Permissions.Admin}>{m.apikeys_perm_apikeys_admin()}</option>
+											</select>
+											<span class="mt-1 block text-xs text-gray-500 dark:text-gray-400">{m.apikeys_r_apikeys_hint()}</span>
+										</label>
+									</div>
+								</div>
+								<div class="flex items-center justify-end space-x-3 rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
+									<button type="button" data-modal-hide="create-api-key-modal" class="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-100 focus:outline-none dark:border-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-600">
+										{m.common_discard()}
+									</button>
+									<button type="submit" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']}>
+										{m.apikeys_save_step1()}
+									</button>
+								</div>
+							</Form>
+						)}
+					</div>
+				</div>
+			</div>
 
-									<div class="flex-1 overflow-y-auto rounded-xl border border-gray-200 p-4 dark:border-gray-600">
-										<div class="space-y-3">
-											{tenantKeyrings.value.map((keyring) => {
-												const policy = modalPolicies.value.find((item) => item.kr_id_base64url === keyring.kr_id_base64url);
-												const enabled = Boolean(policy);
+			<button id="show-keyring-modal" type="button" data-modal-target="keyring-policies-modal" data-modal-show="keyring-policies-modal" class="hidden" />
+			<button id="hide-keyring-modal" type="button" data-modal-hide="keyring-policies-modal" class="hidden" />
 
-												return (
-													<div key={keyring.kr_id_base64url} class="rounded-xl border border-gray-200 p-3 dark:border-gray-600">
-														<div class="flex items-center justify-between gap-3">
-															<div>
-																<p class="text-sm font-semibold text-gray-900 dark:text-white">{keyring.name}</p>
-																<p class="text-xs text-gray-500 dark:text-gray-400">{keyring.kr_id_base64url}</p>
-															</div>
-															<label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+			<div id="keyring-policies-modal" data-modal-backdrop="static" tabIndex={-1} aria-hidden="true" class="fixed left-0 right-0 top-0 z-50 hidden h-[calc(100%-1rem)] max-h-full w-full items-center justify-center overflow-y-auto overflow-x-hidden md:inset-0">
+				<div class="relative max-h-[92dvh] w-full max-w-7xl p-4">
+					<div class="relative flex max-h-[92dvh] flex-col overflow-hidden rounded-lg bg-white shadow-sm dark:bg-gray-700">
+						<div class="flex items-center justify-between rounded-t border-b border-gray-200 p-4 md:p-5 dark:border-gray-600">
+							<div>
+								<h3 class="text-lg font-semibold text-gray-900 dark:text-white">{m.apikeys_keyrings_modal_title()}</h3>
+								<p class="text-sm text-gray-500 dark:text-gray-400">{m.apikeys_keyrings_modal_subtitle()}</p>
+							</div>
+							<button type="button" data-modal-hide="keyring-policies-modal" class="ms-auto rounded-lg bg-transparent px-2 py-1 text-sm font-medium text-gray-400 hover:bg-gray-200 hover:text-gray-900 dark:hover:bg-gray-600 dark:hover:text-white">
+								{modalMode.value === 'edit' ? m.common_cancel() : m.common_discard()}
+							</button>
+						</div>
+
+						<div class="flex flex-1 gap-4 overflow-hidden p-4 md:p-5">
+							<div class="w-full max-w-sm overflow-y-auto rounded-xl border border-gray-200 bg-gray-50 p-4 dark:border-gray-600 dark:bg-gray-800/50">
+								<h4 class="mb-3 text-sm font-semibold text-gray-900 dark:text-white">{m.apikeys_permission_legend_title()}</h4>
+								<div class="space-y-3 text-sm text-gray-600 dark:text-gray-300">
+									<div>
+										<p class="font-semibold">{m.apikeys_legend_keyrings_title()}</p>
+										<p>{m.apikeys_legend_keyrings_body()}</p>
+									</div>
+									<div>
+										<p class="font-semibold">{m.apikeys_legend_apikeys_title()}</p>
+										<p>{m.apikeys_legend_apikeys_body()}</p>
+									</div>
+									<div>
+										<p class="font-semibold">{m.apikeys_legend_datakeys_title()}</p>
+										<p>{m.apikeys_legend_datakeys_body()}</p>
+									</div>
+									<div>
+										<p class="font-semibold">{m.apikeys_legend_ops_title()}</p>
+										<p>{m.apikeys_legend_ops_body()}</p>
+									</div>
+								</div>
+							</div>
+
+							<div class="flex-1 overflow-y-auto rounded-xl border border-gray-200 p-4 dark:border-gray-600">
+								<div class="space-y-3">
+									{tenantKeyrings.value.map((keyring) => {
+										const policy = modalPolicies.value.find((item) => item.kr_id_base64url === keyring.kr_id_base64url);
+										const enabled = Boolean(policy);
+
+										return (
+											<div key={keyring.kr_id_base64url} class="rounded-xl border border-gray-200 p-3 dark:border-gray-600">
+												<div class="flex items-center justify-between gap-3">
+													<div>
+														<p class="text-sm font-semibold text-gray-900 dark:text-white">{keyring.name}</p>
+														<p class="text-xs text-gray-500 dark:text-gray-400">{keyring.kr_id_base64url}</p>
+													</div>
+													<label class="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300">
+														<input
+															type="checkbox"
+															checked={enabled}
+															onChange$={(event, target) => {
+																if (target.checked) {
+																	void upsertPolicy(defaultPolicyForKeyring(keyring.kr_id_base64url));
+																} else {
+																	void removePolicy(keyring.kr_id_base64url);
+																}
+																void event;
+															}}
+														/>
+														{m.apikeys_link_keyring()}
+													</label>
+												</div>
+
+												{policy ? (
+													<div class="mt-3 flex flex-wrap gap-2">
+														<label class="text-sm text-gray-600 dark:text-gray-300">
+															{m.apikeys_field_datakeys()}
+															<select
+																class={fieldClass}
+																value={String(policy.r_datakeys)}
+																onChange$={(_, target) =>
+																	void upsertPolicy({
+																		...policy,
+																		r_datakeys: Number(target.value) as Permissions,
+																	})
+																}>
+																<option value={Permissions.Read}>{m.apikeys_perm_datakeys_read()}</option>
+																<option value={Permissions.Write}>{m.apikeys_perm_datakeys_write()}</option>
+																<option value={Permissions.Admin}>{m.apikeys_perm_datakeys_admin()}</option>
+															</select>
+														</label>
+
+														{(
+															[
+																['r_encrypt', m.apikeys_op_encrypt()],
+																['r_decrypt', m.apikeys_op_decrypt()],
+																['r_rewrap', m.apikeys_op_rewrap()],
+																['r_sign', m.apikeys_op_sign()],
+																['r_verify', m.apikeys_op_verify()],
+																['r_hmac', m.apikeys_op_hmac()],
+															] as [keyof Pick<KeyringPolicyInput, 'r_encrypt' | 'r_decrypt' | 'r_rewrap' | 'r_sign' | 'r_verify' | 'r_hmac'>, string][]
+														).map(([flag, label]) => (
+															<label key={flag} class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300">
 																<input
 																	type="checkbox"
-																	checked={enabled}
-																	onChange$={(event, target) => {
-																		if (target.checked) {
-																			void upsertPolicy(defaultPolicyForKeyring(keyring.kr_id_base64url));
-																		} else {
-																			void removePolicy(keyring.kr_id_base64url);
-																		}
-																		void event;
-																	}}
+																	checked={Boolean(policy[flag])}
+																	onChange$={(_, target) =>
+																		void upsertPolicy({
+																			...policy,
+																			[flag]: target.checked,
+																		})
+																	}
 																/>
-																{m.apikeys_link_keyring()}
+																{label}
 															</label>
-														</div>
-
-														{policy ? (
-															<div class="mt-3 flex flex-wrap gap-2">
-																<label class="text-sm text-gray-600 dark:text-gray-300">
-																	{m.apikeys_field_datakeys()}
-																	<select
-																		class={fieldClass}
-																		value={String(policy.r_datakeys)}
-																		onChange$={(_, target) =>
-																			void upsertPolicy({
-																				...policy,
-																				r_datakeys: Number(target.value) as Permissions,
-																			})
-																		}>
-																		<option value={Permissions.Read}>{m.apikeys_perm_datakeys_read()}</option>
-																		<option value={Permissions.Write}>{m.apikeys_perm_datakeys_write()}</option>
-																		<option value={Permissions.Admin}>{m.apikeys_perm_datakeys_admin()}</option>
-																	</select>
-																</label>
-
-																{(
-																	[
-																		['r_encrypt', m.apikeys_op_encrypt()],
-																		['r_decrypt', m.apikeys_op_decrypt()],
-																		['r_rewrap', m.apikeys_op_rewrap()],
-																		['r_sign', m.apikeys_op_sign()],
-																		['r_verify', m.apikeys_op_verify()],
-																		['r_hmac', m.apikeys_op_hmac()],
-																	] as [keyof Pick<KeyringPolicyInput, 'r_encrypt' | 'r_decrypt' | 'r_rewrap' | 'r_sign' | 'r_verify' | 'r_hmac'>, string][]
-																).map(([flag, label]) => (
-																	<label key={flag} class="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-2 py-1 text-sm text-gray-700 dark:border-gray-600 dark:text-gray-300">
-																		<input
-																			type="checkbox"
-																			checked={Boolean(policy[flag])}
-																			onChange$={(_, target) =>
-																				void upsertPolicy({
-																					...policy,
-																					[flag]: target.checked,
-																				})
-																			}
-																		/>
-																		{label}
-																	</label>
-																))}
-															</div>
-														) : null}
+														))}
 													</div>
-												);
-											})}
-										</div>
-									</div>
-								</div>
-
-								<div class="flex items-center justify-between rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
-									<p class="text-xs text-gray-500 dark:text-gray-400">{m.apikeys_keyrings_linked({ count: modalPolicies.value.length })}</p>
-									<div class="flex items-center space-x-3">
-										<button type="button" class="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-100 focus:outline-none dark:border-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-600" onClick$={() => (modalOpen.value = false)}>
-											{m.common_cancel()}
-										</button>
-										<button type="button" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']} onClick$={() => saveKeyringPolicyModal()}>
-											{m.apikeys_save_keyrings()}
-										</button>
-									</div>
+												) : null}
+											</div>
+										);
+									})}
 								</div>
 							</div>
 						</div>
+
+						<div class="flex items-center justify-between rounded-b border-t border-gray-200 p-4 md:p-5 dark:border-gray-600">
+							<p class="text-xs text-gray-500 dark:text-gray-400">{m.apikeys_keyrings_linked({ count: modalPolicies.value.length })}</p>
+							<div class="flex items-center space-x-3">
+								<button type="button" data-modal-hide="keyring-policies-modal" class="rounded-lg border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:z-10 focus:ring-4 focus:ring-gray-100 focus:outline-none dark:border-gray-500 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white dark:focus:ring-gray-600">
+									{m.common_cancel()}
+								</button>
+								<button type="button" class={[buttonClass, 'bg-primary-accent hover:bg-primary-accent/85 text-white']} onClick$={() => saveKeyringPolicyModal()}>
+									{m.apikeys_save_keyrings()}
+								</button>
+							</div>
+						</div>
 					</div>
-				</>
-			) : null}
+				</div>
+			</div>
 		</div>
 	);
 });
