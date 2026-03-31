@@ -8,6 +8,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 // import hash from '~/v0/hash.mjs';
 // import keyrings from '~/v0/keyrings/index.mjs';
 import random from '~/v0/random.mjs';
+import noise from '~/v0/noise/index.mjs';
 import stats from '~/v0/stats/index.mjs';
 
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>({
@@ -109,6 +110,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 // app.route('/encrypt', encrypt);
 // app.route('/decrypt', decrypt);
 // app.route('/hash', hash);
+app.route('/noise', noise);
 app.route('/random', random);
 app.route('/stats', stats);
 

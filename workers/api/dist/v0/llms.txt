@@ -13,6 +13,151 @@ Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:
 
 ## Operations
 
+### POST /noise
+
+- **Method:** `POST`
+- **Path:** `/noise`
+- **Tags:** Noise Pipe
+
+Initiate a Noise\_XX\_25519\_ChaChaPoly\_SHA256 pipe. Sends handshake message 1 (-> e) and receives message 2 (<- e, ee, s, es).
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`ephemeral_public` (required)**
+
+  `object` — Client ephemeral X25519 public key (32 bytes, hex/base64/base64url)
+
+- **`payload`**
+
+  `object` — Optional plaintext payload to encrypt in the handshake
+
+- **`ttl`**
+
+  `integer` — Requested pipe TTL in seconds (capped at server max)
+
+**Example:**
+
+```json
+{
+  "ephemeral_public": "",
+  "payload": "",
+  "ttl": 1
+}
+```
+
+#### Responses
+
+##### Status: 200 Pipe created, handshake message 2 returned
+
+###### Content-Type: application/json
+
+- **`message` (required)**
+
+  `string` — Handshake message 2 (base64url-encoded)
+
+- **`pipe_id` (required)**
+
+  `string` — Durable Object ID for this pipe
+
+- **`server_static_public` (required)**
+
+  `string` — Server static X25519 public key (base64url-encoded)
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "pipe_id": "",
+  "message": "",
+  "server_static_public": ""
+}
+```
+
+### PUT /noise/:pipeId
+
+- **Method:** `PUT`
+- **Path:** `/noise/:pipeId`
+- **Tags:** Noise Pipe
+
+Finalize the Noise\_XX handshake by sending message 3 (-> s, se). After this, the pipe is in transport mode.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`message` (required)**
+
+  `object` — Handshake message 3 (hex/base64/base64url)
+
+**Example:**
+
+```json
+{
+  "message": ""
+}
+```
+
+#### Responses
+
+##### Status: 200 Handshake complete, pipe in transport mode
+
+###### Content-Type: application/json
+
+- **`handshake_hash` (required)**
+
+  `string` — Handshake hash for channel binding (base64url-encoded)
+
+- **`success` (required)**
+
+  `boolean`
+
+- **`payload`**
+
+  `string` — Decrypted payload from message 3 (if any)
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "handshake_hash": "",
+  "payload": ""
+}
+```
+
+### DELETE /noise/:pipeId
+
+- **Method:** `DELETE`
+- **Path:** `/noise/:pipeId`
+- **Tags:** Noise Pipe
+
+Tear down a noise pipe immediately, destroying all session state.
+
+#### Responses
+
+##### Status: 200 Pipe destroyed
+
+###### Content-Type: application/json
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true
+}
+```
+
 ### POST /random
 
 - **Method:** `POST`
