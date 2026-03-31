@@ -239,6 +239,44 @@ app.use('*', (c, next) =>
 	),
 );
 
+// Noise Pipe transparent encrypt/decrypt via X-Noise-Pipe header
+app.use('*', async (c, next) => {
+	const pipeId = c.req.header('X-Noise-Pipe');
+	if (!pipeId) return next();
+
+	// Noise pipes require prior authentication
+	if (!c.var.t_do_id) return c.json({ success: false, errors: [{ message: 'X-Noise-Pipe requires authentication' }] }, 401);
+
+	const pipeDo = c.env.NOISE_PIPE.get(c.env.NOISE_PIPE.idFromString(pipeId));
+	c.set('noisePipeId', pipeId);
+
+	// Decrypt incoming request body
+	const encryptedBody = await c.req.arrayBuffer();
+	const decryptedBody = await pipeDo.decrypt(encryptedBody);
+
+	// Replace request with decrypted body, preserving method/url/headers
+	const newRequest = new Request(c.req.url, {
+		method: c.req.method,
+		headers: c.req.raw.headers,
+		body: decryptedBody,
+	});
+	Object.defineProperty(c.req, 'raw', { value: newRequest, configurable: true });
+
+	await next();
+
+	// Encrypt outgoing response body
+	if (c.res.body) {
+		const responseBody = await c.res.arrayBuffer();
+		const encryptedResponse = await pipeDo.encrypt(responseBody);
+		c.res = new Response(encryptedResponse, {
+			status: c.res.status,
+			headers: c.res.headers,
+		});
+		c.res.headers.set('Content-Type', 'application/octet-stream');
+		c.res.headers.set('X-Noise-Pipe', pipeId);
+	}
+});
+
 // Debug
 app.use('*', (c, next) =>
 	import('hono/pretty-json').then(({ prettyJSON }) =>

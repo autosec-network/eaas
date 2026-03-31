@@ -3,6 +3,7 @@ import type { ContextVariables, EnvVars } from '~/types.mjs';
 
 // Re-export Durable Objects since workerd can only find from wrangler's `main` file
 export { BitwardenSession } from '~do/BitwardenSession.mjs';
+export { NoisePipe } from '~do/NoisePipe.mjs';
 export { TenantD0 } from '~do/TenantD0.mjs';
 export { TenantD0Logs } from '~do/TenantD0Logs.mjs';
 export { UserD0 } from '~do/UserD0.mjs';
