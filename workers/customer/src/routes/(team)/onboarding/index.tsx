@@ -212,6 +212,7 @@ const useOnboardTenant = routeAction$(
 			r_users: Permissions.Admin,
 			r_roles: Permissions.Write,
 			r_billing: Permissions.Admin,
+			r_apikeys: Permissions.Admin,
 			r_keyring: Permissions.Admin,
 			r_datakey: Permissions.Admin,
 			r_logs: Permissions.Admin,
