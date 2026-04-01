@@ -1,0 +1,44 @@
+{
+	"name": "helpers",
+	"type": "module",
+	"main": "index.mts",
+	"directories": {
+		"lib": "src"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.mjs",
+			"types": "./dist/index.d.mts"
+		},
+		"./noise": {
+			"import": "./dist/noise.mjs",
+			"types": "./dist/noise.d.mts"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:types",
+		"build:types": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/helpers/README.md",
+	"dependencies": {
+		"types": "*",
+		"uuid": "^13.0.0",
+		"zod": "^4.3.6"
+	}
+}
