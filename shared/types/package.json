@@ -11,8 +11,7 @@
 	"exports": {
 		".": {
 			"import": "./dist/index.mjs",
-			"types": "./dist/index.d.mts",
-			"default": "./dist/index.mjs"
+			"types": "./dist/index.d.mts"
 		},
 		"./bw": {
 			"import": "./dist/bw/index.mjs",
@@ -29,18 +28,15 @@
 		},
 		"./crypto/catalog": {
 			"import": "./dist/crypto/workers-crypto-catalog.js",
-			"types": "./dist/crypto/workers-crypto-catalog.d.ts",
-			"default": "./dist/crypto/workers-crypto-catalog.js"
+			"types": "./dist/crypto/workers-crypto-catalog.d.ts"
 		},
 		"./tenants": {
 			"import": "./dist/tenants/index.js",
-			"types": "./dist/tenants/index.d.ts",
-			"default": "./dist/tenants/index.js"
+			"types": "./dist/tenants/index.d.ts"
 		},
 		"./tenants/logging": {
 			"import": "./dist/tenants/logging.js",
-			"types": "./dist/tenants/logging.d.ts",
-			"default": "./dist/tenants/logging.js"
+			"types": "./dist/tenants/logging.d.ts"
 		},
 		"./zod/mini": {
 			"import": "./dist/zod-mini/index.js",
