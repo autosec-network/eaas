@@ -7,6 +7,7 @@ import { wrapTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { Permissions } from 'types';
+import { problemJson, problemResponse } from '~/errors.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { APITags } from '~/v0/extras.mjs';
@@ -31,7 +32,7 @@ app.use('*', async (c, next) => {
 		await next();
 	} else {
 		console.error("Token doesn't have permissions");
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+		return problemJson(c, 403, { detail: 'Access Denied: You do not have permission to perform this action' });
 	}
 });
 
@@ -57,51 +58,9 @@ export const route = createRoute({
 			},
 			description: 'API Key successfully deleted.',
 		},
-		403: {
-			content: {
-				'application/json': {
-					schema: z.object({
-						success: z.boolean(),
-						errors: z.array(
-							z.object({
-								message: z.string(),
-							}),
-						),
-					}),
-				},
-			},
-			description: 'Access denied.',
-		},
-		404: {
-			content: {
-				'application/json': {
-					schema: z.object({
-						success: z.boolean(),
-						errors: z.array(
-							z.object({
-								message: z.string(),
-							}),
-						),
-					}),
-				},
-			},
-			description: 'API Key not found.',
-		},
-		500: {
-			content: {
-				'application/json': {
-					schema: z.object({
-						success: z.boolean(),
-						errors: z.array(
-							z.object({
-								message: z.string(),
-							}),
-						),
-					}),
-				},
-			},
-			description: 'Internal server error.',
-		},
+		403: problemResponse('Access denied.'),
+		404: problemResponse('API Key not found.'),
+		500: problemResponse('Internal server error.'),
 	},
 });
 
@@ -136,13 +95,7 @@ app.openapi(route, (c) => {
 		})
 		.catch((error) => {
 			console.error('Error deleting API key:', error);
-			return c.json(
-				{
-					success: false,
-					errors: [{ message: 'An error occurred while deleting the API key' }],
-				},
-				500,
-			);
+			return problemJson(c, 500, { detail: 'An error occurred while deleting the API key', errors: [error] });
 		});
 });
 

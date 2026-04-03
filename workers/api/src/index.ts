@@ -142,9 +142,10 @@ export default class extends WorkerEntrypoint<EnvVars> {
 							.refine((version) => z4.coerce.number().int().nonnegative().safeParse(version.slice(1)).success),
 					}),
 					// @ts-expect-error we don't want to always return to all passthrough
-					(result, c) => {
+					async (result, c) => {
 						if (!result.success) {
-							return c.json({ success: false, errors: [{ message: "API version doesn't exist" }] }, 404);
+							const { problemJsonValidation } = await import('~/errors.mjs');
+							return problemJsonValidation(c, result.error, 404, "API version doesn't exist");
 						}
 					},
 				),
