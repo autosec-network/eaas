@@ -12,6 +12,7 @@ import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { ApiKeyVersions } from 'types/bw';
+import { problemJson } from '~/errors.mjs';
 import type { BufferExport, ContextVariables, EnvVars } from '~/types.mjs';
 import api0 from '~/v0/index.mjs';
 
@@ -225,6 +226,12 @@ app.use(
 
 // Debug
 app.use('*', prettyJSON());
+
+// Global error handler — RFC 9457
+app.onError((err, c) => {
+	console.error(err);
+	return problemJson(c, 500, { detail: err.message, errors: [err] });
+});
 
 // All api versions go here
 app.route('/v0', api0);
