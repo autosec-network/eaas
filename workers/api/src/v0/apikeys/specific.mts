@@ -6,6 +6,7 @@ import { endTime, startTime } from 'hono/timing';
 import { Buffer } from 'node:buffer';
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { Permissions } from 'types';
+import { problemJson } from '~/errors.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import { apikeyOutput } from '~/v0/apikeys/shared.mjs';
 import { APITags } from '~/v0/extras.mjs';
@@ -148,10 +149,10 @@ app.openapi(route, async (c) => {
 				200,
 			);
 		} else {
-			return c.json({ success: false, errors: [{ message: 'API Key not found' }] }, 404);
+			return problemJson(c, 404, { detail: 'API Key not found' });
 		}
 	} else {
-		return c.json({ success: false, errors: [{ message: 'Access Denied: You do not have permission to perform this action' }] }, 403);
+		return problemJson(c, 403, { detail: 'Access Denied: You do not have permission to perform this action' });
 	}
 });
 
