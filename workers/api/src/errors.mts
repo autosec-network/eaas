@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import type { ContentfulStatusCode } from 'hono/utils/http-status';
-import { prettifyError } from 'zod/v4';
+import * as z from 'zod/v4';
 
 const DOCS_BASE_URL = 'https://api.eaas.autosec.network/';
 
@@ -41,7 +41,7 @@ interface ProblemErrorObject {
 interface ProblemAggregateErrorObject {
 	message: string;
 	cause?: string;
-	errors: Array<ProblemErrorObject | ProblemAggregateErrorObject>;
+	errors: (ProblemErrorObject | ProblemAggregateErrorObject)[];
 }
 
 type ProblemErrorEntry = ProblemErrorObject | ProblemAggregateErrorObject;
@@ -59,7 +59,7 @@ interface ProblemDetails {
 
 interface ZodLikeError {
 	name: string;
-	issues: ReadonlyArray<{ message: string; path?: PropertyKey[] }>;
+	issues: readonly { message: string; path?: PropertyKey[] }[];
 }
 
 /** Detect both zod v4 classic and zod/mini errors by structural shape */
@@ -73,16 +73,16 @@ function serializeZodError(error: ZodLikeError): ProblemErrorEntry {
 	if (error.issues.length === 1) {
 		return {
 			name: error.name || '$ZodError',
-			message: prettifyError(error as Parameters<typeof prettifyError>[0]),
+			message: z.prettifyError(error as Parameters<typeof z.prettifyError>[0]),
 		};
 	}
 
 	// Multiple issues from the same schema → AggregateError style
 	return {
-		message: prettifyError(error as Parameters<typeof prettifyError>[0]),
+		message: z.prettifyError(error as Parameters<typeof z.prettifyError>[0]),
 		errors: error.issues.map((issue) => ({
 			name: error.name || '$ZodError',
-			message: prettifyError({ issues: [issue] } as Parameters<typeof prettifyError>[0]),
+			message: z.prettifyError({ issues: [issue] } as Parameters<typeof z.prettifyError>[0]),
 		})),
 	};
 }
