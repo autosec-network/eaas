@@ -1,6 +1,7 @@
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { oas31 } from 'openapi3-ts';
 import { version } from '~/../package.json';
+import { problemJsonValidation } from '~/errors.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import apikeys from '~/v0/apikeys/index.mjs';
 import random from '~/v0/random.mjs';
@@ -14,7 +15,7 @@ import stats from '~/v0/stats/index.mjs';
 const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>({
 	defaultHook: (result, c) => {
 		if (!result.success) {
-			return c.json({ success: result.success, errors: [{ message: result.error.message }] }, 400);
+			return problemJsonValidation(c, result.error);
 		}
 	},
 });
