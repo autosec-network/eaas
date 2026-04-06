@@ -17,6 +17,7 @@
 	"vars": {
 		"ENVIRONMENT": "preview",
 		"NODE_ENV": "development",
+		"NOISE_PIPE_TTL": "300",
 		"SQL_TTL": "900",
 		"WS_AUTH_TTL": "30"
 	},
@@ -53,6 +54,10 @@
 			{
 				"name": "USER_D0",
 				"class_name": "UserD0"
+			},
+			{
+				"name": "NOISE_PIPE",
+				"class_name": "NoisePipe"
 			}
 		]
 	},
@@ -60,6 +65,10 @@
 		{
 			"tag": "2ba4a6e",
 			"new_sqlite_classes": ["BitwardenSession", "TenantD0", "TenantD0Logs", "UserD0"]
+		},
+		{
+			"tag": "c37ca8a",
+			"new_sqlite_classes": ["NoisePipe"]
 		}
 	],
 	"workflows": [
@@ -78,6 +87,7 @@
 			"vars": {
 				"ENVIRONMENT": "production",
 				"NODE_ENV": "production",
+				"NOISE_PIPE_TTL": "300",
 				"SQL_TTL": "900",
 				"WS_AUTH_TTL": "30"
 			},
@@ -114,6 +124,10 @@
 					{
 						"name": "USER_D0",
 						"class_name": "UserD0"
+					},
+					{
+						"name": "NOISE_PIPE",
+						"class_name": "NoisePipe"
 					}
 				]
 			},
@@ -121,6 +135,10 @@
 				{
 					"tag": "2ba4a6e",
 					"new_sqlite_classes": ["BitwardenSession", "TenantD0", "TenantD0Logs", "UserD0"]
+				},
+				{
+					"tag": "c37ca8a",
+					"new_sqlite_classes": ["NoisePipe"]
 				}
 			],
 			"workflows": [
