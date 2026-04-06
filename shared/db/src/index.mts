@@ -3,6 +3,7 @@ export * from './properties/index.js';
 export * from './properties/tenant/index.js';
 export * from './properties/user/index.js';
 export * from './properties/user/session.js';
+export * from './properties/noisePipe/index.js';
 export * from './system/tenant.js';
 export * from './system/tenantLogs.js';
 export * from './system/user.js';
