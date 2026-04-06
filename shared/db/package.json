@@ -96,7 +96,7 @@
 		"zod": "^4.3.6"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260401.1",
+		"@cloudflare/workers-types": "^4.20260405.1",
 		"drizzle-kit": "^0.31.10",
 		"eslint-plugin-drizzle": "^0.2.3"
 	}
