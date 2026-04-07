@@ -11,6 +11,7 @@ import { eq, sql } from 'drizzle-orm/sql';
 import { ZodUuidInputConverted } from 'helpers/zod/mini';
 import { createHash, randomBytes } from 'node:crypto';
 import { KeyAlgorithms } from 'types/crypto';
+import type { workersCryptoCatalog } from 'types/crypto/catalog';
 import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
 import type { EnvVars } from '~/types.mjs';
@@ -18,7 +19,7 @@ import type { EnvVars } from '~/types.mjs';
 // eslint-disable-next-line zod/require-schema-suffix
 export const workflowParams = zm.object({
 	t_id: ZodUuidInputConverted(7),
-	kr_id: ZodUuidInputConverted(7),
+	// kr_id: ZodUuidInputConverted(7),
 });
 
 export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof workflowParams>> {
@@ -114,7 +115,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 			}),
 		});
 
-		const [dk_id, { key_type, key_size, hash }] = await Promise.all([
+		const [
+			dk_id,
+			// { key_type, key_size, hash },
+		] = await Promise.all([
 			// eslint-disable-next-line @typescript-eslint/require-await
 			step.do('Generate datakey ID', async () => {
 				const utf8 = uuidv7();
@@ -128,26 +132,30 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 					base64url: buffer.toString('base64url'),
 				};
 			}),
-			step.do('Get keyring info', DataKeyRotation.cfApiCallRetry, async () => {
-				const [row] = await t_db
-					.select({
-						key_type: tenantSchema.keyrings.key_type,
-						key_size: tenantSchema.keyrings.key_size,
-						hash: tenantSchema.keyrings.hash,
-						generation_versions: tenantSchema.keyrings.generation_versions,
-						retreival_versions: tenantSchema.keyrings.retreival_versions,
-					})
-					.from(tenantSchema.keyrings)
-					.where(eq(tenantSchema.keyrings.kr_id, sql`unhex(${parsedPayload.kr_id.hex})`))
-					.limit(1);
+			// step.do('Get keyring info', DataKeyRotation.cfApiCallRetry, async () => {
+			// 	const [row] = await t_db
+			// 		.select({
+			// 			key_type: tenantSchema.keyrings.key_type,
+			// 			key_size: tenantSchema.keyrings.key_size,
+			// 			hash: tenantSchema.keyrings.hash,
+			// 			generation_versions: tenantSchema.keyrings.generation_versions,
+			// 			retreival_versions: tenantSchema.keyrings.retreival_versions,
+			// 		})
+			// 		.from(tenantSchema.keyrings)
+			// 		.where(eq(tenantSchema.keyrings.kr_id, sql`unhex(${parsedPayload.kr_id.hex})`))
+			// 		.limit(1);
 
-				if (row) {
-					return row;
-				} else {
-					throw new NonRetryableError('Keyring not found');
-				}
-			}),
+			// 	if (row) {
+			// 		return row;
+			// 	} else {
+			// 		throw new NonRetryableError('Keyring not found');
+			// 	}
+			// }),
 		]);
+
+		const key_type: KeyAlgorithms = KeyAlgorithms['ML-KEM'];
+		const key_size: number = 1024;
+		const hash: (typeof workersCryptoCatalog.hashes)[number] = 'sha512';
 
 		/**
 		 * @todo delete older versions
@@ -466,5 +474,19 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 					throw new NonRetryableError('Unsupported key type');
 			}
 		}
+
+		await step.do(
+			'Generate key(s)',
+			{
+				// Some algorithms are slow like SLH-DSA
+				timeout: 30 * 1000,
+			},
+			() => {
+				const salt = generateSalt();
+				const mac_info = generateMacInfo();
+
+				return generateKeys(salt.base64);
+			},
+		);
 	}
 }
