@@ -86,6 +86,9 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+      db:
+        patterns:
+          - 'drizzle-*'
       typescript-core:
         patterns:
           - 'typescript'
