@@ -35,5 +35,8 @@
 			"fileMatch": ["wrangler.json*"],
 			"url": "https://github.com/cloudflare/workers-sdk/files/12887590/wrangler.schema.json"
 		}
-	]
+	],
+	"chat.tools.terminal.autoApprove": {
+		"npm -w types run": true
+	}
 }
