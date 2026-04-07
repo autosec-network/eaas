@@ -1,15 +1,19 @@
-import { $, Resource, component$, useComputed$, useSignal, useStore } from '@builder.io/qwik';
+import { $, component$, Resource, useComputed$, useSignal, useStore } from '@builder.io/qwik';
 import { routeAction$, routeLoader$, useLocation, z, zod$, type DocumentHead } from '@builder.io/qwik-city';
 import { LuArrowDown, LuArrowUp, LuArrowUpDown, LuPlus } from '@qwikest/icons/lucide';
 import { Cloudflare } from 'cloudflare';
-import { StaticDatabase } from 'db/core';
+import { SQLCache } from 'db/cache';
+import { DebugLogWriter, drizzleD0, StaticDatabase } from 'db/core';
 import * as rootSchema from 'db/schemas/root';
+import * as tenantSchema from 'db/schemas/tenant/main';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
+import { DefaultLogger } from 'drizzle-orm/logger';
 import { asc, count, desc, eq, sql } from 'drizzle-orm/sql';
 import { Buffer } from 'node:buffer';
 import { createHash, createHmac, type UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import { v7 as uuidv7 } from 'uuid';
+import * as zm from 'zod/mini';
 import { AssignTenantModal } from '~/components/assign-tenant-modal/assign-tenant-modal';
 import { Pagination } from '~/components/pagination/pagination';
 import { UserRow } from '~/components/user-row/user-row';
@@ -53,18 +57,6 @@ const parseUserDoPlacement = (placement: string): { kind: 'none' } | { kind: 'ju
 
 	throw new Error('Invalid durable object placement selection.');
 };
-
-// eslint-disable-next-line @typescript-eslint/require-await
-export const useTenants = routeLoader$(async ({ sharedMap }) => async () => {
-	const r_db = sharedMap.get('r_db') as DrizzleD1Database;
-
-	return r_db
-		.select({
-			t_id: rootSchema.tenants.t_id,
-		})
-		.from(rootSchema.tenants)
-		.then((rows) => rows.map((row) => row.t_id.toString('hex')));
-});
 
 // eslint-disable-next-line @typescript-eslint/require-await
 export const useDurableObjects = routeLoader$(async ({ platform }) => async () => {
@@ -172,13 +164,63 @@ export const useAddUser = routeAction$(
 );
 
 export const useAssignTenant = routeAction$(
-	async (data, { sharedMap, fail }) => {
+	async (data, { sharedMap, fail, platform }) => {
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
+
+		// Look up tenant in root DB to get jurisdiction + DO id
+		const [tenant] = await r_db
+			.select({
+				jurisdiction: rootSchema.tenants.jurisdiction,
+				do_id: rootSchema.tenants.do_id,
+			})
+			.from(rootSchema.tenants)
+			.where(eq(rootSchema.tenants.t_id, sql`unhex(${data.tenantId})`))
+			.limit(1)
+			.then((rows) =>
+				rows.map((row) => ({
+					...row,
+					do_id: row.do_id.toString('hex'),
+				})),
+			);
+
+		if (!tenant) return fail(404, { message: 'Tenant not found.' });
+
+		// Connect to tenant Durable Object for t_db writes
+		const doNamespace = platform.env.TENANT_D0_PROD;
+		const doNamespaceJurisdiction = tenant.jurisdiction ? doNamespace.jurisdiction(tenant.jurisdiction) : doNamespace;
+		const doId = doNamespaceJurisdiction.idFromString(tenant.do_id);
+		const doStub = doNamespace.get(doId);
+		const browserCache = sharedMap.get('browserCache') as boolean;
+
+		const t_db = drizzleD0(doStub, {
+			logger: new DefaultLogger({ writer: new DebugLogWriter(doId.toString()) }),
+			cache: new SQLCache(
+				{
+					dbName: doId.toString(),
+					dbType: 'do',
+					strategy: browserCache ? 'all' : 'explicit',
+					cacheTTL: parseInt(platform.env.SQL_TTL, 10),
+					logging: true,
+				},
+				globalThis.caches ?? platform.caches,
+			),
+		});
 
 		let assigned = 0;
 
 		for (const uidHex of data.userIds) {
-			const result = await r_db
+			// Look up user from root DB for their DO id
+			const [user] = await r_db
+				.select({ do_id: rootSchema.users.do_id })
+				.from(rootSchema.users)
+				.where(eq(rootSchema.users.u_id, sql`unhex(${uidHex})`))
+				.limit(1)
+				.then((rows) => rows.map((row) => ({ do_id: row.do_id?.toString('hex') })));
+
+			if (!user?.do_id) continue;
+
+			// Insert into root users_tenants
+			const rootResult = await r_db
 				.insert(rootSchema.users_tenants)
 				.values({
 					u_id: sql`unhex(${uidHex})`,
@@ -187,13 +229,56 @@ export const useAssignTenant = routeAction$(
 				.onConflictDoNothing()
 				.catch((err: unknown) => fail(500, serializeActionError(err)));
 
-			if ('failed' in result) return result;
+			if ('failed' in rootResult) return rootResult;
+
+			// Insert into tenant DB users table
+			const now = new Date();
+			const tenantResult = await t_db
+				.insert(tenantSchema.users)
+				.values({
+					u_id: sql`unhex(${uidHex})`,
+					do_id: sql`unhex(${user.do_id})`,
+					b_time: now,
+					m_time: now,
+				})
+				.onConflictDoNothing()
+				.catch((err: unknown) => fail(500, serializeActionError(err)));
+
+			if ('failed' in tenantResult) return tenantResult;
+
 			assigned++;
 		}
 
 		return { assigned };
 	},
-	zod$({ userIds: z.array(z.string()), tenantId: z.string().nonempty() }),
+	zod$({
+		userIds: z.array(z.string()),
+		tenantId: z.union([
+			z
+				.string()
+				.trim()
+				.uuid()
+				.refine((val) => zm.uuidv7().safeParse(val).success, 'Must be a valid UUIDv7')
+				.transform((uuid) => uuid.replaceAll('-', '')),
+			z
+				.string()
+				.trim()
+				.length(32)
+				.refine((val) => zm.hex().safeParse(val).success, 'Must be a valid UUIDv7 without hyphens'),
+			z
+				.string()
+				.trim()
+				.length(24)
+				.base64()
+				.transform((base64) => Buffer.from(base64, 'base64').toString('hex')),
+			z
+				.string()
+				.trim()
+				.length(22)
+				.base64url()
+				.transform((base64url) => Buffer.from(base64url, 'base64url').toString('hex')),
+		]),
+	}),
 );
 
 export const useDeleteUsers = routeAction$(
@@ -300,7 +385,6 @@ export default component$(() => {
 	const loc = useLocation();
 	const pageData = useUsersPage();
 	const doInstancesData = useDurableObjects();
-	const tenantsData = useTenants();
 	const deleteUsersAction = useDeleteUsers();
 	const loadEmailsAction = useLoadEmails();
 	const addUserAction = useAddUser();
@@ -459,7 +543,7 @@ export default component$(() => {
 			<UsersToolbar searchQuery={searchQuery} selectedCount={selectedCount.value} loadingEmails={loadingEmails.value} onLoadEmails$={handleLoadEmails} onDeleteSelected$={handleDeleteSelected} onAssignTenant$={handleAssignSelectedTenant} />
 
 			{/* Assign Tenant Modal */}
-			{showAssignModal.value && <Resource value={tenantsData} onResolved={(tenantIds) => <AssignTenantModal tenantIds={tenantIds} onAssign$={handleAssignTenant} onClose$={() => (showAssignModal.value = false)} />} />}
+			{showAssignModal.value && <AssignTenantModal onAssign$={handleAssignTenant} onClose$={() => (showAssignModal.value = false)} />}
 
 			{/* Table */}
 			<Resource
