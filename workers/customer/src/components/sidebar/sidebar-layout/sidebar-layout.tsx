@@ -1,9 +1,11 @@
 import { Slot, component$, useSignal } from '@builder.io/qwik';
 import { Link, useLocation } from '@builder.io/qwik-city';
 import { LuMenu, LuX } from '@qwikest/icons/lucide';
+import { Permissions } from 'types';
 import * as zm from 'zod/mini';
 import TenantSelector from '~/components/sidebar/tenant-selector/tenant-selector';
 import UserWidget from '~/components/sidebar/user-widget/user-widget';
+import { usePermissions } from '~/routes/(team)/[tenantId]/layout';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore this gets generated automatically later in the build process
@@ -40,6 +42,7 @@ export default component$(() => {
 				<nav class="flex-1 overflow-y-auto px-3 py-2">
 					{isTenantScope ? (
 						<div class="space-y-2">
+							{tenantId ? <TenantNavigation tenantId={tenantId} pathname={location.url.pathname} /> : null}
 							<p class="px-2 text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">{m.sidebar_group_settings()}</p>
 							<Link prefetch="js" href={usersPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isUsersRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
 								{m.sidebar_group_users()}
@@ -72,5 +75,28 @@ export default component$(() => {
 				</main>
 			</div>
 		</div>
+	);
+});
+
+interface TenantNavigationProps {
+	tenantId: string;
+	pathname: string;
+}
+
+const TenantNavigation = component$<TenantNavigationProps>(({ tenantId, pathname }) => {
+	const permissions = usePermissions();
+	const apiKeysPath = `/${tenantId}/api-keys`;
+	const isApiKeysRoute = pathname === apiKeysPath || pathname === `${apiKeysPath}/`;
+	const canReadApiKeys = Boolean(permissions.value && permissions.value.r_apikeys >= Permissions.Read);
+
+	if (!canReadApiKeys) return null;
+
+	return (
+		<>
+			<p class="px-2 text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">{m.users_permission_tenant()}</p>
+			<Link prefetch="js" href={apiKeysPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isApiKeysRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
+				{m.users_permission_apikeys()}
+			</Link>
+		</>
 	);
 });
