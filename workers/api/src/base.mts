@@ -225,6 +225,60 @@ app.use(
 	),
 );
 
+// Noise Pipe transparent encrypt/decrypt via X-Noise-Pipe header
+app.use('*', async (c, next) => {
+	const pipeId = c.req.header('X-Noise-Pipe');
+	if (pipeId) {
+		// Noise pipes require prior authentication
+		if (!c.var.t_do_id)
+			return problemJson(
+				// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+				c,
+				401,
+				{ detail: 'X-Noise-Pipe requires authentication' },
+			);
+
+		const pipeDo = c.env.NOISE_PIPE.get(c.env.NOISE_PIPE.idFromString(pipeId));
+		c.set('noisePipeId', pipeId);
+
+		// Decrypt incoming request body
+		const encryptedBody = await c.req.arrayBuffer();
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+		startTime(c, 'np-decrypt');
+		const decryptedBody = await pipeDo.decrypt(encryptedBody);
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+		endTime(c, 'np-decrypt', 3);
+
+		// Replace request with decrypted body, preserving method/url/headers
+		const newRequest = new Request(c.req.url, {
+			method: c.req.method,
+			headers: c.req.raw.headers,
+			body: decryptedBody,
+		});
+		Object.defineProperty(c.req, 'raw', { value: newRequest, configurable: true });
+
+		await next();
+
+		// Encrypt outgoing response body
+		if (c.res.body) {
+			const responseBody = await c.res.arrayBuffer();
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+			startTime(c, 'np-encrypt');
+			const encryptedResponse = await pipeDo.encrypt(responseBody);
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+			endTime(c, 'np-encrypt', 3);
+			c.res = new Response(encryptedResponse, {
+				status: c.res.status,
+				headers: c.res.headers,
+			});
+			c.res.headers.set('Content-Type', 'application/octet-stream');
+			c.res.headers.set('X-Noise-Pipe', pipeId);
+		}
+	} else {
+		await next();
+	}
+});
+
 // Debug
 app.use('*', prettyJSON());
 
