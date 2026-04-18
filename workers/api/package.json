@@ -29,7 +29,7 @@
 	"dependencies": {
 		"@hono/zod-openapi": "^1.2.4",
 		"@hono/zod-validator": "^0.7.6",
-		"@noble/post-quantum": "^0.6.0",
+		"@noble/post-quantum": "^0.6.1",
 		"cron-schedule": "^6.0.0",
 		"cron-validate": "^1.5.3",
 		"db": "*",
