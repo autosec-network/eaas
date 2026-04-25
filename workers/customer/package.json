@@ -60,7 +60,7 @@
 		"eslint-plugin-drizzle": "^0.2.3",
 		"eslint-plugin-qwik": "^1.19.2",
 		"flowbite": "^4.0.1",
-		"prettier-plugin-tailwindcss": "^0.7.2",
+		"prettier-plugin-tailwindcss": "^0.7.3",
 		"tailwindcss": "^4.2.2",
 		"turnstile-types": "^1.2.3",
 		"vite-tsconfig-paths": "^6.1.1"
