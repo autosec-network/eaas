@@ -1,0 +1,161 @@
+name: Publish Admin Dashboard
+
+on:
+  push:
+    branches:
+      - production
+      - dev
+      - dependabot/npm_and_yarn/*
+      - feature/*
+      - bug/*
+    paths:
+      - '.github/workflows/publish-admin.yml'
+      - 'eslint.config.mjs'
+      - 'prettier.config.mjs'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'shared/**'
+      - 'workers/tsconfig.json'
+      - 'workers/admin/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment:
+      name: production
+      url: https://admin.eaas.autosec.network
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace admin --workspace db --workspace helpers --workspace types
+      - run: npm run-script install --if-present --include-workspace-root --workspace admin --workspace db --workspace helpers --workspace types
+      - run: npm --workspace types run build
+      - parallel:
+          - run: npm --workspace helpers run build
+          - run: npm --workspace db run build
+      - name: Restore TS build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/admin/tmp/tsconfig.tsbuildinfo
+          key: admin-ts-${{ github.ref_name }}-${{ hashFiles('workers/admin/tmp/tsconfig.tsbuildinfo') }}
+          restore-keys: |
+            admin-ts-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace admin run build:types:cf
+      - run: git commit -m "Generate cf types" workers/admin/worker-configuration.d.ts || echo "No type generation done"
+        if: github.actor != 'autosec-prettier[bot]'
+      - run: git push
+        if: github.actor != 'autosec-prettier[bot]'
+        background: true
+        continue-on-error: true
+      - run: npm --workspace admin run build:types:tsc
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Save TS build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.ref_name == 'production' || github.ref_name == 'dev' }}
+        with:
+          path: |
+            workers/admin/tmp/tsconfig.tsbuildinfo
+          key: admin-ts-${{ github.ref_name }}-${{ hashFiles('workers/admin/tmp/tsconfig.tsbuildinfo') }}
+          enableCrossOsArchive: true
+        background: true
+      - name: Restore Vite client build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/admin/dist/.vite
+          key: admin-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/admin/vite.config.ts', 'workers/admin/tsconfig.json') }}
+          restore-keys: |
+            admin-vite-client-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace admin run build.client
+      - name: Save Vite client build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.event_name != 'pull_request_target' }}
+        with:
+          path: |
+            workers/admin/dist/.vite
+          key: admin-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/admin/vite.config.ts', 'workers/admin/tsconfig.json') }}
+          enableCrossOsArchive: true
+        background: true
+      - name: Restore Vite server build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/admin/server/.vite
+          key: admin-vite-server-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/admin/vite.config.ts', 'workers/admin/tsconfig.json') }}
+          restore-keys: |
+            admin-vite-server-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace admin run build.server
+      - name: Save Vite server build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.event_name != 'pull_request_target' }}
+        with:
+          path: |
+            workers/admin/server/.vite
+          key: admin-vite-server-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/admin/vite.config.ts', 'workers/admin/tsconfig.json') }}
+          enableCrossOsArchive: true
+        background: true
+      - run: npm --workspace admin run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Get Wrangler Version
+        run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
+        id: npm_wrangler_version
+      - name: Deploying to Cloudflare's global network
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ github.ref_name == 'production' }}
+        id: wrangler_deploy
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: workers/admin
+          vars: |
+            GIT_HASH
+            CF_ACCOUNT_ID
+          secrets: |
+            AUTH_SECRET_DEV
+            AUTH_SECRET_PROD
+            CF_API_TOKEN
+        env:
+          GIT_HASH: ${{ github.sha }}
+          AUTH_SECRET_DEV: ${{ secrets.AUTH_SECRET_DEV }}
+          AUTH_SECRET_PROD: ${{ secrets.AUTH_SECRET_PROD }}
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          CF_API_TOKEN: ${{ secrets.ADMIN_CF_API_TOKEN }}
+      - name: Dry-run deployment for validation
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ steps.wrangler_deploy.outcome == 'skipped' }}
+        id: wrangler_dry_run
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: workers/admin
+          command: deploy --dry-run
