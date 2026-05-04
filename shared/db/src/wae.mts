@@ -248,7 +248,7 @@ export function drizzleAE(
 			}
 			// insert
 			if (!client.write) throw new Error('Analytics Engine: write bindings not configured');
-			return aeExecInsert(client.write as Record<string, AnalyticsEngineDataset>, sql, params);
+			return aeExecInsert(client.write, sql, params);
 		},
 		{
 			...config,
