@@ -1,5 +1,5 @@
 import { Cloudflare } from 'cloudflare';
-import type { SchemaListResponse } from 'cloudflare/resources/schema-validation.mjs';
+import type { PublicSchema } from 'cloudflare/resources/schema-validation.mjs';
 import type { OperationBulkEditParams, OperationListResponse } from 'cloudflare/resources/schema-validation/settings/operations';
 import { readdir, readFile } from 'node:fs/promises';
 import * as zm from 'zod/mini';
@@ -17,7 +17,7 @@ const [oldSchemas, fileRoutes] = await Promise.all([
 	(async () => {
 		console.info('Getting existing schemas on API Gateway');
 
-		const schemas: Record<string, Omit<SchemaListResponse, 'name'>[]> = {};
+		const schemas: Record<string, Omit<PublicSchema, 'name'>[]> = {};
 
 		for await (const { name, ...schema } of cf.schemaValidation.schemas.list({
 			zone_id: ZONE_ID,
