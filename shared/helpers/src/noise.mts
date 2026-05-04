@@ -40,8 +40,8 @@ export interface KeyPair {
 export function generateX25519Keypair(): KeyPair {
 	const { publicKey, privateKey } = generateKeyPairSync('x25519');
 	return {
-		publicKey: publicKey.export({ type: 'spki', format: 'der' }).subarray(-DHLEN) as Buffer,
-		privateKey: privateKey.export({ type: 'pkcs8', format: 'der' }).subarray(-DHLEN) as Buffer,
+		publicKey: publicKey.export({ type: 'spki', format: 'der' }).subarray(-DHLEN),
+		privateKey: privateKey.export({ type: 'pkcs8', format: 'der' }).subarray(-DHLEN),
 	};
 }
 
@@ -54,7 +54,7 @@ function wrapPublicKey(raw: Buffer) {
 }
 
 export function x25519DH(myPrivateRaw: Buffer, theirPublicRaw: Buffer): Buffer {
-	return diffieHellman({ privateKey: wrapPrivateKey(myPrivateRaw), publicKey: wrapPublicKey(theirPublicRaw) }) as Buffer;
+	return diffieHellman({ privateKey: wrapPrivateKey(myPrivateRaw), publicKey: wrapPublicKey(theirPublicRaw) });
 }
 
 // ─── Hash / HKDF ─────────────────────────────────────────────────────────────
@@ -62,7 +62,7 @@ export function x25519DH(myPrivateRaw: Buffer, theirPublicRaw: Buffer): Buffer {
 function sha256(...parts: Buffer[]): Buffer {
 	const h = createHash('sha256');
 	for (const p of parts) h.update(p);
-	return h.digest() as Buffer;
+	return h.digest();
 }
 
 /**
@@ -77,7 +77,7 @@ function noiseHKDF(chainingKey: Buffer, inputKeyMaterial: Buffer, numOutputs: 2 
 	const okm = Buffer.from(hkdfSync('sha256', inputKeyMaterial, chainingKey, '', numOutputs * HASHLEN));
 	const outputs: Buffer[] = [];
 	for (let i = 0; i < numOutputs; i++) {
-		outputs.push(okm.subarray(i * HASHLEN, (i + 1) * HASHLEN) as Buffer);
+		outputs.push(okm.subarray(i * HASHLEN, (i + 1) * HASHLEN));
 	}
 	return outputs;
 }
@@ -134,7 +134,7 @@ export class CipherState {
 
 		const decrypted = Buffer.concat([decipher.update(ct), decipher.final()]);
 		this.n++;
-		return decrypted as Buffer;
+		return decrypted;
 	}
 
 	serialize(): { k: ArrayBuffer | null; n: number } {
