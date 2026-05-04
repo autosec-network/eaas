@@ -72,16 +72,16 @@ function serializeZodError(error: ZodLikeError): ProblemErrorEntry {
 	if (error.issues.length === 1) {
 		return {
 			name: error.name || '$ZodError',
-			message: z.prettifyError(error as Parameters<typeof z.prettifyError>[0]),
+			message: z.prettifyError(error),
 		};
 	}
 
 	// Multiple issues from the same schema → AggregateError style
 	return {
-		message: z.prettifyError(error as Parameters<typeof z.prettifyError>[0]),
+		message: z.prettifyError(error),
 		errors: error.issues.map((issue) => ({
 			name: error.name || '$ZodError',
-			message: z.prettifyError({ issues: [issue] } as Parameters<typeof z.prettifyError>[0]),
+			message: z.prettifyError({ issues: [issue] }),
 		})),
 	};
 }

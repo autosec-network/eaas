@@ -230,7 +230,7 @@ export const keyringOutput = keyringEditable.extend({
 				.openapi({ example: new Date(0).toISOString() }),
 		}),
 		count: countEditable.extend({
-			current: z.coerce.bigint().openapi({ example: BigInt(0).toString() as unknown as bigint }),
+			current: z.coerce.bigint().openapi({ example: BigInt(0).toString() }),
 		}),
 	}),
 });
