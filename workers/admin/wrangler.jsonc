@@ -1,0 +1,112 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-admin",
+	"main": "src/entry.cloudflare-workers.ts",
+	"compatibility_date": "2026-07-14",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public", "enable_request_signal", "request_signal_passthrough", "queue_consumer_no_wait_for_wait_until"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "admin.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	// Everything cacheable is already using static assets
+	"cache": { "enabled": false, "cross_version_cache": false },
+	"limits": { "cpu_ms": 10, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"dependencies_instrumentation": { "enabled": false },
+	"vars": {
+		"ENVIRONMENT": "production",
+		"NODE_ENV": "production",
+		"SQL_TTL": "900",
+		"ZT_TEAM_DOMAIN": "https://demosjarco.cloudflareaccess.com",
+		"ZT_APP_AUD": "4af22ecad1b7dbbd624907391c4b0b3d33ea05824b54bb8ecceb62946e94fcaa"
+	},
+	"secrets": {
+		"required": ["AUTH_SECRET_DEV", "AUTH_SECRET_PROD", "CF_API_TOKEN"]
+	},
+	"assets": {
+		"binding": "ASSET",
+		"directory": "./dist"
+		// "not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT_PREVIEW",
+			"database_name": "eaas_root_dev",
+			"database_id": "c6e00b28-b4b8-4559-9a07-215d74815d50",
+			"migrations_dir": "../../shared/db/src/schemas/root/main",
+			"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+			"remote": true
+		},
+		{
+			"binding": "DB_ROOT_PROD",
+			"database_name": "eaas_root_prod",
+			"database_id": "b7878525-2c05-4df9-95a6-eb812496a634",
+			"migrations_dir": "../../shared/db/src/schemas/root/main",
+			"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			// {
+			// 	"name": "BITWARDEN_SESSION_DEV",
+			// 	"class_name": "BitwardenSession",
+			// 	"script_name": "eaas-api-dev"
+			// },
+			{
+				"name": "BITWARDEN_SESSION_PROD",
+				"class_name": "BitwardenSession",
+				"script_name": "eaas-api-prod"
+			},
+			// {
+			// 	"name": "TENANT_D0_DEV",
+			// 	"class_name": "TenantD0",
+			// 	"script_name": "eaas-api-dev"
+			// },
+			{
+				"name": "TENANT_D0_PROD",
+				"class_name": "TenantD0",
+				"script_name": "eaas-api-prod"
+			},
+			// {
+			// 	"name": "USER_D0_DEV",
+			// 	"class_name": "UserD0",
+			// 	"script_name": "eaas-api-dev"
+			// },
+			{
+				"name": "USER_D0_PROD",
+				"class_name": "UserD0",
+				"script_name": "eaas-api-prod"
+			},
+			// {
+			// 	"name": "USER_SESSION_DEV",
+			// 	"class_name": "UserSession",
+			// 	"script_name": "eaas-customer-dev"
+			// },
+			{
+				"name": "USER_SESSION_PROD",
+				"class_name": "UserSession",
+				"script_name": "eaas-customer-prod"
+			}
+		]
+	},
+	"queues": {
+		"consumers": [
+			{
+				"queue": "eaas-admin",
+				"max_batch_size": 100,
+				"max_batch_timeout": 10,
+				"max_retries": 100,
+				"retry_delay": 10
+			}
+		],
+		"producers": [
+			{
+				"queue": "eaas-admin",
+				"binding": "ADMIN_MANAGEMENT"
+			}
+		]
+	}
+}
