@@ -1,0 +1,52 @@
+name: Publish API Gateway
+
+on:
+  push:
+    branches:
+      - production
+      - preview
+    paths:
+      - '.github/workflows/publish-apig.yml'
+      - 'workers/api/staticApi.ts'
+      - 'workers/api/apiGateway.ts'
+      - 'workers/api/dist/*/*.cf-apig.openapi.json'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose an environment to deploy to:'
+        required: true
+        default: 'preview'
+        type: environment
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: ${{ (inputs.environment || github.ref_name) == 'production' && 'production' || 'preview' }}
+      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}api.eaas.autosec.network
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+          disable-sudo-and-containers: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace api
+      - run: npm run-script install --if-present
+      - run: npm --workspace api run publish:static
+        env:
+          CF_API_TOKEN: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          ZONE_ID: ${{ secrets.AUTOSEC_ZONE_ID }}

@@ -1,0 +1,566 @@
+# EaaS API
+
+- **OpenAPI Version:** `3.1.0`
+- **API Version:** `0.0.0`
+
+***Undergoing rearchitect/rewrite***
+
+Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.
+
+## Servers
+
+- **URL:** `/v0`
+
+## Operations
+
+### DELETE /apikeys/{token\_id}
+
+- **Method:** `DELETE`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** API Key Management
+
+Delete a specific API Key by its token ID. Requires Admin permissions.
+
+#### Parameters
+
+##### `token_id` required
+
+- **In:** `path`
+
+`string`
+
+#### Responses
+
+##### Status: 200 API Key successfully deleted.
+
+###### Content-Type: application/json
+
+- **`message` (required)**
+
+  `string`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "message": ""
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 404 API Key not found.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+### GET /apikeys/{token\_id}
+
+- **Method:** `GET`
+- **Path:** `/apikeys/{token_id}`
+- **Tags:** API Key Management
+
+Get a specific Api Key by its token ID.
+
+#### Parameters
+
+##### `token_id` required
+
+- **In:** `path`
+
+`string`
+
+#### Responses
+
+##### Status: 200 Returns the specific API key if permissions allow access.
+
+###### Content-Type: application/json
+
+- **`created` (required)**
+
+  `string`, format: `date-time`
+
+- **`expired` (required)**
+
+  `boolean`
+
+- **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+- **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`token_id` (required)**
+
+  `string`
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+**Example:**
+
+```json
+{
+  "name": "",
+  "expires": "1970-01-01T00:00:00.000Z",
+  "keyringsPermission": "None",
+  "apikeysPermission": "None",
+  "keyrings": {},
+  "token_id": "",
+  "created": "1970-01-01T00:00:00.000Z",
+  "lastRotation": "1970-01-01T00:00:00.000Z",
+  "expired": true,
+  "lastModified": "1970-01-01T00:00:00.000Z"
+}
+```
+
+### GET /apikeys
+
+- **Method:** `GET`
+- **Path:** `/apikeys`
+- **Tags:** API Key Management
+
+Get a list of Api Keys.
+
+#### Responses
+
+##### Status: 200 Depending on key permissions, list all api keys, or fallback to itself.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`created` (required)**
+
+  `string`, format: `date-time`
+
+- **`expired` (required)**
+
+  `boolean`
+
+- **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+- **`lastRotation` (required)**
+
+  `string`, format: `date-time`
+
+- **`name` (required)**
+
+  `string` — Name for the API key
+
+- **`token_id` (required)**
+
+  `string`
+
+- **`apikeysPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+- **`expires`**
+
+  `string | null`, format: `date-time` — Expiration date and time. Defaults to 90 days from now
+
+- **`keyrings`**
+
+  `object`, default: `{}`
+
+- **`keyringsPermission`**
+
+  `string`, possible values: `"None", "Read", "Write", "Admin"`, default: `"None"`
+
+**Example:**
+
+```json
+[
+  {
+    "name": "",
+    "expires": "1970-01-01T00:00:00.000Z",
+    "keyringsPermission": "None",
+    "apikeysPermission": "None",
+    "keyrings": {},
+    "token_id": "",
+    "created": "1970-01-01T00:00:00.000Z",
+    "lastRotation": "1970-01-01T00:00:00.000Z",
+    "expired": true,
+    "lastModified": "1970-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### GET /keyrings
+
+- **Method:** `GET`
+- **Path:** `/keyrings`
+- **Tags:** Keyring Management
+
+Get a list of keyrings.
+
+#### Responses
+
+##### Status: 200 Depending on key permissions, list all keyrings, or fallback to those the key has access to.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`created` (required)**
+
+  `string`, format: `date-time`
+
+- **`key` (required)**
+
+  `object`
+
+- **`lastModified` (required)**
+
+  `string`, format: `date-time`
+
+- **`name` (required)**
+
+  `string`
+
+- **`rotation` (required)**
+
+  `object`
+
+  - **`count` (required)**
+
+    `object`
+
+    - **`current` (required)**
+
+      `string`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`threshold`**
+
+      `string | null`, default: `"4294967296"`
+
+  - **`lastRotation` (required)**
+
+    `string`, format: `date-time`
+
+  - **`time` (required)**
+
+    `object`
+
+    - **`cron` (required)**
+
+      `array`
+
+      **Items:**
+
+      `string`, default: `"0 0 1 1 *"`
+
+    - **`enabled` (required)**
+
+      `boolean`
+
+    - **`next` (required)**
+
+      `string | null`, format: `date-time`
+
+**Example:**
+
+```json
+[
+  {
+    "name": "",
+    "key": {
+      "algorithm": "rsassa-pkcs1-v1_5",
+      "size": 256,
+      "hash": "DSA-SHA"
+    },
+    "rotation": {
+      "time": {
+        "enabled": true,
+        "cron": [
+          "0 0 1 1 *"
+        ],
+        "next": "1970-01-01T00:00:00.000Z"
+      },
+      "count": {
+        "enabled": true,
+        "threshold": "4294967296",
+        "current": "0"
+      },
+      "lastRotation": "1970-01-01T00:00:00.000Z"
+    },
+    "created": "1970-01-01T00:00:00.000Z",
+    "lastModified": "1970-01-01T00:00:00.000Z"
+  }
+]
+```
+
+### POST /random
+
+- **Method:** `POST`
+- **Path:** `/random`
+- **Tags:** Free
+
+This endpoint returns high-quality random bytes of the specified length
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`bytes` (required)**
+
+  `integer` — Specifies the number of bytes to return
+
+- **`format` (required)**
+
+  `string`, possible values: `"hex", "base64", "base64url", "raw"` — Specifies the output encoding
+
+- **`sink`**
+
+  `boolean`, default: `false` — When true, continuously streams random bytes in chunks of the specified \`bytes\` size until the client disconnects. Uses \`application/octet-stream\` for \`raw\` format, or \`text/plain\` with each line containing a formatted chunk.
+
+- **`source`**
+
+  `string`, possible values: `"lavarand", "platform", "all"`, default: `"lavarand"` — Specifies the source of the requested bytes. \`lavarand\`, the default, sources from Cloudflare's physical sources of entropy. \`platform\` sources bytes from the platform's entropy source. \`all\` mixes bytes from all available sources.
+
+**Example:**
+
+```json
+{
+  "bytes": 32,
+  "format": "hex",
+  "source": "lavarand",
+  "sink": false
+}
+```
+
+#### Responses
+
+##### Status: 200 Returns high-quality random bytes
+
+###### Content-Type: application/json
+
+**Any of:**
+
+- **`result` (required)**
+
+  `object`
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": "0000000000000000000000000000000000000000000000000000000000000000"
+}
+```
+
+###### Content-Type: application/octet-stream
+
+`string`, format: `binary`
+
+**Example:**
+
+```json
+"@filename"
+```
+
+###### Content-Type: text/plain
+
+`string` — Streaming text output of formatted random bytes, one chunk per line
+
+**Example:**
+
+```json
+""
+```
+
+### GET /stats/language
+
+- **Method:** `GET`
+- **Path:** `/stats/language`
+- **Tags:** Stats
+
+Returns the top 20 browser-reported languages and their percentage share of visitor sessions. Each session is counted once to avoid inflating individual users, and results are weighted to account for adaptive sampling.
+
+#### Responses
+
+##### Status: 200 Languages sorted by share of sessions, from most to least common.
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`language` (required)**
+
+  `string`
+
+- **`trafficPercentage` (required)**
+
+  `number`
+
+* Min items: `1`
+* Max items: `20`
+
+**Example:**
+
+```json
+[
+  {
+    "language": "en",
+    "trafficPercentage": 0
+  }
+]
+```

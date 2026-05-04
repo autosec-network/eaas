@@ -1,0 +1,11 @@
+# EaaS (Encryption as a Service) API Documentation
+
+This service provides multiple API versions. Each version has its own detailed documentation:
+
+## API V0
+
+Full API documentation for v0: [v0/llms.txt](/v0/llms.txt)
+
+---
+
+Generated automatically from OpenAPI specifications.

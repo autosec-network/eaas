@@ -56,6 +56,11 @@ updates:
         versions:
           - '>=10.0.0'
     groups:
+      auth:
+        patterns:
+          - '@auth/*'
+          - '@simplewebauthn/*'
+          - 'jose'
       cloudflare:
         patterns:
           - 'cloudflare'
@@ -63,6 +68,9 @@ updates:
           - 'wrangler'
         exclude-patterns:
           - '@cloudflare/workers-types'
+      ci-cd:
+        patterns:
+          - '@scalar/openapi-to-markdown'
       code-management:
         patterns:
           - 'prettier'
@@ -74,9 +82,18 @@ updates:
           - 'eslint-config-*'
           - 'typescript-eslint'
           - '@microsoft/eslint-formatter-sarif'
+      cron:
+        patterns:
+          - 'cron-schedule'
+          - 'cron-validate'
       db:
         patterns:
           - 'drizzle-*'
+      hono:
+        patterns:
+          - 'hono'
+          - '@hono/*'
+          - '@scalar/hono-api-reference'
       typescript-core:
         patterns:
           - 'typescript'

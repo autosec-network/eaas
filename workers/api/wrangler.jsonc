@@ -1,0 +1,168 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-api-dev",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-14",
+	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.api.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	// Max possible worker limits (5*60*1000 ms CPU time, 10 million subrequests)
+	"limits": { "cpu_ms": 300000, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true }, "traces": { "enabled": true, "persist": true } },
+	"dependencies_instrumentation": { "enabled": false },
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development",
+		"SQL_TTL": "900",
+		"WS_AUTH_TTL": "30"
+	},
+	"secrets": {
+		"required": ["CF_API_TOKEN", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN"]
+	},
+	"assets": {
+		"directory": "./dist",
+		"run_worker_first": false
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "c6e00b28-b4b8-4559-9a07-215d74815d50",
+			"migrations_dir": "../../shared/db/src/schemas/root/main",
+			"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0"
+			},
+			{
+				"name": "TENANT_D0_LOGS",
+				"class_name": "TenantD0Logs"
+			},
+			{
+				"name": "USER_D0",
+				"class_name": "UserD0"
+			}
+		]
+	},
+	"exports": {
+		"BitwardenSession": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		},
+		"TenantD0": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		},
+		"TenantD0Logs": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		},
+		"UserD0": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		}
+	},
+	"workflows": [
+		{
+			"name": "data-key-rotation-preview",
+			"binding": "DATA_KEY_ROTATION",
+			"class_name": "DataKeyRotation"
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-api-prod",
+			"route": { "pattern": "api.eaas.autosec.network", "custom_domain": true },
+			"upload_source_maps": true,
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production",
+				"SQL_TTL": "900",
+				"WS_AUTH_TTL": "30"
+			},
+			"secrets": {
+				"required": ["CF_API_TOKEN", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN"]
+			},
+			"assets": {
+				"directory": "./dist",
+				"run_worker_first": false
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "b7878525-2c05-4df9-95a6-eb812496a634",
+					"migrations_dir": "../../shared/db/src/schemas/root/main",
+					"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "BITWARDEN_SESSION",
+						"class_name": "BitwardenSession"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0"
+					},
+					{
+						"name": "TENANT_D0_LOGS",
+						"class_name": "TenantD0Logs"
+					},
+					{
+						"name": "USER_D0",
+						"class_name": "UserD0"
+					}
+				]
+			},
+			"exports": {
+				"BitwardenSession": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				},
+				"TenantD0": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				},
+				"TenantD0Logs": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				},
+				"UserD0": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				}
+			},
+			"workflows": [
+				{
+					"name": "data-key-rotation",
+					"binding": "DATA_KEY_ROTATION",
+					"class_name": "DataKeyRotation"
+				}
+			]
+		}
+	}
+}

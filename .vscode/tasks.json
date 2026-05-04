@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"dependsOn": ["TS Types", "TS DB", "TS Helpers", "Image Proxy"],
+			"dependsOn": ["TS Types", "TS DB", "TS Helpers", "Image Proxy", "API"],
 			"isBackground": true,
 			"group": {
 				"kind": "build",
@@ -66,6 +66,22 @@
 			"isBackground": true,
 			"presentation": {
 				"group": "snippets"
+			},
+			"icon": {
+				"id": "symbol-type-parameter",
+				"color": "terminal.ansiBlue"
+			}
+		},
+		{
+			"label": "API",
+			"dependsOn": ["TS Types", "TS DB", "TS Helpers"],
+			"type": "typescript",
+			"tsconfig": "workers/api/tsconfig.json",
+			"option": "watch",
+			"problemMatcher": ["$tsc-watch"],
+			"isBackground": true,
+			"presentation": {
+				"group": "workers"
 			},
 			"icon": {
 				"id": "symbol-type-parameter",
