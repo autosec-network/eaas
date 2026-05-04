@@ -91,7 +91,7 @@
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/db/README.md",
 	"dependencies": {
 		"drizzle-orm": "^0.45.2",
-		"sql-parser-cst": "^0.39.0",
+		"sql-parser-cst": "^0.42.0",
 		"types": "*",
 		"zod": "^4.3.6"
 	},
