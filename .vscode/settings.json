@@ -7,7 +7,7 @@
 	"js/ts.preferences.importModuleSpecifier": "non-relative",
 	"js/ts.tsdk.path": "./node_modules/typescript/lib",
 	"github-actions.workflows.pinned.refresh.enabled": true,
-	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-image_proxy.yml"],
+	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-image_proxy.yml", ".github/workflows/publish-api.yml", ".github/workflows/publish-apig.yml"],
 	"material-icon-theme.activeIconPack": "qwik",
 	"editor.quickSuggestions": {
 		"strings": "on"
@@ -39,6 +39,7 @@
 	"chat.tools.terminal.autoApprove": {
 		"npm -w types run": true,
 		"npm -w db run": true,
-		"npm -w helpers run": true
+		"npm -w helpers run": true,
+		"npm -w api run": true
 	}
 }
