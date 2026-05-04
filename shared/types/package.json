@@ -63,6 +63,6 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/types/README.md",
 	"devDependencies": {
-		"zod": "^4.3.6"
+		"zod": "^4.4.2"
 	}
 }
