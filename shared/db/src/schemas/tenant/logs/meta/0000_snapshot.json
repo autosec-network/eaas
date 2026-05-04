@@ -1,0 +1,276 @@
+{
+	"version": "6",
+	"dialect": "sqlite",
+	"id": "4a90ca97-469e-4376-a31d-9eef424511d9",
+	"prevId": "00000000-0000-0000-0000-000000000000",
+	"tables": {
+		"alarms": {
+			"name": "alarms",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"callee": {
+					"name": "callee",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"payload": {
+					"name": "payload",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false,
+					"default": "'[]'"
+				},
+				"type": {
+					"name": "type",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"next_time": {
+					"name": "next_time",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"delay_in_seconds": {
+					"name": "delay_in_seconds",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"cron": {
+					"name": "cron",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"logs": {
+			"name": "logs",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"timestamp": {
+					"name": "timestamp",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"event_type": {
+					"name": "event_type",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"context": {
+					"name": "context",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"ip": {
+					"name": "ip",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"user_agent": {
+					"name": "user_agent",
+					"type": "text",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"u_id": {
+					"name": "u_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"ak_id": {
+					"name": "ak_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"system": {
+					"name": "system",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"kr_id": {
+					"name": "kr_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"dk_id": {
+					"name": "dk_id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": false,
+					"autoincrement": false
+				},
+				"status": {
+					"name": "status",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"event_type_idx": {
+					"name": "event_type_idx",
+					"columns": ["event_type"],
+					"isUnique": false
+				},
+				"when": {
+					"name": "when",
+					"columns": ["timestamp"],
+					"isUnique": false
+				},
+				"u_id_event_type_idx": {
+					"name": "u_id_event_type_idx",
+					"columns": ["u_id", "event_type"],
+					"isUnique": false
+				},
+				"ak_id_event_type_idx": {
+					"name": "ak_id_event_type_idx",
+					"columns": ["ak_id", "event_type"],
+					"isUnique": false
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {
+				"actor_required": {
+					"name": "actor_required",
+					"value": "(\"logs\".\"u_id\" is not null or \"logs\".\"ak_id\" is not null or \"logs\".\"system\" is not null)"
+				}
+			}
+		},
+		"pending_web_sockets": {
+			"name": "pending_web_sockets",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "blob",
+					"primaryKey": true,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"secret": {
+					"name": "secret",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"salt": {
+					"name": "salt",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"expires": {
+					"name": "expires",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {
+				"pending_web_sockets_secret_unique": {
+					"name": "pending_web_sockets_secret_unique",
+					"columns": ["secret"],
+					"isUnique": true
+				},
+				"pending_web_sockets_salt_unique": {
+					"name": "pending_web_sockets_salt_unique",
+					"columns": ["salt"],
+					"isUnique": true
+				}
+			},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		},
+		"web_sockets_subscriptions": {
+			"name": "web_sockets_subscriptions",
+			"columns": {
+				"id": {
+					"name": "id",
+					"type": "blob",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				},
+				"event_type": {
+					"name": "event_type",
+					"type": "integer",
+					"primaryKey": false,
+					"notNull": true,
+					"autoincrement": false
+				}
+			},
+			"indexes": {},
+			"foreignKeys": {},
+			"compositePrimaryKeys": {
+				"web_sockets_subscriptions_id_event_type_pk": {
+					"columns": ["id", "event_type"],
+					"name": "web_sockets_subscriptions_id_event_type_pk"
+				}
+			},
+			"uniqueConstraints": {},
+			"checkConstraints": {}
+		}
+	},
+	"views": {},
+	"enums": {},
+	"_meta": {
+		"schemas": {},
+		"tables": {},
+		"columns": {}
+	},
+	"internal": {
+		"indexes": {}
+	}
+}
