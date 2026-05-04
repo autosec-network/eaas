@@ -27,7 +27,7 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/workers/api/README.md",
 	"dependencies": {
-		"@hono/zod-openapi": "^1.2.4",
+		"@hono/zod-openapi": "^1.3.0",
 		"@hono/zod-validator": "^0.7.6",
 		"@noble/post-quantum": "^0.6.0",
 		"cron-schedule": "^6.0.0",
@@ -35,7 +35,7 @@
 		"db": "*",
 		"drizzle-orm": "^0.45.2",
 		"helpers": "*",
-		"hono": "^4.12.12",
+		"hono": "^4.12.16",
 		"jose": "^6.2.3",
 		"types": "*",
 		"uuid": "^14.0.0",
