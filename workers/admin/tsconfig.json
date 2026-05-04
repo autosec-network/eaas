@@ -1,0 +1,17 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"incremental": true,
+		"lib": ["ESNext", "DOM", "WebWorker", "DOM.Iterable"],
+		"jsx": "react-jsx",
+		"jsxImportSource": "@builder.io/qwik",
+		"noUncheckedSideEffectImports": false,
+		"outDir": "tmp",
+		"paths": {
+			"~/*": ["./src/*"]
+		},
+		"types": ["./worker-configuration.d.ts", "node"]
+	},
+	"files": ["./prettier.config.mjs", "eslint.config.mjs"],
+	"include": ["adapters", "src", "./*.d.ts", "./*.config.ts"]
+}
