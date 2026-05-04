@@ -1,0 +1,154 @@
+name: Update `workerd` runtime
+
+on:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+    paths:
+      - '**/package*.json'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref }}
+  cancel-in-progress: true
+
+jobs:
+  update-files:
+    if: github.event_name == 'workflow_dispatch' || (startsWith(github.event.pull_request.head.ref, 'dependabot/npm_and_yarn/') && contains(github.event.pull_request.head.ref, '/cloudflare-') && github.actor == 'dependabot[bot]')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root
+      - run: npm run-script install --if-present --include-workspace-root
+      # No need to run `npm ci` in submodule
+      - name: Get minor version of workerd
+        id: get-version
+        run: |
+          VERSION=$(npm ls workerd --json | jq -r '.. | .workerd?.version? | select(.)')
+          MINOR_VERSION=${VERSION#*.}
+          MINOR_VERSION_HYPHEN="${MINOR_VERSION:0:4}-${MINOR_VERSION:4:2}-${MINOR_VERSION:6:2}"
+          echo "minor-version-hyphen=$MINOR_VERSION_HYPHEN" >> $GITHUB_OUTPUT
+      - name: Update `compatibility_date`
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const maxDepth = 3;
+
+            await Promise.all([import('node:fs/promises'), import('node:path')]).then(async ([{ readdir, stat, readFile, writeFile }, { join }]) => {
+              // Function to find target files up to a certain depth
+              async function findFiles(dir, depth = 0) {
+                if (depth > maxDepth) return [];
+                let foundFiles = [];
+
+                return readdir(dir)
+                  .then(async (files) => {
+                    for (const file of files) {
+                      const fullPath = join(dir, file);
+                      await stat(fullPath).then(async (fileStat) => {
+                        if (fileStat.isDirectory()) {
+                          foundFiles = foundFiles.concat(await findFiles(fullPath, depth + 1));
+                          /**
+                          * As of Wrangler v3.91.0 Wrangler supports both JSON (wrangler.json or wrangler.jsonc)
+                          * @link https://developers.cloudflare.com/workers/wrangler/configuration/
+                          */
+                        } else if (['wrangler.jsonc', 'wrangler.json'].includes(file)) {
+                          foundFiles.push(fullPath);
+                        }
+                      });
+                    }
+
+                    return foundFiles;
+                  })
+                  .catch((err) => {
+                    console.error(`Error reading directory ${dir}`, err);
+                    return foundFiles;
+                  });
+              }
+
+              await findFiles('.').then(async (jsonFiles) => {
+                if (jsonFiles.length > 0) {
+                  // Update compatibility_date in each found file
+                  await Promise.all(
+                    jsonFiles.map((filePath) => {
+                      return readFile(filePath, 'utf8')
+                        .then((content) => {
+                          const updatedContent = content.replaceAll(/(?!["']compatibility_date["']:\s*["'])\d{4}-\d{2}-\d{2}(?=["'])/gi, process.env['NEW_COMPATIBILITY_DATE']);
+
+                          if (updatedContent !== content) {
+                            return writeFile(filePath, updatedContent, 'utf8').then(() => console.log('Updated compatibility date in', filePath));
+                          } else {
+                            console.log(`No changes needed in: ${filePath}`);
+                          }
+                        })
+                        .catch((err) => {
+                          throw new Error(`Error reading file ${filePath}: ${err}`);
+                        });
+                    }),
+                  );
+
+                  console.log('Finished updating compatibility date in', jsonFiles);
+                } else {
+                  throw new Error('No wrangler json files found');
+                }
+              });
+            });
+        env:
+          NEW_COMPATIBILITY_DATE: ${{ steps.get-version.outputs.minor-version-hyphen }}
+      - run: find . -maxdepth 3 -name "wrangler.json*" -print0 | xargs -0 git add
+      - run: git commit -m "Update \`compatibility_date\` in wrangler config" || echo "\`compatibility_date\` change not needed"
+      - run: git push
+      # crypto catalog
+      - run: npm install -D miniflare
+      - uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const { Miniflare } = require('miniflare');
+
+            const mf = new Miniflare({
+                modules: true,
+                compatibilityFlags: ['nodejs_compat_v2'],
+                script: `export default {
+                    async fetch(request, env, ctx) {
+                        return import('node:crypto').then(
+                            ({ getCiphers, getCurves, getHashes }) =>
+                                new Response(
+                                    JSON.stringify({
+                                        ciphers: getCiphers().sort(),
+                                        curves: getCurves().sort(),
+                                        hashes: getHashes().sort(),
+                                    }),
+                                ),
+                        );
+                    }
+                }`,
+            });
+
+            await mf
+              .dispatchFetch('http://localhost:8787/')
+              .then((response) => Promise.all([import('node:fs/promises'), response.json()]))
+              .then(async ([{ writeFile }, json]) => writeFile('shared/types/src/crypto/workers-crypto-catalog.ts', `export const workersCryptoCatalog = ${JSON.stringify(json, null, '\t')} as const`, { encoding: 'utf8' }))
+              .finally(() => mf.dispose());
+      - run: npx prettier --write shared/types/src/crypto/workers-crypto-catalog.ts
+      - run: git add shared/types/src/crypto/workers-crypto-catalog.ts
+      - run: git commit -m "Updated crypto catalog" || echo "crypto catalog not touched"
+      - run: git push
