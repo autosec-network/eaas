@@ -288,7 +288,7 @@ const PermissionDropdown = component$<PermissionDropdownProps>(({ field, value, 
 			value={current.value}
 			disabled={loading.value}
 			onChange$={async (event, element) => {
-				const next = parseInt(element.value, 10) as Permissions;
+				const next = parseInt(element.value, 10);
 				const prev = current.value;
 
 				if (next !== current.value) {
