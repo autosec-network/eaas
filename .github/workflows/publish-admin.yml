@@ -60,7 +60,7 @@ jobs:
       - run: npm --workspace helpers run build
       - run: npm --workspace db run build
       - name: Restore TS build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             workers/admin/tmp/tsconfig.tsbuildinfo
@@ -78,7 +78,7 @@ jobs:
         env:
           NODE_OPTIONS: --max-old-space-size=4096
       - name: Save TS build cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ github.ref_name == 'production' || github.ref_name == 'dev' }}
         with:
           path: |
@@ -86,7 +86,7 @@ jobs:
           key: admin-ts-${{ github.ref_name }}-${{ hashFiles('workers/admin/tmp/tsconfig.tsbuildinfo') }}
           enableCrossOsArchive: true
       - name: Restore Vite client build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             workers/admin/dist/.vite
@@ -96,7 +96,7 @@ jobs:
           enableCrossOsArchive: true
       - run: npm --workspace admin run build.client
       - name: Save Vite client build cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ github.event_name != 'pull_request_target' }}
         with:
           path: |
@@ -104,7 +104,7 @@ jobs:
           key: admin-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/admin/vite.config.ts', 'workers/admin/tsconfig.json') }}
           enableCrossOsArchive: true
       - name: Restore Vite server build cache
-        uses: actions/cache/restore@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
             workers/admin/server/.vite
@@ -114,7 +114,7 @@ jobs:
           enableCrossOsArchive: true
       - run: npm --workspace admin run build.server
       - name: Save Vite server build cache
-        uses: actions/cache/save@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         if: ${{ github.event_name != 'pull_request_target' }}
         with:
           path: |
