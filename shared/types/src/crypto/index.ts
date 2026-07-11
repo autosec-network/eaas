@@ -17,7 +17,7 @@ export enum KeyAlgorithms {
 	'SLH-DSA-SHA2-F' = 'slh-dsa-sha2-f',
 	'SLH-DSA-SHAKE-S' = 'slh-dsa-shake-s',
 	'SLH-DSA-SHAKE-F' = 'slh-dsa-shake-f',
-	'Falcon' = 'falcon',
+	Falcon = 'falcon',
 }
 
 export enum EncryptionAlgorithms {
