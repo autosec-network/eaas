@@ -1,0 +1,47 @@
+name: Publish `image_proxy`
+
+on:
+  push:
+    branches:
+      - production
+    paths:
+      - '.github/workflows/publish-image_proxy.yml'
+      - 'eslint.config.mjs'
+      - 'prettier.config.mjs'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'snippets/tsconfig.json'
+      - 'snippets/image_proxy/**'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  upload-snippet:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          egress-policy: audit
+          disable-sudo-and-containers: true
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace=image_proxy
+      - run: npm run-script install --if-present --include-workspace-root --workspace image_proxy
+      - run: npm --workspace=image_proxy run build
+      - run: npm --workspace image_proxy run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - run: |
+          curl --silent --fail-with-body --request PUT \
+            --url https://api.cloudflare.com/client/v4/zones/${{ secrets.AUTOSEC_ZONE_ID }}/snippets/image_proxy \
+            --header 'Content-Type: multipart/form-data' \
+            --header 'Authorization: Bearer ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}' \
+            --form "files=@${{ github.workspace }}/snippets/image_proxy/dist/worker.js" \
+            --form "metadata={\"main_module\": \"worker.js\"}"
