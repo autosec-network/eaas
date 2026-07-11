@@ -1,0 +1,442 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "5adea58e-681c-40f8-86a5-fbc74e9d6938",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "api_keys_tenants",
+			"entityType": "tables"
+		},
+		{
+			"name": "tenants",
+			"entityType": "tables"
+		},
+		{
+			"name": "users",
+			"entityType": "tables"
+		},
+		{
+			"name": "users_auth_accounts",
+			"entityType": "tables"
+		},
+		{
+			"name": "users_auth_sessions",
+			"entityType": "tables"
+		},
+		{
+			"name": "users_tenants",
+			"entityType": "tables"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ak_id",
+			"entityType": "columns",
+			"table": "api_keys_tenants"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "t_id",
+			"entityType": "columns",
+			"table": "api_keys_tenants"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "api_keys_tenants"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "t_id",
+			"entityType": "columns",
+			"table": "tenants"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "jurisdiction",
+			"entityType": "columns",
+			"table": "tenants"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "do_id",
+			"entityType": "columns",
+			"table": "tenants"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "jurisdiction",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "do_id",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "key_hash",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "email_key",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "false",
+			"generated": null,
+			"name": "user_init",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users_auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "key_hash",
+			"entityType": "columns",
+			"table": "users_auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "provider",
+			"entityType": "columns",
+			"table": "users_auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "provider_account_id",
+			"entityType": "columns",
+			"table": "users_auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users_auth_sessions"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "session_token",
+			"entityType": "columns",
+			"table": "users_auth_sessions"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "users_auth_sessions"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users_tenants"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "t_id",
+			"entityType": "columns",
+			"table": "users_tenants"
+		},
+		{
+			"columns": ["t_id"],
+			"tableTo": "tenants",
+			"columnsTo": ["t_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_api_keys_tenants_t_id_tenants_t_id_fk",
+			"entityType": "fks",
+			"table": "api_keys_tenants"
+		},
+		{
+			"columns": ["u_id"],
+			"tableTo": "users",
+			"columnsTo": ["u_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_auth_accounts_u_id_users_u_id_fk",
+			"entityType": "fks",
+			"table": "users_auth_accounts"
+		},
+		{
+			"columns": ["u_id"],
+			"tableTo": "users",
+			"columnsTo": ["u_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_auth_sessions_u_id_users_u_id_fk",
+			"entityType": "fks",
+			"table": "users_auth_sessions"
+		},
+		{
+			"columns": ["u_id"],
+			"tableTo": "users",
+			"columnsTo": ["u_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_tenants_u_id_users_u_id_fk",
+			"entityType": "fks",
+			"table": "users_tenants"
+		},
+		{
+			"columns": ["t_id"],
+			"tableTo": "tenants",
+			"columnsTo": ["t_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_tenants_t_id_tenants_t_id_fk",
+			"entityType": "fks",
+			"table": "users_tenants"
+		},
+		{
+			"columns": ["provider", "provider_account_id"],
+			"nameExplicit": false,
+			"name": "users_auth_accounts_pk",
+			"entityType": "pks",
+			"table": "users_auth_accounts"
+		},
+		{
+			"columns": ["u_id", "t_id"],
+			"nameExplicit": false,
+			"name": "users_tenants_pk",
+			"entityType": "pks",
+			"table": "users_tenants"
+		},
+		{
+			"columns": ["ak_id"],
+			"nameExplicit": false,
+			"name": "api_keys_tenants_pk",
+			"table": "api_keys_tenants",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["t_id"],
+			"nameExplicit": false,
+			"name": "tenants_pk",
+			"table": "tenants",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["u_id"],
+			"nameExplicit": false,
+			"name": "users_pk",
+			"table": "users",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["session_token"],
+			"nameExplicit": false,
+			"name": "users_auth_sessions_pk",
+			"table": "users_auth_sessions",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "t_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_api_keys_tenants_t_id",
+			"entityType": "indexes",
+			"table": "api_keys_tenants"
+		},
+		{
+			"columns": [
+				{
+					"value": "u_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_auth_accounts_u_id",
+			"entityType": "indexes",
+			"table": "users_auth_accounts"
+		},
+		{
+			"columns": [
+				{
+					"value": "provider",
+					"isExpression": false
+				},
+				{
+					"value": "provider_account_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_auth_accounts_provider_account_id",
+			"entityType": "indexes",
+			"table": "users_auth_accounts"
+		},
+		{
+			"columns": [
+				{
+					"value": "u_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_auth_sessions_u_id",
+			"entityType": "indexes",
+			"table": "users_auth_sessions"
+		},
+		{
+			"columns": [
+				{
+					"value": "t_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_tenants_t_id",
+			"entityType": "indexes",
+			"table": "users_tenants"
+		},
+		{
+			"columns": ["ak_id", "t_id"],
+			"nameExplicit": false,
+			"name": "api_keys_tenants_ak_id_t_id_unique",
+			"entityType": "uniques",
+			"table": "api_keys_tenants"
+		},
+		{
+			"columns": ["do_id"],
+			"nameExplicit": false,
+			"name": "tenants_do_id_unique",
+			"entityType": "uniques",
+			"table": "tenants"
+		},
+		{
+			"columns": ["do_id"],
+			"nameExplicit": false,
+			"name": "users_do_id_unique",
+			"entityType": "uniques",
+			"table": "users"
+		},
+		{
+			"columns": ["email_key"],
+			"nameExplicit": false,
+			"name": "users_email_key_unique",
+			"entityType": "uniques",
+			"table": "users"
+		}
+	],
+	"renames": []
+}
