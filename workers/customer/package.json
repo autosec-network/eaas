@@ -45,7 +45,7 @@
 		"@qwikest/icons": "0.0.13",
 		"@simplewebauthn/browser": "9.0.1",
 		"@simplewebauthn/server": "9.0.3",
-		"drizzle-orm": "0.45.2",
+		"drizzle-orm": "1.0.0-rc.4-273829f",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {

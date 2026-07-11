@@ -33,7 +33,7 @@
 		"cron-schedule": "6.0.0",
 		"cron-validate": "1.5.3",
 		"db": "*",
-		"drizzle-orm": "1.0.0-rc.4",
+		"drizzle-orm": "1.0.0-rc.4-273829f",
 		"helpers": "*",
 		"hono": "4.12.28",
 		"jose": "6.2.3",
