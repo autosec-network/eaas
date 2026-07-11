@@ -90,14 +90,14 @@
 	},
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/db/README.md",
 	"dependencies": {
-		"drizzle-orm": "^0.45.2",
-		"sql-parser-cst": "^0.39.0",
+		"drizzle-orm": "0.45.2",
+		"sql-parser-cst": "0.39.0",
 		"types": "*",
-		"zod": "^4.4.3"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "^4.20260504.1",
-		"drizzle-kit": "^0.31.10",
-		"eslint-plugin-drizzle": "^0.2.3"
+		"@cloudflare/workers-types": "4.20260504.1",
+		"drizzle-kit": "0.31.10",
+		"eslint-plugin-drizzle": "0.2.3"
 	}
 }
