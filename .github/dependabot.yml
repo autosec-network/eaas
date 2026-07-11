@@ -98,3 +98,7 @@ updates:
           - '@types/*'
           - '@cloudflare/workers-types'
           - 'turnstile-types'
+      validation:
+        patterns:
+          - 'zod'
+          - 'validator'
