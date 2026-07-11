@@ -37,6 +37,7 @@
 		}
 	],
 	"chat.tools.terminal.autoApprove": {
-		"npm -w types run": true
+		"npm -w types run": true,
+		"npm -w db run": true
 	}
 }

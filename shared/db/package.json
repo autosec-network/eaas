@@ -1,0 +1,103 @@
+{
+	"name": "db",
+	"type": "module",
+	"main": "./src/index.ts",
+	"directories": {
+		"lib": "src"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./cache": {
+			"import": "./dist/cache.js",
+			"types": "./dist/cache.d.ts"
+		},
+		"./core": {
+			"import": "./dist/core.js",
+			"types": "./dist/core.d.ts"
+		},
+		"./wae": {
+			"import": "./dist/wae.js",
+			"types": "./dist/wae.d.ts"
+		},
+		"./schemas/root": {
+			"import": "./dist/schemas/root/main/index.js",
+			"types": "./dist/schemas/root/main/index.d.ts"
+		},
+		"./schemas/tenant/main": {
+			"import": "./dist/schemas/tenant/main/index.js",
+			"types": "./dist/schemas/tenant/main/index.d.ts"
+		},
+		"./schemas/tenant/main/migrations": {
+			"import": "./src/schemas/tenant/main/migrations.js",
+			"types": "./src/schemas/tenant/main/migrations.js"
+		},
+		"./schemas/tenant/logs": {
+			"import": "./dist/schemas/tenant/logs/index.js",
+			"types": "./dist/schemas/tenant/logs/index.d.ts"
+		},
+		"./schemas/tenant/logs/migrations": {
+			"import": "./src/schemas/tenant/logs/migrations.js",
+			"types": "./src/schemas/tenant/logs/migrations.js"
+		},
+		"./schemas/user/main": {
+			"import": "./dist/schemas/user/main/index.js",
+			"types": "./dist/schemas/user/main/index.d.ts"
+		},
+		"./schemas/user/main/migrations": {
+			"import": "./src/schemas/user/main/migrations.js",
+			"types": "./src/schemas/user/main/migrations.js"
+		},
+		"./schemas/wae": {
+			"import": "./dist/schemas/analyticsEngine.js",
+			"types": "./dist/schemas/analyticsEngine.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:types && npm run build:db",
+		"build:types": "tsc",
+		"build:db:root": "drizzle-kit generate --dialect=sqlite --driver d1-http --schema=\"src/schemas/root/main/index.ts\" --out=\"src/schemas/root/main\"",
+		"postbuild:db:root": "prettier --write src/schemas/root/main",
+		"build:db:tenant:main": "drizzle-kit generate --dialect=sqlite --driver durable-sqlite --schema=\"src/schemas/tenant/main/index.ts\" --out=\"src/schemas/tenant/main\"",
+		"postbuild:db:tenant:main": "prettier --write src/schemas/tenant/main",
+		"build:db:tenant:logs": "drizzle-kit generate --dialect=sqlite --driver durable-sqlite --schema=\"src/schemas/tenant/logs/index.ts\" --out=\"src/schemas/tenant/logs\"",
+		"postbuild:db:tenant:logs": "prettier --write src/schemas/tenant/logs",
+		"build:db:tenant": "npm run build:db:tenant:main && npm run build:db:tenant:logs",
+		"build:db:user:main": "drizzle-kit generate --dialect=sqlite --driver durable-sqlite --schema=\"src/schemas/user/main/index.ts\" --out=\"src/schemas/user/main\"",
+		"postbuild:db:user:main": "prettier --write src/schemas/user/main",
+		"build:db:user": "npm run build:db:user:main",
+		"build:db": "npm run build:db:root && npm run build:db:tenant && npm run build:db:user",
+		"publish:dev": "wrangler d1 migrations apply --remote eaas_root_dev",
+		"publish:prod": "wrangler d1 migrations apply --remote eaas_root_prod"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/db/README.md",
+	"dependencies": {
+		"drizzle-orm": "1.0.0-rc.4",
+		"sql-parser-cst": "0.42.1",
+		"types": "*",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@cloudflare/workers-types": "5.20260719.1",
+		"drizzle-kit": "1.0.0-rc.4",
+		"eslint-plugin-drizzle": "0.2.3"
+	}
+}

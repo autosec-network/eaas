@@ -1,0 +1,9 @@
+{
+	"extends": "../tsconfig.json",
+	"compilerOptions": {
+		"types": ["@cloudflare/workers-types", "node"],
+		"rootDir": "./src",
+		"outDir": "./dist"
+	},
+	"include": ["src", "./src/schemas/*/*/*.sql", "./src/schemas/*/*/meta/*.json"]
+}

@@ -50,6 +50,7 @@ jobs:
       - run: npm ci --ignore-scripts --include-workspace-root --workspaces
       - run: npm run-script install --if-present --include-workspace-root --workspaces
       - run: npm --workspace types run build
+      - run: npm --workspace db run build
       - run: npm run lint:fix
         continue-on-error: true
       - name: Check for Changes
