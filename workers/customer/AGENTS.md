@@ -49,4 +49,4 @@ Never hand-edit non-English locale files (`de/es/fr/ro.json`) — they're regene
 
 ## Dev
 
-`npm -w customer run start` (Vite SSR). `npm -w customer run build:types` runs `wrangler types` + `tsc`. `build:translate` (`languageGenerate.mts`) compiles paraglide output.
+`npm -w customer run start` (Vite SSR). `npm -w customer run build:types` runs `wrangler types` + `tsc`. `build:translate` (`languageGenerate.ts`) compiles paraglide output.
