@@ -3,11 +3,26 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"dependsOn": [],
+			"dependsOn": ["TS Types"],
 			"isBackground": true,
 			"group": {
 				"kind": "build",
 				"isDefault": true
+			}
+		},
+		{
+			"label": "TS Types",
+			"type": "typescript",
+			"tsconfig": "shared/types/tsconfig.json",
+			"option": "watch",
+			"problemMatcher": ["$tsc-watch"],
+			"isBackground": true,
+			"presentation": {
+				"group": "shared"
+			},
+			"icon": {
+				"id": "symbol-type-parameter",
+				"color": "terminal.ansiBlue"
 			}
 		}
 	]
