@@ -1,0 +1,177 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-customer-dev",
+	"main": "src/entry.cloudflare-workers.ts",
+	"compatibility_date": "2026-07-14",
+	"compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public", "enable_request_signal", "request_signal_passthrough"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"route": { "pattern": "dev.dash.eaas.autosec.network", "custom_domain": true },
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	// Everything cacheable is already using static assets
+	"cache": { "enabled": false, "cross_version_cache": false },
+	"limits": { "cpu_ms": 50, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true }, "traces": { "enabled": true } },
+	"dependencies_instrumentation": { "enabled": false },
+	"vars": {
+		"ENVIRONMENT": "preview",
+		"NODE_ENV": "development",
+		// 8 * 60 * 60
+		"SESSION_TTL": "28800",
+		"SQL_TTL": "900",
+		"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+	},
+	"secrets": {
+		"required": ["AUTH_SECRET", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN", "TURNSTILE_SECRET_KEY"]
+	},
+	"assets": {
+		"binding": "ASSET",
+		"directory": "./dist"
+		// "not_found_handling": "single-page-application"
+	},
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT",
+			"database_name": "eaas_root_dev",
+			"database_id": "c6e00b28-b4b8-4559-9a07-215d74815d50",
+			"migrations_dir": "../../shared/db/src/schemas/root/main",
+			"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+			"remote": true
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "USER_SESSION",
+				"class_name": "UserSession"
+			},
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession",
+				"script_name": "eaas-api-dev"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0",
+				"script_name": "eaas-api-dev"
+			},
+			{
+				"name": "USER_D0",
+				"class_name": "UserD0",
+				"script_name": "eaas-api-dev"
+			}
+		]
+	},
+	"exports": {
+		"UserSession": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		}
+	},
+	"send_email": [
+		{
+			"name": "EMAIL",
+			"remote": true
+		}
+	],
+	"env": {
+		"prod": {
+			"name": "eaas-customer-prod",
+			"route": { "pattern": "dash.eaas.autosec.network", "custom_domain": true },
+			"upload_source_maps": true,
+			"cache": { "enabled": false, "cross_version_cache": false },
+			"vars": {
+				"ENVIRONMENT": "production",
+				"NODE_ENV": "production",
+				// 8 * 60 * 60
+				"SESSION_TTL": "28800",
+				"SQL_TTL": "900",
+				"TURNSTILE_SITE_KEY": "0x4AAAAAAAzwYTLxe176o9ss"
+			},
+			"secrets": {
+				"required": ["AUTH_SECRET", "EU_BW_SM_ACCESS_TOKEN", "US_BW_SM_ACCESS_TOKEN", "TURNSTILE_SECRET_KEY"]
+			},
+			"analytics_engine_datasets": [
+				{
+					"binding": "LANG_ANALYTICS",
+					"dataset": "EAAS_LANG_ANALYTICS"
+				}
+			],
+			"assets": {
+				"binding": "ASSET",
+				"directory": "./dist"
+				// "not_found_handling": "single-page-application"
+			},
+			"d1_databases": [
+				{
+					"binding": "DB_ROOT",
+					"database_name": "eaas_root_prod",
+					"database_id": "b7878525-2c05-4df9-95a6-eb812496a634",
+					"migrations_dir": "../../shared/db/src/schemas/root/main",
+					"migrations_pattern": "../../shared/db/src/schemas/root/main/*/migration.sql",
+					"remote": true
+				}
+			],
+			"durable_objects": {
+				"bindings": [
+					{
+						"name": "USER_SESSION",
+						"class_name": "UserSession"
+					},
+					{
+						"name": "BITWARDEN_SESSION",
+						"class_name": "BitwardenSession",
+						"script_name": "eaas-api-prod"
+					},
+					{
+						"name": "TENANT_D0",
+						"class_name": "TenantD0",
+						"script_name": "eaas-api-prod"
+					},
+					{
+						"name": "USER_D0",
+						"class_name": "UserD0",
+						"script_name": "eaas-api-prod"
+					}
+				]
+			},
+			"exports": {
+				"UserSession": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				}
+			},
+			"send_email": [
+				{
+					"name": "EMAIL",
+					"remote": true
+				}
+			],
+			// Local-dev-only: lets `wrangler dev` reach api's Durable Objects (which can't be bound `remote: true` directly) through `do-proxy`, which always runs deployed. Unused by live code. See workers/do-proxy/AGENTS.md.
+			"services": [
+				{
+					"binding": "BITWARDEN_SESSION_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "BitwardenSessionProxy",
+					"remote": true
+				},
+				{
+					"binding": "TENANT_D0_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "TenantD0Proxy",
+					"remote": true
+				},
+				{
+					"binding": "USER_D0_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "UserD0Proxy",
+					"remote": true
+				}
+			]
+		}
+	}
+}
