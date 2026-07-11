@@ -17,6 +17,7 @@
 	"vars": {
 		"ENVIRONMENT": "preview",
 		"NODE_ENV": "development",
+		"NOISE_PIPE_TTL": "300",
 		"SQL_TTL": "900",
 		"WS_AUTH_TTL": "30"
 	},
@@ -44,6 +45,10 @@
 				"class_name": "BitwardenSession"
 			},
 			{
+				"name": "NOISE_PIPE",
+				"class_name": "NoisePipe"
+			},
+			{
 				"name": "TENANT_D0",
 				"class_name": "TenantD0"
 			},
@@ -59,6 +64,11 @@
 	},
 	"exports": {
 		"BitwardenSession": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		},
+		"NoisePipe": {
 			"type": "durable-object",
 			"state": "created",
 			"storage": "sqlite"
@@ -95,6 +105,7 @@
 			"vars": {
 				"ENVIRONMENT": "production",
 				"NODE_ENV": "production",
+				"NOISE_PIPE_TTL": "300",
 				"SQL_TTL": "900",
 				"WS_AUTH_TTL": "30"
 			},
@@ -122,6 +133,10 @@
 						"class_name": "BitwardenSession"
 					},
 					{
+						"name": "NOISE_PIPE",
+						"class_name": "NoisePipe"
+					},
+					{
 						"name": "TENANT_D0",
 						"class_name": "TenantD0"
 					},
@@ -137,6 +152,11 @@
 			},
 			"exports": {
 				"BitwardenSession": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				},
+				"NoisePipe": {
 					"type": "durable-object",
 					"state": "created",
 					"storage": "sqlite"
