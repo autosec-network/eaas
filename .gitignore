@@ -153,6 +153,9 @@ tmp
 *.sln
 *.sw?
 
+# Shared
+!shared/db/src/schemas/*/logs
+
 # Cloudflare
 .mf
 functions/**/*.js
