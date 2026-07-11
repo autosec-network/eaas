@@ -8,7 +8,7 @@ import { and, asc, eq, gt, gte, inArray, lte, sql } from 'drizzle-orm/sql';
 import { hexToUuid } from 'helpers';
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
-import type { MethodNames, ObjectValues } from 'types';
+import { DOJurisdictions, type MethodNames, type ObjectValues } from 'types';
 import type { ZodPick } from 'types/zod/mini';
 import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
@@ -368,6 +368,63 @@ export class TenantD0 extends BaseD0 {
 		const properties = zm.pick(TenantPropertiesSchema, keys).parse(Object.fromEntries(kv.entries()));
 
 		return properties;
+	}
+
+	/**
+	 * Returns the tenant's Noise Protocol X25519 static public key.
+	 * On first call, lazily generates the keypair — stores only the public key in DO KV
+	 * and returns the private key to the caller for Bitwarden storage.
+	 */
+	public async getNoiseStaticPublicKey(): Promise<{ publicKey: ArrayBuffer; isNew: false } | { publicKey: ArrayBuffer; privateKey: ArrayBuffer; isNew: true }> {
+		const pub = await this.ctx.storage.get<ArrayBuffer>('noise_static_public', { allowConcurrency: true });
+
+		if (pub) {
+			return { publicKey: pub, isNew: false };
+		}
+
+		// First-time generation — only public key persisted in DO
+		const { generateX25519Keypair } = await import('helpers/noise');
+		const { publicKey, privateKey } = generateX25519Keypair();
+		const pubAB = publicKey.buffer.slice(publicKey.byteOffset, publicKey.byteOffset + publicKey.byteLength) as ArrayBuffer;
+		const privAB = privateKey.buffer.slice(privateKey.byteOffset, privateKey.byteOffset + privateKey.byteLength) as ArrayBuffer;
+
+		await this.updateProperties({ noise_static_public: pubAB }, false, true);
+
+		return { publicKey: pubAB, privateKey: privAB, isNew: true };
+	}
+
+	/**
+	 * Deletes the noise static keypair: public key from DO storage,
+	 * private key from the root Bitwarden vault, and clears the `noise_bw` property.
+	 */
+	public async deleteNoiseStaticKey(jurisdiction: DOJurisdictions | null) {
+		const { noise_bw } = await this.getProperties({ noise_bw: true }, true);
+
+		if (noise_bw) {
+			const { BitwardenCloudEndpoints } = await import('types/bw');
+			const isEu = jurisdiction === DOJurisdictions['The European Union'];
+			const bwDoId = jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(jurisdiction).newUniqueId() : this.env.BITWARDEN_SESSION.newUniqueId();
+			const bwStub = this.env.BITWARDEN_SESSION.get(bwDoId);
+
+			try {
+				await bwStub.init({
+					t_jurisdiction: null,
+					t_do_id: null,
+					endpoints: {
+						base: isEu ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
+						authentication: isEu ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
+					},
+				});
+
+				const rootAccessToken = isEu ? this.env.EU_BW_SM_ACCESS_TOKEN : this.env.US_BW_SM_ACCESS_TOKEN;
+				await bwStub.auth(rootAccessToken);
+				await bwStub.deleteSecrets([noise_bw]);
+			} finally {
+				this.ctx.waitUntil(bwStub.nuke('Noise key delete session ended'));
+			}
+		}
+
+		await this.ctx.storage.delete(['noise_static_public', 'noise_bw'], { allowConcurrency: true });
 	}
 
 	public updateProperties(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background: boolean = false, lazy: boolean = true): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>> {

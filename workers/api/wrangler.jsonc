@@ -44,6 +44,10 @@
 				"class_name": "BitwardenSession"
 			},
 			{
+				"name": "NOISE_PIPE",
+				"class_name": "NoisePipe"
+			},
+			{
 				"name": "TENANT_D0",
 				"class_name": "TenantD0"
 			},
@@ -59,6 +63,11 @@
 	},
 	"exports": {
 		"BitwardenSession": {
+			"type": "durable-object",
+			"state": "created",
+			"storage": "sqlite"
+		},
+		"NoisePipe": {
 			"type": "durable-object",
 			"state": "created",
 			"storage": "sqlite"
@@ -122,6 +131,10 @@
 						"class_name": "BitwardenSession"
 					},
 					{
+						"name": "NOISE_PIPE",
+						"class_name": "NoisePipe"
+					},
+					{
 						"name": "TENANT_D0",
 						"class_name": "TenantD0"
 					},
@@ -137,6 +150,11 @@
 			},
 			"exports": {
 				"BitwardenSession": {
+					"type": "durable-object",
+					"state": "created",
+					"storage": "sqlite"
+				},
+				"NoisePipe": {
 					"type": "durable-object",
 					"state": "created",
 					"storage": "sqlite"
