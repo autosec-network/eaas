@@ -164,3 +164,11 @@ functions/**/*.js
 !workers/*/dist
 workers/admin/dist
 workers/customer/dist
+
+# Qwik
+workers/admin/server
+workers/customer/server
+
+# Inlang
+project.inlang
+!project.inlang/settings.json

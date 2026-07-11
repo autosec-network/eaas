@@ -1,0 +1,68 @@
+{
+	"name": "customer",
+	"type": "module",
+	"scripts": {
+		"build": "qwik build",
+		"build.client": "vite build",
+		"build.preview": "vite build --ssr src/entry.preview.tsx",
+		"build.server": "qwik check-client src dist && vite build -c adapters/cloudflare-workers/vite.config.ts",
+		"build:types:cf": "wrangler types",
+		"postbuild:types:cf": "prettier --write worker-configuration.d.ts",
+		"build:types:tsc": "tsc --incremental --noEmit",
+		"build:types": "npm run build:types:cf && npm run build:types:tsc",
+		"translate": "inlang machine translate --project project.inlang",
+		"build:translate": "tsx languageGenerate.ts",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"clean": "npx -y rimraf@latest ./dist ./server ./tmp",
+		"preview": "qwik build preview && vite preview --open",
+		"preview:lhci": "qwik build preview && vite preview --port 8080",
+		"dev": "node --inspect=127.0.0.1:9230 ../../node_modules/vite/bin/vite.js --mode ssr --port 5173 --force",
+		"start:clean": "npm run clean && npm run start",
+		"start": "vite --mode ssr",
+		"qwik": "qwik"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>",
+		"George Portillo <georgeportillodesign@gmail.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/workers/customer/README.md",
+	"engines": {
+		"node": "^18.17.0 || ^20.3.0 || >=21.0.0"
+	},
+	"engines-annotation": "Mostly required by sharp which needs a Node-API v9 compatible runtime",
+	"dependencies": {
+		"@qwikest/icons": "0.0.13",
+		"@simplewebauthn/browser": "9.0.1",
+		"@simplewebauthn/server": "9.0.3",
+		"drizzle-orm": "1.0.0-rc.4",
+		"zod": "4.4.3"
+	},
+	"devDependencies": {
+		"@auth/qwik": "0.9.3",
+		"@builder.io/qwik": "1.20.0",
+		"@builder.io/qwik-city": "1.20.0",
+		"@inlang/cli": "3.2.0",
+		"@inlang/paraglide-js": "2.22.0",
+		"@rollup/plugin-node-resolve": "16.0.3",
+		"@tailwindcss/vite": "4.3.3",
+		"@vitejs/plugin-basic-ssl": "2.3.0",
+		"eslint-plugin-drizzle": "0.2.3",
+		"eslint-plugin-qwik": "1.20.0",
+		"flowbite": "4.0.2",
+		"prettier-plugin-tailwindcss": "0.8.1",
+		"tailwindcss": "4.3.3",
+		"turnstile-types": "1.2.3",
+		"vite-tsconfig-paths": "6.1.1"
+	}
+}
