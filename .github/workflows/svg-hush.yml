@@ -1,0 +1,72 @@
+name: Clean SVGs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/svg-hush.yml'
+      - '**.svg'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  clean:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # https://github.com/actions/cache/blob/main/examples.md#rust---cargo
+      # https://github.com/rust-lang/cargo/issues/4725
+      # https://doc.rust-lang.org/cargo/reference/environment-variables.html
+      - name: Rust Package Cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      # https://doc.rust-lang.org/cargo/guide/continuous-integration.html#github-actions
+      - run: rustup update stable && rustup default stable
+      - run: cargo install svg-hush --force
+      - parallel:
+          - name: Clean SVGs in `admin`
+            run: |
+              for file in $(find ${{ github.workspace }}/workers/admin -iname '*.svg'); do
+                echo "Sanitizing: $file"
+                svg-hush $file > ${file}.tmp
+                mv -f ${file}.tmp $file
+              done
+          - name: Clean SVGs in `customer`
+            run: |
+              for file in $(find ${{ github.workspace }}/workers/customer -iname '*.svg'); do
+                echo "Sanitizing: $file"
+                svg-hush $file > ${file}.tmp
+                mv -f ${file}.tmp $file
+              done
+      - name: Check for Changes
+        id: changes
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            echo "changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "changes=false" >> $GITHUB_OUTPUT
+          fi
+      - name: Git Setup
+        if: steps.changes.outputs.changes == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - run: git commit -am "Ran svg cleaner"
+        if: steps.changes.outputs.changes == 'true'
+      - run: git push
+        if: steps.changes.outputs.changes == 'true'
