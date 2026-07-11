@@ -1,0 +1,946 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "744a3d6c-98d2-4ca9-9197-fceb560442a2",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "alarms",
+			"entityType": "tables"
+		},
+		{
+			"name": "api_keys",
+			"entityType": "tables"
+		},
+		{
+			"name": "api_keys_keyrings",
+			"entityType": "tables"
+		},
+		{
+			"name": "datakeys",
+			"entityType": "tables"
+		},
+		{
+			"name": "keyrings",
+			"entityType": "tables"
+		},
+		{
+			"name": "users",
+			"entityType": "tables"
+		},
+		{
+			"name": "users_keyrings",
+			"entityType": "tables"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "callee",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "'[]'",
+			"generated": null,
+			"name": "payload",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "next_time",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "delay_in_seconds",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "cron",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ak_id",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "hash",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "text(4)",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "last_identifier",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "a_time",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b_time",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "c_time",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "m_time",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "r_keyrings",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "r_apikeys",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ak_id",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "kr_id",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_datakeys",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "r_encrypt",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "false",
+			"generated": null,
+			"name": "r_decrypt",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "r_rewrap",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "r_sign",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "r_verify",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "r_hmac",
+			"entityType": "columns",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "dk_id",
+			"entityType": "columns",
+			"table": "datakeys"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "kr_id",
+			"entityType": "columns",
+			"table": "datakeys"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "bw_id",
+			"entityType": "columns",
+			"table": "datakeys"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "a_time",
+			"entityType": "columns",
+			"table": "datakeys"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "(unhex('00'))",
+			"generated": null,
+			"name": "generation_count",
+			"entityType": "columns",
+			"table": "datakeys"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "kr_id",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "false",
+			"generated": null,
+			"name": "plaintext_export",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "key_type",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "key_size",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "hash",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "time_rotation",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": "(unhex('0100000000'))",
+			"generated": null,
+			"name": "count_rotation",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "generation_versions",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "2",
+			"generated": null,
+			"name": "retreival_versions",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b_time",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "c_time",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "m_time",
+			"entityType": "columns",
+			"table": "keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "do_id",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "a_time",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b_time",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "m_time",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "false",
+			"generated": null,
+			"name": "approved",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_tenant",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_users",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "0",
+			"generated": null,
+			"name": "r_roles",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_billing",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_apikeys",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "2",
+			"generated": null,
+			"name": "r_keyring",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_datakey",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_logs",
+			"entityType": "columns",
+			"table": "users"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "users_keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "kr_id",
+			"entityType": "columns",
+			"table": "users_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "2",
+			"generated": null,
+			"name": "r_keyring",
+			"entityType": "columns",
+			"table": "users_keyrings"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "1",
+			"generated": null,
+			"name": "r_datakey",
+			"entityType": "columns",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": ["ak_id"],
+			"tableTo": "api_keys",
+			"columnsTo": ["ak_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_api_keys_keyrings_ak_id_api_keys_ak_id_fk",
+			"entityType": "fks",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": ["kr_id"],
+			"tableTo": "keyrings",
+			"columnsTo": ["kr_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_api_keys_keyrings_kr_id_keyrings_kr_id_fk",
+			"entityType": "fks",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": ["kr_id"],
+			"tableTo": "keyrings",
+			"columnsTo": ["kr_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_datakeys_kr_id_keyrings_kr_id_fk",
+			"entityType": "fks",
+			"table": "datakeys"
+		},
+		{
+			"columns": ["u_id"],
+			"tableTo": "users",
+			"columnsTo": ["u_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_keyrings_u_id_users_u_id_fk",
+			"entityType": "fks",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": ["kr_id"],
+			"tableTo": "keyrings",
+			"columnsTo": ["kr_id"],
+			"onUpdate": "CASCADE",
+			"onDelete": "CASCADE",
+			"nameExplicit": false,
+			"name": "fk_users_keyrings_kr_id_keyrings_kr_id_fk",
+			"entityType": "fks",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": ["kr_id", "ak_id"],
+			"nameExplicit": false,
+			"name": "api_keys_keyrings_pk",
+			"entityType": "pks",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": ["u_id", "kr_id"],
+			"nameExplicit": false,
+			"name": "users_keyrings_pk",
+			"entityType": "pks",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "alarms_pk",
+			"table": "alarms",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["ak_id"],
+			"nameExplicit": false,
+			"name": "api_keys_pk",
+			"table": "api_keys",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["dk_id"],
+			"nameExplicit": false,
+			"name": "datakeys_pk",
+			"table": "datakeys",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["kr_id"],
+			"nameExplicit": false,
+			"name": "keyrings_pk",
+			"table": "keyrings",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["u_id"],
+			"nameExplicit": false,
+			"name": "users_pk",
+			"table": "users",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_type",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "next_time",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_next_time",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "lower(\"name\")",
+					"isExpression": true
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "case_insensitive_apikey_name",
+			"entityType": "indexes",
+			"table": "api_keys"
+		},
+		{
+			"columns": [
+				{
+					"value": "b_time",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_api_keys_b_time",
+			"entityType": "indexes",
+			"table": "api_keys"
+		},
+		{
+			"columns": [
+				{
+					"value": "ak_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_api_keys_keyrings_ak_id",
+			"entityType": "indexes",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "kr_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_api_keys_keyrings_kr_id",
+			"entityType": "indexes",
+			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "kr_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_datakeys_kr_id",
+			"entityType": "indexes",
+			"table": "datakeys"
+		},
+		{
+			"columns": [
+				{
+					"value": "lower(\"name\")",
+					"isExpression": true
+				}
+			],
+			"isUnique": true,
+			"where": null,
+			"origin": "manual",
+			"name": "case_insensitive_keyring_name",
+			"entityType": "indexes",
+			"table": "keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "name",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_keyrings_name",
+			"entityType": "indexes",
+			"table": "keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "u_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_keyrings_u_id",
+			"entityType": "indexes",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "kr_id",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_users_keyrings_kr_id",
+			"entityType": "indexes",
+			"table": "users_keyrings"
+		},
+		{
+			"columns": ["hash"],
+			"nameExplicit": false,
+			"name": "api_keys_hash_unique",
+			"entityType": "uniques",
+			"table": "api_keys"
+		},
+		{
+			"columns": ["bw_id"],
+			"nameExplicit": false,
+			"name": "datakeys_bw_id_unique",
+			"entityType": "uniques",
+			"table": "datakeys"
+		},
+		{
+			"columns": ["do_id"],
+			"nameExplicit": false,
+			"name": "users_do_id_unique",
+			"entityType": "uniques",
+			"table": "users"
+		}
+	],
+	"renames": []
+}

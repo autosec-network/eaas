@@ -74,6 +74,9 @@ updates:
           - 'eslint-config-*'
           - 'typescript-eslint'
           - '@microsoft/eslint-formatter-sarif'
+      db:
+        patterns:
+          - 'drizzle-*'
       typescript-core:
         patterns:
           - 'typescript'

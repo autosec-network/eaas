@@ -1,0 +1,22 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"send_metrics": false,
+	"d1_databases": [
+		{
+			"binding": "DB_ROOT_DEV",
+			"database_name": "eaas_root_dev",
+			"database_id": "c6e00b28-b4b8-4559-9a07-215d74815d50",
+			"migrations_dir": "src/schemas/root/main",
+			"migrations_pattern": "src/schemas/root/main/*/migration.sql",
+			"remote": true
+		},
+		{
+			"binding": "DB_ROOT_PROD",
+			"database_name": "eaas_root_prod",
+			"database_id": "b7878525-2c05-4df9-95a6-eb812496a634",
+			"migrations_dir": "src/schemas/root/main",
+			"migrations_pattern": "src/schemas/root/main/*/migration.sql",
+			"remote": true
+		}
+	]
+}

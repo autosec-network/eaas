@@ -1,0 +1,421 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "9c7af413-433c-498b-b396-e4938a1cf0ed",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "alarms",
+			"entityType": "tables"
+		},
+		{
+			"name": "logs",
+			"entityType": "tables"
+		},
+		{
+			"name": "pending_web_sockets",
+			"entityType": "tables"
+		},
+		{
+			"name": "web_sockets_subscriptions",
+			"entityType": "tables"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "callee",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "'[]'",
+			"generated": null,
+			"name": "payload",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "next_time",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "delay_in_seconds",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "cron",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "timestamp",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "event_type",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "context",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ip",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "user_agent",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "u_id",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ak_id",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "system",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "kr_id",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "dk_id",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "status",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "pending_web_sockets"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "secret",
+			"entityType": "columns",
+			"table": "pending_web_sockets"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "salt",
+			"entityType": "columns",
+			"table": "pending_web_sockets"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "pending_web_sockets"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "web_sockets_subscriptions"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "event_type",
+			"entityType": "columns",
+			"table": "web_sockets_subscriptions"
+		},
+		{
+			"columns": ["id", "event_type"],
+			"nameExplicit": false,
+			"name": "web_sockets_subscriptions_pk",
+			"entityType": "pks",
+			"table": "web_sockets_subscriptions"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "alarms_pk",
+			"table": "alarms",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "logs_pk",
+			"table": "logs",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "pending_web_sockets_pk",
+			"table": "pending_web_sockets",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_type",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "next_time",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_next_time",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "event_type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "event_type_idx",
+			"entityType": "indexes",
+			"table": "logs"
+		},
+		{
+			"columns": [
+				{
+					"value": "timestamp",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "when",
+			"entityType": "indexes",
+			"table": "logs"
+		},
+		{
+			"columns": [
+				{
+					"value": "u_id",
+					"isExpression": false
+				},
+				{
+					"value": "event_type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "u_id_event_type_idx",
+			"entityType": "indexes",
+			"table": "logs"
+		},
+		{
+			"columns": [
+				{
+					"value": "ak_id",
+					"isExpression": false
+				},
+				{
+					"value": "event_type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "ak_id_event_type_idx",
+			"entityType": "indexes",
+			"table": "logs"
+		},
+		{
+			"columns": ["secret"],
+			"nameExplicit": false,
+			"name": "pending_web_sockets_secret_unique",
+			"entityType": "uniques",
+			"table": "pending_web_sockets"
+		},
+		{
+			"columns": ["salt"],
+			"nameExplicit": false,
+			"name": "pending_web_sockets_salt_unique",
+			"entityType": "uniques",
+			"table": "pending_web_sockets"
+		},
+		{
+			"value": "(((\"u_id\" is not null)) or ((\"ak_id\" is not null)) or ((\"system\" is not null)))",
+			"name": "actor_required",
+			"entityType": "checks",
+			"table": "logs"
+		},
+		{
+			"value": "\"expires\" > (CAST(unixepoch('subsec') * 1000 AS INTEGER))",
+			"name": "valid_expire",
+			"entityType": "checks",
+			"table": "pending_web_sockets"
+		}
+	],
+	"renames": []
+}
