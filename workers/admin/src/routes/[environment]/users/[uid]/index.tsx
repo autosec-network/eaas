@@ -50,7 +50,7 @@ export const useUserDetail = routeLoader$(async ({ sharedMap, params, platform }
 
 		if (doIdHex) {
 			// Load properties from u_do (set by layout)
-			const props = await u_do.getProperties(undefined, true).catch(() => ({}) as Record<string, unknown>);
+			const props = await u_do.getProperties(undefined, true).catch(() => ({}));
 			if ('email' in props && typeof props.email === 'string') {
 				email = props.email;
 			}
