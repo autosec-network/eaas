@@ -1,0 +1,68 @@
+{
+	"name": "types",
+	"type": "module",
+	"main": "index.ts",
+	"directories": {
+		"lib": "src"
+	},
+	"files": [
+		"dist"
+	],
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"types": "./dist/index.d.ts"
+		},
+		"./bw": {
+			"import": "./dist/bw/index.js",
+			"types": "./dist/bw/index.d.ts"
+		},
+		"./bw/schemas": {
+			"import": "./dist/bw/schemas.js",
+			"types": "./dist/bw/schemas.d.ts"
+		},
+		"./crypto": {
+			"import": "./dist/crypto/index.js",
+			"types": "./dist/crypto/index.d.ts",
+			"default": "./dist/crypto/index.js"
+		},
+		"./crypto/catalog": {
+			"import": "./dist/crypto/workers-crypto-catalog.js",
+			"types": "./dist/crypto/workers-crypto-catalog.d.ts",
+			"default": "./dist/crypto/workers-crypto-catalog.js"
+		},
+		"./tenants": {
+			"import": "./dist/tenants/index.js",
+			"types": "./dist/tenants/index.d.ts"
+		},
+		"./tenants/logging": {
+			"import": "./dist/tenants/logging.js",
+			"types": "./dist/tenants/logging.d.ts"
+		},
+		"./zod/mini": {
+			"import": "./dist/zod-mini/index.js",
+			"types": "./dist/zod-mini/index.d.ts"
+		}
+	},
+	"scripts": {
+		"build": "npm run build:types",
+		"build:types": "tsc"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/types/README.md",
+	"devDependencies": {
+		"zod": "4.4.3"
+	}
+}
