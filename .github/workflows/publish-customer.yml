@@ -1,0 +1,183 @@
+name: Publish Customer Dashboard
+
+on:
+  push:
+    branches:
+      - production
+      - dev
+      - dependabot/npm_and_yarn/*
+      - feature/*
+      - bug/*
+    paths:
+      - '.github/workflows/publish-customer.yml'
+      - 'eslint.config.mjs'
+      - 'prettier.config.mjs'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'shared/**'
+      - 'workers/tsconfig.json'
+      - 'workers/customer/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Choose an environment to deploy to:'
+        required: true
+        type: environment
+
+concurrency:
+  group: ${{ github.workflow }}-${{ inputs.environment || github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    environment:
+      name: ${{ (inputs.environment || github.ref_name) == 'production' && 'production' || 'preview' }}
+      url: https://${{ (inputs.environment || vars.ENVIRONMENT) != 'production' && format('{0}.', (inputs.environment || vars.ENVIRONMENT)) || '' }}dash.eaas.autosec.network
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Git Setup
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace customer --workspace db --workspace helpers --workspace types
+      - run: npm run-script install --if-present --include-workspace-root --workspace customer --workspace db --workspace helpers --workspace types
+      - run: npm --workspace types run build
+      - parallel:
+          - run: npm --workspace db run build
+          - run: npm --workspace helpers run build
+      - name: Restore TS build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/customer/tmp/tsconfig.tsbuildinfo
+          key: customer-ts-${{ github.ref_name }}-${{ hashFiles('workers/customer/tmp/tsconfig.tsbuildinfo') }}
+          restore-keys: |
+            customer-ts-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace customer run build:types:cf
+      - run: git commit -m "Generate cf types" workers/customer/worker-configuration.d.ts || echo "No type generation done"
+        if: github.actor != 'autosec-prettier[bot]'
+      - run: git push
+        if: github.actor != 'autosec-prettier[bot]'
+        background: true
+        continue-on-error: true
+      - name: Restore i18n build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/customer/project.inlang/cache/**
+            workers/customer/src/paraglide/**
+          key: customer-i18n-${{ github.ref_name }}-${{ hashFiles('workers/customer/messages/**', 'workers/customer/project.inlang/settings.json') }}
+          restore-keys: |
+            customer-i18n-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace customer run build:types:tsc
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Save TS build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.ref_name == 'production' || github.ref_name == 'dev' }}
+        with:
+          path: |
+            workers/customer/tmp/tsconfig.tsbuildinfo
+          key: customer-ts-${{ github.ref_name }}-${{ hashFiles('workers/customer/tmp/tsconfig.tsbuildinfo') }}
+          enableCrossOsArchive: true
+        background: true
+      - name: Restore Vite client build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/customer/dist/.vite
+          key: customer-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/customer/vite.config.ts', 'workers/customer/tsconfig.json') }}
+          restore-keys: |
+            customer-vite-client-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace customer run build.client
+      - name: Save Vite client build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.event_name != 'pull_request_target' }}
+        with:
+          path: |
+            workers/customer/dist/.vite
+          key: customer-vite-client-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/customer/vite.config.ts', 'workers/customer/tsconfig.json') }}
+          enableCrossOsArchive: true
+        background: true
+      - name: Restore Vite server build cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            workers/customer/server/.vite
+          key: customer-vite-server-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/customer/vite.config.ts', 'workers/customer/tsconfig.json') }}
+          restore-keys: |
+            customer-vite-server-${{ github.ref_name }}-
+          enableCrossOsArchive: true
+      - run: npm --workspace customer run build.server
+      - name: Save Vite server build cache
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        if: ${{ github.event_name != 'pull_request_target' }}
+        with:
+          path: |
+            workers/customer/server/.vite
+          key: customer-vite-server-${{ github.ref_name }}-${{ hashFiles('**/package-lock.json', 'workers/customer/vite.config.ts', 'workers/customer/tsconfig.json') }}
+          enableCrossOsArchive: true
+        background: true
+      - run: npm --workspace customer run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Get Wrangler Version
+        run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
+        id: npm_wrangler_version
+      - name: Deploying to Cloudflare's global network
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ github.ref_name == 'production' || github.ref_name == 'dev' }}
+        id: wrangler_deploy
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          environment: ${{ (vars.ENVIRONMENT == 'production' && 'prod') || '' }}
+          workingDirectory: workers/customer
+          command: ${{ github.event_name != 'pull_request_target' && ((github.ref_name == 'production' || github.ref_name == 'dev') && 'deploy' || format('versions upload --preview-alias {0}', github.ref_name)) }}
+          vars: |
+            GIT_HASH
+            EU_BW_SM_PROJECT_ID
+            US_BW_SM_PROJECT_ID
+          secrets: |
+            AUTH_SECRET
+            US_BW_SM_ACCESS_TOKEN
+            EU_BW_SM_ACCESS_TOKEN
+            TURNSTILE_SECRET_KEY
+        env:
+          GIT_HASH: ${{ github.sha }}
+          EU_BW_SM_PROJECT_ID: ${{ secrets.EU_BW_SM_PROJECT_ID }}
+          US_BW_SM_PROJECT_ID: ${{ secrets.US_BW_SM_PROJECT_ID }}
+          AUTH_SECRET: ${{ (vars.ENVIRONMENT == 'production' && secrets.AUTH_SECRET_PROD) || secrets.AUTH_SECRET_DEV }}
+          US_BW_SM_ACCESS_TOKEN: ${{ secrets.US_BW_SM_ACCESS_TOKEN}}
+          EU_BW_SM_ACCESS_TOKEN: ${{ secrets.EU_BW_SM_ACCESS_TOKEN }}
+          TURNSTILE_SECRET_KEY: ${{ secrets.TURNSTILE_SECRET_KEY }}
+      - name: Dry-run deployment for validation
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ steps.wrangler_deploy.outcome == 'skipped' }}
+        id: wrangler_dry_run
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          environment: ${{ (vars.ENVIRONMENT == 'production' && vars.ENVIRONMENT) || '' }}
+          workingDirectory: workers/customer
+          command: deploy --dry-run

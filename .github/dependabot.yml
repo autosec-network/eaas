@@ -81,6 +81,8 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+        exclude-patterns:
+          - 'eslint-plugin-qwik'
       cron:
         patterns:
           - 'cron-schedule'
@@ -88,11 +90,25 @@ updates:
       db:
         patterns:
           - 'drizzle-*'
+      design:
+        patterns:
+          - 'flowbite'
+          - '@qwikest/icons'
+          - '@tailwindcss/*'
+          - 'tailwind*'
       hono:
         patterns:
           - 'hono'
           - '@hono/*'
           - '@scalar/hono-api-reference'
+      qwik:
+        patterns:
+          - '@builder.io/qwik'
+          - '@builder.io/qwik*'
+          - 'eslint-plugin-qwik'
+          - '@inlang/*'
+          - 'vite-*'
+          - '@vitejs/*'
       typescript-core:
         patterns:
           - 'typescript'
