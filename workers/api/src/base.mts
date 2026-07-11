@@ -111,7 +111,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 						const receivedSecret = Buffer.from(ak_secret_base64url, 'base64url');
 						let calculatedHash: Uint8Array;
 
-						switch (parseInt(version) as ApiKeyVersions) {
+						switch (parseInt(version)) {
 							case ApiKeyVersions['256base64urlSha256']:
 								calculatedHash = createHash('sha256').update(receivedSecret).digest();
 								break;

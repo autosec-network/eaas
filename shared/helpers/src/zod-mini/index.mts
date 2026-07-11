@@ -15,7 +15,7 @@ export function ZodUuidBase64(version?: 4 | 7) {
 	return zm.base64().check(
 		zm.trim(),
 		zm.length(24),
-		// eslint-disable-next-line zod/require-error-message
+		 
 		zm.refine((v) => hexRegex.test(Buffer.from(v, 'base64').toString('hex'))),
 	);
 }
@@ -24,7 +24,7 @@ export function ZodUuidBase64url(version?: 4 | 7) {
 	return zm.base64url().check(
 		zm.trim(),
 		zm.length(22),
-		// eslint-disable-next-line zod/require-error-message
+		 
 		zm.refine((v) => hexRegex.test(Buffer.from(v, 'base64url').toString('hex'))),
 	);
 }
