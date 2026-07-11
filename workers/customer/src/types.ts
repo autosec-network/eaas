@@ -1,0 +1,409 @@
+import type { DurableObject } from 'cloudflare:workers';
+import type { TenantPropertiesSchema, UserPropertiesSchema } from 'db';
+import type { UUID } from 'node:crypto';
+import type { DOJurisdictions } from 'types';
+import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
+import type { ZodPick } from 'types/zod/mini';
+import type * as zm from 'zod/mini';
+import type { BitwardenSessionProxy, TenantD0Proxy, UserD0Proxy } from '../../do-proxy/src/index';
+
+export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION' | 'TENANT_D0' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'USER_D0_PROXY'>, TypedBindings {
+	GIT_HASH?: string;
+	EU_BW_SM_PROJECT_ID: string;
+	US_BW_SM_PROJECT_ID: string;
+}
+
+interface TypedBindings {
+	BITWARDEN_SESSION: DurableObjectNamespace<BitwardenSession>;
+	TENANT_D0: DurableObjectNamespace<TenantD0>;
+	USER_D0: DurableObjectNamespace<UserD0>;
+	/**
+	 * Local-dev-only proxy to `BITWARDEN_SESSION` (see `workers/do-proxy`). Not used yet.
+	 */
+	BITWARDEN_SESSION_PROXY?: Service<BitwardenSessionProxy>;
+	/**
+	 * Local-dev-only proxy to `TENANT_D0` (see `workers/do-proxy`). Not used yet.
+	 */
+	TENANT_D0_PROXY?: Service<TenantD0Proxy>;
+	/**
+	 * Local-dev-only proxy to `USER_D0` (see `workers/do-proxy`). Not used yet.
+	 */
+	USER_D0_PROXY?: Service<UserD0Proxy>;
+}
+
+/**
+ * @link https://developers.cloudflare.com/turnstile/get-started/server-side-validation/#accepted-parameters
+ */
+export interface TurnstileRequest {
+	secret: string;
+	response: string;
+	remoteip?: string;
+	idempotency_key?: UUID;
+}
+
+/**
+ * @link https://developers.cloudflare.com/turnstile/get-started/server-side-validation/#accepted-parameters
+ */
+export interface TurnstileResponse {
+	success: boolean;
+	/**
+	 * the ISO timestamp for the time the challenge was solved
+	 */
+	challenge_ts: ReturnType<Date['toISOString']>;
+	/**
+	 * the hostname for which the challenge was served
+	 */
+	hostname: URL['hostname'];
+	/**
+	 * the customer widget identifier passed to the widget on the client side. This is used to differentiate widgets using the same sitekey in analytics. Its integrity is protected by modifications from an attacker. It is recommended to validate that the action matches an expected value
+	 */
+	action: string;
+	/**
+	 * the customer data passed to the widget on the client side. This can be used by the customer to convey state. It is integrity protected by modifications from an attacker
+	 */
+	cdata: string;
+	/**
+	 * a list of errors that occurred
+	 */
+	'error-codes': string[];
+}
+
+/**
+ * All with `Recommended` as `Yes`
+ * @link https://www.iana.org/assignments/cose/cose.xhtml#algorithms
+ */
+export enum COSEAlgorithms {
+	/**
+	 * EdDSA using the Ed448 parameter set in Section 5.2 of [RFC8032]
+	 */
+	Ed448 = -53,
+	/**
+	 * ECDSA using P-521 curve and SHA-512
+	 */
+	ESP512 = -52,
+	/**
+	 * ECDSA using P-384 curve and SHA-384
+	 */
+	ESP384 = -51,
+	/**
+	 * CBOR Object Signing Algorithm for ML-DSA-87
+	 */
+	'ML-DSA-87' = -50,
+	/**
+	 * CBOR Object Signing Algorithm for ML-DSA-65
+	 */
+	'ML-DSA-65' = -49,
+	/**
+	 * CBOR Object Signing Algorithm for ML-DSA-44
+	 */
+	'ML-DSA-44' = -48,
+	/**
+	 * HSS/LMS hash-based digital signature
+	 */
+	'HSS-LMS' = -46,
+	/**
+	 * SHAKE-256 512-bit Hash Value
+	 */
+	SHAKE256 = -45,
+	/**
+	 * SHA-2 512-bit Hash
+	 */
+	'SHA-512' = -44,
+	/**
+	 * SHA-2 384-bit Hash
+	 */
+	'SHA-384' = -43,
+	/**
+	 * RSAES-OAEP w/ SHA-512
+	 */
+	'RSAES-OAEP w/ SHA-512' = -42,
+	/**
+	 * RSAES-OAEP w/ SHA-256
+	 */
+	'RSAES-OAEP w/ SHA-256' = -41,
+	/**
+	 * RSAES-OAEP w/ SHA-1
+	 */
+	'RSAES-OAEP w/ RFC 8017 default parameters' = -40,
+	/**
+	 * RSASSA-PSS w/ SHA-512
+	 */
+	PS512 = -39,
+	/**
+	 * RSASSA-PSS w/ SHA-384
+	 */
+	PS384 = -38,
+	/**
+	 * RSASSA-PSS w/ SHA-256
+	 */
+	PS256 = -37,
+	/**
+	 * ECDSA w/ SHA-512
+	 * @deprecated
+	 */
+	ES512 = -36,
+	/**
+	 * ECDSA w/ SHA-384
+	 * @deprecated
+	 */
+	ES384 = -35,
+	/**
+	 * ECDH SS w/ Concat KDF and AES Key Wrap w/ 256-bit key
+	 */
+	'ECDH-SS + A256KW' = -34,
+	/**
+	 * ECDH SS w/ Concat KDF and AES Key Wrap w/ 192-bit key
+	 */
+	'ECDH-SS + A192KW' = -33,
+	/**
+	 * ECDH SS w/ Concat KDF and AES Key Wrap w/ 128-bit key
+	 */
+	'ECDH-SS + A128KW' = -32,
+	/**
+	 * ECDH ES w/ Concat KDF and AES Key Wrap w/ 256-bit key
+	 */
+	'ECDH-ES + A256KW' = -31,
+	/**
+	 * ECDH ES w/ Concat KDF and AES Key Wrap w/ 192-bit key
+	 */
+	'ECDH-ES + A192KW' = -30,
+	/**
+	 * ECDH ES w/ Concat KDF and AES Key Wrap w/ 128-bit key
+	 */
+	'ECDH-ES + A128KW' = -29,
+	/**
+	 * ECDH SS w/ HKDF - generate key directly
+	 */
+	'ECDH-SS + HKDF-512' = -28,
+	/**
+	 * ECDH SS w/ HKDF - generate key directly
+	 */
+	'ECDH-SS + HKDF-256' = -27,
+	/**
+	 * ECDH ES w/ HKDF - generate key directly
+	 */
+	'ECDH-ES + HKDF-512' = -26,
+	/**
+	 * ECDH ES w/ HKDF - generate key directly
+	 */
+	'ECDH-ES + HKDF-256' = -25,
+	/**
+	 * EdDSA using the Ed25519 parameter set in Section 5.1 of [RFC8032]
+	 */
+	Ed25519 = -19,
+	/**
+	 * SHAKE-128 256-bit Hash Value
+	 */
+	SHAKE128 = -18,
+	/**
+	 * SHA-2 512-bit Hash truncated to 256-bits
+	 */
+	'SHA-512/256' = -17,
+	/**
+	 * SHA-2 256-bit Hash
+	 */
+	'SHA-256' = -16,
+	/**
+	 * Shared secret w/ AES-MAC 256-bit key
+	 */
+	'direct+HKDF-AES-256' = -13,
+	/**
+	 * Shared secret w/ AES-MAC 128-bit key
+	 */
+	'direct+HKDF-AES-128' = -12,
+	/**
+	 * Shared secret w/ HKDF and SHA-512
+	 */
+	'direct+HKDF-SHA-512' = -11,
+	/**
+	 * Shared secret w/ HKDF and SHA-256
+	 */
+	'direct+HKDF-SHA-256' = -10,
+	/**
+	 * ECDSA using P-256 curve and SHA-256
+	 */
+	ESP256 = -9,
+	/**
+	 * ECDSA w/ SHA-256
+	 * @deprecated
+	 */
+	ES256 = -7,
+	/**
+	 * Direct use of CEK
+	 */
+	direct = -6,
+	/**
+	 * AES Key Wrap w/ 256-bit key
+	 */
+	A256KW = -5,
+	/**
+	 * AES Key Wrap w/ 192-bit key
+	 */
+	A192KW = -4,
+	/**
+	 * AES Key Wrap w/ 128-bit key
+	 */
+	A128KW = -3,
+	/**
+	 * AES-GCM mode w/ 128-bit key, 128-bit tag
+	 */
+	A128GCM = 1,
+	/**
+	 * AES-GCM mode w/ 192-bit key, 128-bit tag
+	 */
+	A192GCM = 2,
+	/**
+	 * AES-GCM mode w/ 256-bit key, 128-bit tag
+	 */
+	A256GCM = 3,
+	/**
+	 * HMAC w/ SHA-256 truncated to 64 bits
+	 */
+	'HMAC 256/64' = 4,
+	/**
+	 * HMAC w/ SHA-256
+	 */
+	'HMAC 256/256' = 5,
+	/**
+	 * HMAC w/ SHA-384
+	 */
+	'HMAC 384/384' = 6,
+	/**
+	 * HMAC w/ SHA-512
+	 */
+	'HMAC 512/512' = 7,
+	/**
+	 * AES-CCM mode 128-bit key, 64-bit tag, 13-byte nonce
+	 */
+	'AES-CCM-16-64-128' = 10,
+	/**
+	 * AES-CCM mode 256-bit key, 64-bit tag, 13-byte nonce
+	 */
+	'AES-CCM-16-64-256' = 11,
+	/**
+	 * AES-CCM mode 128-bit key, 64-bit tag, 7-byte nonce
+	 */
+	'AES-CCM-64-64-128' = 12,
+	/**
+	 * AES-CCM mode 256-bit key, 64-bit tag, 7-byte nonce
+	 */
+	'AES-CCM-64-64-256' = 13,
+	/**
+	 * AES-MAC 128-bit key, 64-bit tag
+	 */
+	'AES-MAC 128/64' = 14,
+	/**
+	 * AES-MAC 256-bit key, 64-bit tag
+	 */
+	'AES-MAC 256/64' = 15,
+	/**
+	 * ChaCha20/Poly1305 w/ 256-bit key, 128-bit tag
+	 */
+	'ChaCha20/Poly1305' = 24,
+	/**
+	 * AES-MAC 128-bit key, 128-bit tag
+	 */
+	'AES-MAC 128/128' = 25,
+	/**
+	 * AES-MAC 256-bit key, 128-bit tag
+	 */
+	'AES-MAC 256/128' = 26,
+	/**
+	 * AES-CCM mode 128-bit key, 128-bit tag, 13-byte nonce
+	 */
+	'AES-CCM-16-128-128' = 30,
+	/**
+	 * AES-CCM mode 256-bit key, 128-bit tag, 13-byte nonce
+	 */
+	'AES-CCM-16-128-256' = 31,
+	/**
+	 * AES-CCM mode 128-bit key, 128-bit tag, 7-byte nonce
+	 */
+	'AES-CCM-64-128-128' = 32,
+	/**
+	 * AES-CCM mode 256-bit key, 128-bit tag, 7-byte nonce
+	 */
+	'AES-CCM-64-128-256' = 33,
+}
+
+interface ProjectResponsEnhanced extends Omit<ProjectResponse, 'id'> {
+	id: UUID;
+	read: boolean;
+	write: boolean;
+}
+interface SecretsProject {
+	id: UUID;
+	name: string;
+}
+declare class BitwardenSession extends DurableObject {
+	public init(_options: {
+		t_jurisdiction: DOJurisdictions | null;
+		t_do_id: ArrayBuffer | null;
+		endpoints: {
+			base: string;
+			authentication: string;
+		};
+	}): Promise<void>;
+	public auth(accessToken: string): Promise<void>;
+	public getProjects(): Promise<ProjectResponsEnhanced[]>;
+	public getSecretsAndProjects(): Promise<{
+		projects: SecretsProject[];
+		secrets: {
+			creationDate: string;
+			id: UUID;
+			key: string;
+			organizationId: UUID;
+			projects: SecretsProject[];
+			read: boolean;
+			revisionDate: string;
+			write: boolean;
+		}[];
+	}>;
+	public getSecrets(_secretIds: string[]): Promise<
+		{
+			creationDate: string;
+			id: UUID;
+			key: string;
+			note: string;
+			object: string;
+			organizationId: UUID;
+			projects: SecretsProject[];
+			revisionDate: string;
+			value: string;
+		}[]
+	>;
+	public setSecret(_options: { projectId: string; key: string; value: string; note?: string | undefined }): Promise<SecretResponse>;
+	public deleteSecrets(_secretIds: string[]): Promise<UUID[]>;
+	public decryptSecret(accessToken: string, cipherText: string): Promise<string>;
+	public encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version?: 0 | 1 | 2): Promise<string>;
+
+	public nuke(reason?: string, hard?: boolean): Promise<void>;
+}
+
+declare class BaseD0 extends DurableObject {
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public sqlExec(statements: { query: string; bindings?: any[] | undefined }[]): Promise<
+		{
+			result: Record<string, SqlStorageValue>[];
+			rowsRead: number;
+			rowsWritten: number;
+			duration: number;
+			size: number;
+		}[]
+	>;
+
+	public nuke(reason?: string, hard?: boolean): Promise<void>;
+}
+
+export declare class TenantD0 extends BaseD0 {
+	public getProperties(_keys?: ZodPick<typeof TenantPropertiesSchema>, lazy?: boolean): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>>;
+	public getPropertiesSync(_keys?: ZodPick<typeof TenantPropertiesSchema>): Partial<zm.output<typeof TenantPropertiesSchema>>;
+	public updateProperties(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background?: boolean, lazy?: boolean): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>>;
+	public updatePropertiesSync(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background?: boolean, lazy?: boolean): Partial<zm.output<typeof TenantPropertiesSchema>>;
+}
+export declare class UserD0 extends BaseD0 {
+	public getProperties(_keys?: ZodPick<typeof UserPropertiesSchema>, lazy?: boolean): Promise<Partial<zm.output<typeof UserPropertiesSchema>>>;
+	public getPropertiesSync(_keys?: ZodPick<typeof UserPropertiesSchema>): Partial<zm.output<typeof UserPropertiesSchema>>;
+	public updateProperties(_properties: Partial<zm.input<typeof UserPropertiesSchema>>, background?: boolean, lazy?: boolean): Promise<Partial<zm.output<typeof UserPropertiesSchema>>>;
+	public updatePropertiesSync(_properties: Partial<zm.input<typeof UserPropertiesSchema>>, background?: boolean, lazy?: boolean): Partial<zm.output<typeof UserPropertiesSchema>>;
+}
