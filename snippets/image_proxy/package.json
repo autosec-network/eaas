@@ -1,0 +1,37 @@
+{
+	"name": "image_proxy",
+	"type": "module",
+	"directories": {
+		"lib": "dist"
+	},
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"fmt": "prettier --check .",
+		"fmt:fix": "prettier --write .",
+		"lint": "eslint src",
+		"lint:fix": "npm run lint -- --fix",
+		"clean": "npx -y rimraf@latest ./dist",
+		"build": "wrangler deploy --dry-run --outdir dist",
+		"build:clean": "npm run clean && npm run build"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/snippets/image_proxy/README.md",
+	"dependencies": {
+		"itty-router": "5.0.24",
+		"zod": "4.4.3"
+	}
+}
