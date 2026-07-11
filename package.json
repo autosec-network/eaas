@@ -22,6 +22,9 @@
 		"url": "https://github.com/autosec-network/eaas/issues"
 	},
 	"homepage": "https://github.com/autosec-network/eaas?tab=readme-ov-file",
+	"workspaces": [
+		"shared/*"
+	],
 	"devDependencies": {
 		"@demosjarco/prettier-config": "1.0.2",
 		"@eslint/js": "10.0.1",
