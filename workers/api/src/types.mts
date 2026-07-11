@@ -35,6 +35,8 @@ export interface ContextVariables extends TimingVariables {
 	t_db: SqliteRemoteDatabase;
 
 	ak_id: BufferExport;
+	/** Active noise pipe ID from X-Noise-Pipe header */
+	noisePipeId?: string;
 	globalPermissions?: {
 		/**
 		 * 0. Can see all keyrings it has permission linked

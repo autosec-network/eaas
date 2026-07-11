@@ -5,6 +5,7 @@ import { problemJsonValidation } from '~/errors.mjs';
 import type { ContextVariables, EnvVars } from '~/types.mjs';
 import apikeys from '~/v0/apikeys/index.mjs';
 import keyrings from '~/v0/keyrings/index.mjs';
+import noise from '~/v0/noise/index.mjs';
 import random from '~/v0/random.mjs';
 import stats from '~/v0/stats/index.mjs';
 
@@ -108,6 +109,7 @@ app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 
 app.route('/apikeys', apikeys);
 app.route('/keyrings', keyrings);
+app.route('/noise', noise);
 app.route('/random', random);
 app.route('/stats', stats);
 
