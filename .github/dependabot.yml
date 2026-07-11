@@ -60,6 +60,8 @@ updates:
     cooldown:
       semver-major-days: 30
       default-days: 1
+      exclude:
+        - 'typescript'
     versioning-strategy: increase
     open-pull-requests-limit: 999
     ignore:
