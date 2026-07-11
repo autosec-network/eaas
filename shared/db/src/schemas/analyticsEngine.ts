@@ -1,0 +1,28 @@
+import { sqliteTable } from 'drizzle-orm/sqlite-core';
+
+export const EAAS_LANG_ANALYTICS = sqliteTable('EAAS_LANG_ANALYTICS', (ela) => ({
+	dataset: ela.text({ enum: ['EAAS_LANG_ANALYTICS'] }),
+	_sample_interval: ela.integer({ mode: 'number' }),
+	timestamp: ela.text({ mode: 'text', length: 19 }),
+	hashed_session_id: ela.text('index1', { mode: 'text' }).notNull(),
+	lang1: ela.text('blob1', { mode: 'text' }).notNull().default(''),
+	lang2: ela.text('blob2', { mode: 'text' }).notNull().default(''),
+	lang3: ela.text('blob3', { mode: 'text' }).notNull().default(''),
+	lang4: ela.text('blob4', { mode: 'text' }).notNull().default(''),
+	lang5: ela.text('blob5', { mode: 'text' }).notNull().default(''),
+	lang6: ela.text('blob6', { mode: 'text' }).notNull().default(''),
+	lang7: ela.text('blob7', { mode: 'text' }).notNull().default(''),
+	lang8: ela.text('blob8', { mode: 'text' }).notNull().default(''),
+	lang9: ela.text('blob9', { mode: 'text' }).notNull().default(''),
+	lang10: ela.text('blob10', { mode: 'text' }).notNull().default(''),
+	lang11: ela.text('blob11', { mode: 'text' }).notNull().default(''),
+	lang12: ela.text('blob12', { mode: 'text' }).notNull().default(''),
+	lang13: ela.text('blob13', { mode: 'text' }).notNull().default(''),
+	lang14: ela.text('blob14', { mode: 'text' }).notNull().default(''),
+	lang15: ela.text('blob15', { mode: 'text' }).notNull().default(''),
+	lang16: ela.text('blob16', { mode: 'text' }).notNull().default(''),
+	lang17: ela.text('blob17', { mode: 'text' }).notNull().default(''),
+	lang18: ela.text('blob18', { mode: 'text' }).notNull().default(''),
+	lang19: ela.text('blob19', { mode: 'text' }).notNull().default(''),
+	lang20: ela.text('blob20', { mode: 'text' }).notNull().default(''),
+}));
