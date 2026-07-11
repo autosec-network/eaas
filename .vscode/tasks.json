@@ -3,7 +3,7 @@
 	"tasks": [
 		{
 			"label": "Build",
-			"dependsOn": ["TS Types", "TS DB"],
+			"dependsOn": ["TS Types", "TS DB", "TS Helpers"],
 			"isBackground": true,
 			"group": {
 				"kind": "build",
@@ -30,6 +30,22 @@
 			"dependsOn": ["TS Types"],
 			"type": "typescript",
 			"tsconfig": "shared/db/tsconfig.json",
+			"option": "watch",
+			"problemMatcher": ["$tsc-watch"],
+			"isBackground": true,
+			"presentation": {
+				"group": "shared"
+			},
+			"icon": {
+				"id": "symbol-type-parameter",
+				"color": "terminal.ansiBlue"
+			}
+		},
+		{
+			"label": "TS Helpers",
+			"dependsOn": ["TS Types"],
+			"type": "typescript",
+			"tsconfig": "shared/helpers/tsconfig.json",
 			"option": "watch",
 			"problemMatcher": ["$tsc-watch"],
 			"isBackground": true,
