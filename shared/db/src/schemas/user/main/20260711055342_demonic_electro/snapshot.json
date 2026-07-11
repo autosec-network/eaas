@@ -1,0 +1,392 @@
+{
+	"version": "7",
+	"dialect": "sqlite",
+	"id": "99b22c30-c273-46d0-8324-918608dba86a",
+	"prevIds": ["00000000-0000-0000-0000-000000000000"],
+	"ddl": [
+		{
+			"name": "alarms",
+			"entityType": "tables"
+		},
+		{
+			"name": "auth_accounts",
+			"entityType": "tables"
+		},
+		{
+			"name": "auth_verification_token",
+			"entityType": "tables"
+		},
+		{
+			"name": "auth_webauthn",
+			"entityType": "tables"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "callee",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "'[]'",
+			"generated": null,
+			"name": "payload",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "next_time",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "delay_in_seconds",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "cron",
+			"entityType": "columns",
+			"table": "alarms"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "type",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "provider",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "provider_account_id",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "refresh_token",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "access_token",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "integer",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires_at",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "token_type",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "scope",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "id_token",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "session_state",
+			"entityType": "columns",
+			"table": "auth_accounts"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "hashed_token",
+			"entityType": "columns",
+			"table": "auth_verification_token"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "auth_verification_token"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "credential_id",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "name",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "aa_guid",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "credential_public_key",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "counter",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "credential_device_type",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "credential_backed_up",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "text",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "transports",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "a_time",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b_time",
+			"entityType": "columns",
+			"table": "auth_webauthn"
+		},
+		{
+			"columns": ["provider", "provider_account_id"],
+			"nameExplicit": false,
+			"name": "auth_accounts_pk",
+			"entityType": "pks",
+			"table": "auth_accounts"
+		},
+		{
+			"columns": ["id"],
+			"nameExplicit": false,
+			"name": "alarms_pk",
+			"table": "alarms",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["hashed_token"],
+			"nameExplicit": false,
+			"name": "auth_verification_token_pk",
+			"table": "auth_verification_token",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["credential_id"],
+			"nameExplicit": false,
+			"name": "auth_webauthn_pk",
+			"table": "auth_webauthn",
+			"entityType": "pks"
+		},
+		{
+			"columns": [
+				{
+					"value": "type",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_type",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "next_time",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_alarms_next_time",
+			"entityType": "indexes",
+			"table": "alarms"
+		},
+		{
+			"columns": [
+				{
+					"value": "expires",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_auth_verification_token_expires",
+			"entityType": "indexes",
+			"table": "auth_verification_token"
+		},
+		{
+			"columns": ["name"],
+			"nameExplicit": false,
+			"name": "auth_webauthn_name_unique",
+			"entityType": "uniques",
+			"table": "auth_webauthn"
+		}
+	],
+	"renames": []
+}
