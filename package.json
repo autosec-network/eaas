@@ -31,13 +31,13 @@
 		"@demosjarco/prettier-config": "1.0.2",
 		"@eslint/js": "10.0.1",
 		"@types/node": "24.12.2",
-		"eslint": "10.3.0",
+		"eslint": "10.6.0",
 		"eslint-config-prettier": "10.1.8",
-		"eslint-plugin-zod": "3.12.0",
-		"prettier": "3.8.3",
+		"eslint-plugin-zod": "4.7.0",
+		"prettier": "3.9.5",
 		"tsx": "4.21.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.59.1",
+		"typescript-eslint": "8.63.0",
 		"wrangler": "4.87.0"
 	}
 }
