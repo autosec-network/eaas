@@ -55,13 +55,13 @@
 		"@inlang/cli": "3.1.15",
 		"@inlang/paraglide-js": "2.21.0",
 		"@rollup/plugin-node-resolve": "16.0.3",
-		"@tailwindcss/vite": "4.3.2",
+		"@tailwindcss/vite": "4.3.3",
 		"@vitejs/plugin-basic-ssl": "2.3.0",
 		"eslint-plugin-drizzle": "0.2.3",
 		"eslint-plugin-qwik": "1.20.0",
 		"flowbite": "4.0.2",
 		"prettier-plugin-tailwindcss": "0.8.0",
-		"tailwindcss": "4.3.2",
+		"tailwindcss": "4.3.3",
 		"turnstile-types": "1.2.3",
 		"vite-tsconfig-paths": "6.1.1"
 	}
