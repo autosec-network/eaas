@@ -57,8 +57,8 @@ These apply everywhere. Framework-specific rules live in the nested files.
 - Within a worker: `~/*` → `./src/*`, and (in `api`) `~do/*` → `./do/*`, `~wf/*` → `./wf/*`.
 - Use `import type` for type-only imports.
 - Dynamic imports (`await import(...)`, `Promise.all([...])` for parallel) are used in exactly two places, not as a general preference:
-  - The root-most Cloudflare Worker file — the one referenced by `main` in `wrangler.json`/`wrangler.jsonc` — when it exports more than one handler type, and/or Durable Object(s), and/or Workflow(s).
-  - In a Qwik file, when a library is only needed in server-side logic and/or would break client-side because it depends on something unavailable there.
+    - The root-most Cloudflare Worker file — the one referenced by `main` in `wrangler.json`/`wrangler.jsonc` — when it exports more than one handler type, and/or Durable Object(s), and/or Workflow(s).
+    - In a Qwik file, when a library is only needed in server-side logic and/or would break client-side because it depends on something unavailable there.
 
 **Code style**
 
