@@ -5,9 +5,9 @@ import type { DOJurisdictions } from 'types';
 import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
 import type { ZodPick } from 'types/zod/mini';
 import type * as zm from 'zod/mini';
-import type { BitwardenSessionProxy, TenantD0Proxy, UserD0Proxy } from '../../do-proxy/src/index';
+import type { BitwardenSessionProxy, TenantD0Proxy, UserD0Proxy, UserSessionProxy } from '../../do-proxy/src/index';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION' | 'TENANT_D0' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'USER_D0_PROXY'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION' | 'TENANT_D0' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'USER_D0_PROXY' | 'USER_SESSION_PROXY'>, TypedBindings {
 	GIT_HASH?: string;
 	EU_BW_SM_PROJECT_ID: string;
 	US_BW_SM_PROJECT_ID: string;
@@ -18,17 +18,21 @@ interface TypedBindings {
 	TENANT_D0: DurableObjectNamespace<TenantD0>;
 	USER_D0: DurableObjectNamespace<UserD0>;
 	/**
-	 * Local-dev-only proxy to `BITWARDEN_SESSION` (see `workers/do-proxy`). Not used yet.
+	 * Local-dev-only proxy to `BITWARDEN_SESSION`. Unused by live code.
 	 */
 	BITWARDEN_SESSION_PROXY?: Service<BitwardenSessionProxy>;
 	/**
-	 * Local-dev-only proxy to `TENANT_D0` (see `workers/do-proxy`). Not used yet.
+	 * Local-dev-only proxy to `TENANT_D0`. Unused by live code.
 	 */
 	TENANT_D0_PROXY?: Service<TenantD0Proxy>;
 	/**
-	 * Local-dev-only proxy to `USER_D0` (see `workers/do-proxy`). Not used yet.
+	 * Local-dev-only proxy to `USER_D0`. Unused by live code.
 	 */
 	USER_D0_PROXY?: Service<UserD0Proxy>;
+	/**
+	 * Local-dev-only proxy to this worker's own `USER_SESSION` (auth always runs against the live DB). Unused by live code.
+	 */
+	USER_SESSION_PROXY?: Service<UserSessionProxy>;
 }
 
 /**
