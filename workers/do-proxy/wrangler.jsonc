@@ -1,0 +1,46 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "eaas-do-proxy",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-14",
+	"compatibility_flags": ["nodejs_compat", "no_nodejs_compat_v2"],
+	"workers_dev": false,
+	"preview_urls": false,
+	"minify": true,
+	"keep_names": false,
+	"upload_source_maps": true,
+	"placement": { "mode": "smart" },
+	// Max possible worker limits (5*60*1000 ms CPU time, 10 million subrequests)
+	"limits": { "cpu_ms": 300000, "subrequests": 10000000 },
+	"observability": { "logs": { "enabled": true, "invocation_logs": true, "persist": true }, "traces": { "enabled": true, "persist": true } },
+	"dependencies_instrumentation": { "enabled": false },
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "BITWARDEN_SESSION",
+				"class_name": "BitwardenSession",
+				"script_name": "eaas-api-prod"
+			},
+			{
+				"name": "TENANT_D0",
+				"class_name": "TenantD0",
+				"script_name": "eaas-api-prod"
+			},
+			{
+				"name": "TENANT_D0_LOGS",
+				"class_name": "TenantD0Logs",
+				"script_name": "eaas-api-prod"
+			},
+			{
+				"name": "USER_D0",
+				"class_name": "UserD0",
+				"script_name": "eaas-api-prod"
+			},
+			{
+				"name": "USER_SESSION",
+				"class_name": "UserSession",
+				"script_name": "eaas-customer-prod"
+			}
+		]
+	}
+}

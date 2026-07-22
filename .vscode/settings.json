@@ -7,7 +7,7 @@
 	"js/ts.preferences.importModuleSpecifier": "non-relative",
 	"js/ts.tsdk.path": "./node_modules/typescript/lib",
 	"github-actions.workflows.pinned.refresh.enabled": true,
-	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-image_proxy.yml", ".github/workflows/publish-api.yml", ".github/workflows/publish-apig.yml", ".github/workflows/publish-customer.yml", ".github/workflows/i18n.yml", ".github/workflows/publish-admin.yml"],
+	"github-actions.workflows.pinned.workflows": [".github/workflows/publish-image_proxy.yml", ".github/workflows/publish-api.yml", ".github/workflows/publish-apig.yml", ".github/workflows/publish-customer.yml", ".github/workflows/i18n.yml", ".github/workflows/publish-admin.yml", ".github/workflows/publish-do-proxy.yml"],
 	"material-icon-theme.activeIconPack": "qwik",
 	"editor.quickSuggestions": {
 		"strings": "on"

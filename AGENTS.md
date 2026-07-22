@@ -18,6 +18,7 @@ npm workspaces (`shared/*`, `snippets/*`, `workers/*`). Each workspace is import
 | `workers/api`          | `api`         | The Hono crypto API. See `workers/api/AGENTS.md`.                                                            |
 | `workers/customer`     | `customer`    | Qwik City customer dashboard. See `workers/customer/AGENTS.md`.                                              |
 | `workers/admin`        | `admin`       | Qwik City internal admin dashboard. See `workers/admin/AGENTS.md`.                                           |
+| `workers/do-proxy`     | `do-proxy`    | Local-dev-only RPC proxy in front of `api`'s/`customer`'s Durable Objects. See `workers/do-proxy/AGENTS.md`. |
 | `snippets/image_proxy` | `image_proxy` | Small standalone image-proxy Worker snippet.                                                                 |
 
 ## Commands

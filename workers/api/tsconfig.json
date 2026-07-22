@@ -10,5 +10,5 @@
 		"types": ["./worker-configuration.d.ts", "node"]
 	},
 	"files": ["./eslint.config.mjs", "prettier.config.mjs", "staticApi.ts", "apiGateway.ts"],
-	"include": ["src", "do", "wf"]
+	"include": ["../do-proxy/src", "src", "do", "wf"]
 }

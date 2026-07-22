@@ -3,16 +3,33 @@ import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import type { TimingVariables } from 'hono/timing';
 import type { Buffer } from 'node:buffer';
 import type { DOJurisdictions, Permissions } from 'types';
+import type { BitwardenSessionProxy, TenantD0LogsProxy, TenantD0Proxy, UserD0Proxy } from '../../do-proxy/src/index';
 
-export interface EnvVars extends Omit<Cloudflare.Env, ''>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY'>, TypedBindings {
 	GIT_HASH?: string;
 	CF_ACCOUNT_ID: string;
 	EU_BW_SM_PROJECT_ID: string;
 	US_BW_SM_PROJECT_ID: string;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-interface TypedBindings {}
+interface TypedBindings {
+	/**
+	 * Local-dev-only proxy to this worker's own `BITWARDEN_SESSION`, only present in the `prod` deployment (see `workers/do-proxy`). Unused by live code.
+	 */
+	BITWARDEN_SESSION_PROXY?: Service<BitwardenSessionProxy>;
+	/**
+	 * Local-dev-only proxy to this worker's own `TENANT_D0`, only present in the `prod` deployment (see `workers/do-proxy`). Unused by live code.
+	 */
+	TENANT_D0_PROXY?: Service<TenantD0Proxy>;
+	/**
+	 * Local-dev-only proxy to this worker's own `TENANT_D0_LOGS`, only present in the `prod` deployment (see `workers/do-proxy`). Unused by live code.
+	 */
+	TENANT_D0_LOGS_PROXY?: Service<TenantD0LogsProxy>;
+	/**
+	 * Local-dev-only proxy to this worker's own `USER_D0`, only present in the `prod` deployment (see `workers/do-proxy`). Unused by live code.
+	 */
+	USER_D0_PROXY?: Service<UserD0Proxy>;
+}
 
 export interface BufferExport {
 	buffer: Buffer;
