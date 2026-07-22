@@ -33,13 +33,15 @@ Auth uses `@auth/qwik` wired through `src/routes/plugin@auth.ts`, with a **custo
 
 ## Internationalization
 
-All user-facing copy is translated. **Only edit `messages/en.json`** as the source of truth, then generate the other locales:
+All user-facing copy is translated. `messages/en.json` is the source of truth: when you add or change a key there, **hand-translate that same key into every other locale file** (`messages/de.json`, `es.json`, `fr.json`, `ro.json`) yourself — Inlang discontinued its machine-translate service, so whichever model or person edits `en.json` is responsible for writing the other locales' copy directly, not just the English string.
+
+Once every locale has the new/changed keys, run:
 
 ```
-npm -w customer run translate      # inlang machine-translate en → de/es/fr/ro
+npm -w customer run translate
 ```
 
-Never hand-edit non-English locale files (`de/es/fr/ro.json`) — they're regenerated. Config lives in `project.inlang/`.
+This (`languageGenerate.ts`) only sorts keys alphabetically and deletes stale keys no longer present in `en.json` — it does **not** translate anything. It exits non-zero and lists any locale still missing a key from `en.json`, so treat that as "go translate the listed keys," not a bug. Config lives in `project.inlang/` (used by the Paraglide compiler at build time, unrelated to translation).
 
 ## UI conventions
 
@@ -49,4 +51,4 @@ Never hand-edit non-English locale files (`de/es/fr/ro.json`) — they're regene
 
 ## Dev
 
-`npm -w customer run start` (Vite SSR). `npm -w customer run build:types` runs `wrangler types` + `tsc`. `build:translate` (`languageGenerate.ts`) compiles paraglide output.
+`npm -w customer run start` (Vite SSR). `npm -w customer run build:types` runs `wrangler types` + `tsc`. `translate` (`languageGenerate.ts`) compiles paraglide output.
