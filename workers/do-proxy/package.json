@@ -1,0 +1,31 @@
+{
+	"name": "do-proxy",
+	"type": "module",
+	"scripts": {
+		"build:types:tsc": "tsc --incremental --noEmit",
+		"lint": "eslint **/*.*ts*",
+		"lint:fix": "npm run lint -- --fix",
+		"start": "wrangler dev --persist-to ../.wrangler/state"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/autosec-network/eaas.git"
+	},
+	"author": "Autosec",
+	"contributors": [
+		"DemosJarco <1209494+demosjarco@users.noreply.github.com>"
+	],
+	"license": "AGPL-3.0-only",
+	"private": true,
+	"bugs": {
+		"url": "https://github.com/autosec-network/eaas/issues"
+	},
+	"homepage": "https://github.com/autosec-network/eaas/blob/production/workers/do-proxy/README.md",
+	"dependencies": {},
+	"devDependencies": {
+		"@cloudflare/workers-types": "5.20260719.1",
+		"db": "*",
+		"types": "*",
+		"zod": "4.4.3"
+	}
+}
