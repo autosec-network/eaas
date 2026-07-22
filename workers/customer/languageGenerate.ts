@@ -1,10 +1,6 @@
-import { execFile } from 'node:child_process';
 import { readdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { promisify } from 'node:util';
-
-const execFileAsync = promisify(execFile);
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const messagesDir = join(scriptDir, 'messages');
@@ -35,12 +31,13 @@ const sortKeys = (data: MessageMap): MessageMap => {
 	return sorted;
 };
 
-// Step 1 & 2: Remove stale keys from non-en files; detect missing keys
+// Step 1 & 2: Remove stale keys from non-en files; detect missing keys.
+// Translation itself is no longer automated here (Inlang discontinued its machine-translate service) — whoever edits en.json, human or model, is expected to hand-translate the same keys directly into each other messages/<language>.json file. This script only cleans up afterward.
 const en = await readJson('en.json');
 const enKeys = new Set(Object.keys(en).filter((k) => k !== '$schema'));
 const otherFiles = jsonFiles.filter((f) => f !== 'en.json');
 
-let needsTranslation = false;
+const missingByFile = new Map<string, string[]>();
 
 for (const file of otherFiles) {
 	const locale = await readJson(file);
@@ -53,33 +50,28 @@ for (const file of otherFiles) {
 		}
 	}
 
-	// Check for missing keys
-	for (const key of enKeys) {
-		if (!(key in locale)) {
-			console.log(`[${file}] Missing key: ${key}`);
-			needsTranslation = true;
-		}
+	// Detect missing keys so they can be reported below; not auto-filled
+	const missing = Array.from(enKeys).filter((key) => !(key in locale));
+	if (missing.length > 0) {
+		missingByFile.set(file, missing);
 	}
 
 	await writeJson(file, locale);
 }
 
-// Step 3: Run translate if any locale is missing keys relative to en.json
-if (needsTranslation) {
-	console.log('Running translation for missing keys...');
-	const { stdout, stderr } = await execFileAsync('npm', ['--workspace', 'customer', 'run', 'translate'], {
-		cwd: resolve(scriptDir, '..', '..'),
-		shell: true,
-	});
-	if (stdout) process.stdout.write(stdout);
-	if (stderr) process.stderr.write(stderr);
-}
-
-// Step 4: Sort all files alphabetically (en.json included), $schema always first
+// Step 3: Sort all files alphabetically (en.json included), $schema always first
 for (const file of jsonFiles) {
 	const data = await readJson(file);
 	await writeJson(file, sortKeys(data));
 	console.log(`[${file}] Sorted keys.`);
 }
 
-console.log('Done.');
+if (missingByFile.size > 0) {
+	console.error('\nMissing translations — add these keys by hand to each file, then rerun this script:');
+	for (const [file, keys] of missingByFile) {
+		console.error(`  [${file}] ${keys.join(', ')}`);
+	}
+	process.exitCode = 1;
+} else {
+	console.log('Done.');
+}

@@ -133,6 +133,7 @@
 	"team_onboarding_jurisdiction_fedramp_high": "Autorización FedRAMP de alto nivel",
 	"team_onboarding_jurisdiction_help": "Aquí es donde almacenamos sus datos (información de inicio de sesión, registros e información de conexión BYO cifrada) y nos conectamos a Bitwarden desde",
 	"team_onboarding_jurisdiction_label": "Jurisdicción de datos (general)",
+	"team_onboarding_jurisdiction_us": "Los Estados Unidos",
 	"team_onboarding_name_label": "Nombre del equipo",
 	"team_onboarding_name_placeholder": "Por ejemplo, Acme Corp.",
 	"team_onboarding_project_found_plural": "Proyectos encontrados",
