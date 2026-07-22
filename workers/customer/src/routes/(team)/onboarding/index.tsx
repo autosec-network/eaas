@@ -1,6 +1,6 @@
 import type { Session } from '@auth/qwik';
 import { Resource, component$, useResource$, useSignal, type ClassList } from '@builder.io/qwik';
-import { Form, routeAction$, routeLoader$, server$, useLocation, z, zod$ } from '@builder.io/qwik-city';
+import { Form, routeAction$, server$, useLocation, z, zod$ } from '@builder.io/qwik-city';
 import { LuLoader } from '@qwikest/icons/lucide';
 import { SiBitwarden } from '@qwikest/icons/simpleicons';
 import { TenantByoBwNoteSchema, TenantPropertiesSchema } from 'db';
@@ -18,6 +18,7 @@ import { BitwardenCloudEndpoints } from 'types/bw';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
+import { useSession } from '~/routes/plugin@auth';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore this gets generated automatically later in the build process
@@ -27,9 +28,6 @@ const CLOUD_PRESETS = {
 	us: { base: BitwardenCloudEndpoints.Api.us, auth: BitwardenCloudEndpoints.Identity.us },
 	eu: { base: BitwardenCloudEndpoints.Api.eu, auth: BitwardenCloudEndpoints.Identity.eu },
 } as const;
-
-// eslint-disable-next-line qwik/loader-location
-const useEu = routeLoader$(({ platform }) => ((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1');
 
 const getProjects = server$(async function (jurisdiction: DOJurisdictions | null, baseEndpoint: string, authEndpoint: string, apiKey: string) {
 	// This Bitwarden session is ephemeral (created and nuked within this call), so locally we skip the (workerd-unsupported) jurisdiction entirely and mint a plain id; deployed still pins it to the jurisdiction.
@@ -260,17 +258,17 @@ const labelClass: ClassList = 'mb-1.5 block text-sm font-medium text-gray-700 da
 export default component$(() => {
 	const location = useLocation();
 	const action = useOnboardTenant();
-	const isEU = useEu();
+	const session = useSession();
 
-	const jurisdiction = useSignal(isEU.value ? DOJurisdictions['The European Union'] : '');
+	const jurisdiction = useSignal(session.value?.user?.do_jurisdiction === DOJurisdictions['The European Union'] ? DOJurisdictions['The European Union'] : '');
 	const vaultMode = useSignal<'managed' | 'bitwarden'>('bitwarden');
-	const bwRegion = useSignal<'us' | 'eu' | 'custom'>(isEU.value ? 'eu' : 'us');
+	const bwRegion = useSignal<'us' | 'eu' | 'custom'>(session.value?.user?.do_jurisdiction === DOJurisdictions['The European Union'] ? 'eu' : 'us');
 	const customBase = useSignal<string>('');
 	const customAuth = useSignal<string>('');
 	const teamNamePreview = useSignal<string>('');
 	const avatarPreview = useSignal<string>('');
-	const baseEndpoint = useSignal<string>(isEU.value ? CLOUD_PRESETS.eu.base : CLOUD_PRESETS.us.base);
-	const authEndpoint = useSignal<string>(isEU.value ? CLOUD_PRESETS.eu.auth : CLOUD_PRESETS.us.auth);
+	const baseEndpoint = useSignal<string>(session.value?.user?.do_jurisdiction === DOJurisdictions['The European Union'] ? CLOUD_PRESETS.eu.base : CLOUD_PRESETS.us.base);
+	const authEndpoint = useSignal<string>(session.value?.user?.do_jurisdiction === DOJurisdictions['The European Union'] ? CLOUD_PRESETS.eu.auth : CLOUD_PRESETS.us.auth);
 	const apiKey = useSignal('');
 	const debounceTimer = useSignal(0);
 
@@ -347,14 +345,21 @@ export default component$(() => {
 							<span class="text-xs text-gray-400 dark:text-gray-500">{m.team_onboarding_jurisdiction_help()}</span>
 						</label>
 						<select id="jurisdiction" name="jurisdiction" class={inputClass} onChange$={(_, el) => (jurisdiction.value = el.value)}>
-							<option selected={!isEU.value} value="none">
+							<option selected={!session.value?.user?.do_jurisdiction} value="none">
 								{m.team_onboarding_jurisdiction_anywhere()}
 							</option>
-							<option selected={isEU.value} value={DOJurisdictions['The European Union']}>
+							<option selected={session.value?.user?.do_jurisdiction === DOJurisdictions['The European Union']} value={DOJurisdictions['The European Union']}>
 								{m.team_onboarding_jurisdiction_eu()}
 							</option>
-							<option value={DOJurisdictions['FedRAMP-compliant data centers']}>{m.team_onboarding_jurisdiction_fedramp()}</option>
-							<option value={DOJurisdictions['FedRAMP High authorization']}>{m.team_onboarding_jurisdiction_fedramp_high()}</option>
+							<option selected={session.value?.user?.do_jurisdiction === DOJurisdictions['FedRAMP-compliant data centers']} value={DOJurisdictions['FedRAMP-compliant data centers']}>
+								{m.team_onboarding_jurisdiction_fedramp()}
+							</option>
+							<option selected={session.value?.user?.do_jurisdiction === DOJurisdictions['FedRAMP High authorization']} value={DOJurisdictions['FedRAMP High authorization']}>
+								{m.team_onboarding_jurisdiction_fedramp_high()}
+							</option>
+							<option selected={session.value?.user?.do_jurisdiction === DOJurisdictions['The United States']} value={DOJurisdictions['The United States']}>
+								{m.team_onboarding_jurisdiction_us()}
+							</option>
 						</select>
 					</div>
 
