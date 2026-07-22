@@ -133,6 +133,7 @@
 	"team_onboarding_jurisdiction_fedramp_high": "FedRAMP High-Zulassung",
 	"team_onboarding_jurisdiction_help": "Hier speichern wir Ihre Daten (Anmeldeinformationen, Protokolle und verschlüsselte BYO-Verbindungsinformationen) und stellen die Verbindung zu Bitwarden her.",
 	"team_onboarding_jurisdiction_label": "Daten (Allgemein) Zuständigkeit",
+	"team_onboarding_jurisdiction_us": "Die Vereinigten Staaten",
 	"team_onboarding_name_label": "Teamname",
 	"team_onboarding_name_placeholder": "z.B. Acme Corp",
 	"team_onboarding_project_found_plural": "Gefundene Projekte",
