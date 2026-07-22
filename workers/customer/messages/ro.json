@@ -133,6 +133,7 @@
 	"team_onboarding_jurisdiction_fedramp_high": "Autorizare FedRAMP High",
 	"team_onboarding_jurisdiction_help": "Aici stocăm datele dvs. (informațiile de conectare, jurnale și informațiile criptate de conectare BYO) și ne conectăm la Bitwarden din",
 	"team_onboarding_jurisdiction_label": "Jurisdicție privind datele (generale)",
+	"team_onboarding_jurisdiction_us": "Statele Unite ale Americii",
 	"team_onboarding_name_label": "Numele echipei",
 	"team_onboarding_name_placeholder": "de exemplu, Acme Corp.",
 	"team_onboarding_project_found_plural": "Proiecte găsite",
