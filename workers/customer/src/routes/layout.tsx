@@ -15,6 +15,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import type { DOJurisdictions } from 'types';
 import SidebarLayout from '~/components/sidebar/sidebar-layout/sidebar-layout';
 import { deleteSession } from '~/helpers/d0-adapter';
+import { deriveId, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 import { getSessionBinding } from '~/routes/plugin@auth';
 import { locales as inlangLocales } from '../../project.inlang/settings.json' with { type: 'json' };
 
@@ -162,17 +163,20 @@ export const onRequest: RequestHandler = async ({ sharedMap, redirect, url, plat
 		}
 	})();
 
-	const doNamespace = session.user?.do_jurisdiction ? platform.env.USER_D0.jurisdiction(session.user.do_jurisdiction) : platform.env.USER_D0;
-	const doId = session.user?.do_id ? doNamespace.idFromString(session.user.do_id) : doNamespace.idFromName(session.user!.id);
-	const doStub = doNamespace.get(doId);
+	// Locally we can't derive a jurisdictional id (workerd throws), so defer that to the proxy and leave the derivation-carrying locator raw.
+	const useProxy = isLocal && !!platform.env.USER_D0_PROXY;
+	const locator: DOLocator = session.user?.do_id ? { id: session.user.do_id, jurisdiction: session.user.do_jurisdiction ?? undefined } : { name: session.user!.id, jurisdiction: session.user?.do_jurisdiction ?? undefined };
+	// Stable cache key: the resolved id hex when deployed, else whatever identifies the locator locally.
+	const doDbName = useProxy ? (locator.id ?? locator.name!) : deriveId(platform.env.USER_D0, locator).toString();
+	const doStub = resolveDoStub(platform, platform.env.USER_D0, platform.env.USER_D0_PROXY, locator);
 	sharedMap.set('u_do', doStub);
 	sharedMap.set(
 		'u_db',
 		drizzleD0(doStub, {
-			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(doId.toString()) }) }),
+			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(doDbName) }) }),
 			cache: new SQLCache(
 				{
-					dbName: doId.toString(),
+					dbName: doDbName,
 					dbType: 'do',
 					strategy: browserCache ? 'all' : 'explicit',
 					cacheTTL: parseInt(platform.env.SQL_TTL, 10),
@@ -343,8 +347,7 @@ export const useTenants = routeLoader$(async ({ sharedMap }) => async () => {
 });
 
 export const getTenantPickerProperties = server$(function (jurisdiction: DOJurisdictions | null, do_id: string) {
-	const doNamespace = jurisdiction ? this.platform.env.TENANT_D0.jurisdiction(jurisdiction) : this.platform.env.TENANT_D0;
-	const doStub = doNamespace.get(doNamespace.idFromString(do_id));
+	const doStub = resolveDoStub(this.platform, this.platform.env.TENANT_D0, this.platform.env.TENANT_D0_PROXY, { id: do_id, jurisdiction: jurisdiction ?? undefined });
 
 	return doStub.getProperties(
 		{
