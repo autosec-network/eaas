@@ -156,6 +156,33 @@
 					"storage": "sqlite"
 				}
 			},
+			// Local-dev-only: lets `wrangler dev` reach these Durable Objects through `do-proxy` (which always runs deployed) instead of a blank locally-simulated instance - DO bindings above can't be `remote: true` directly. Unused by live code. See workers/do-proxy/AGENTS.md.
+			"services": [
+				{
+					"binding": "BITWARDEN_SESSION_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "BitwardenSessionProxy",
+					"remote": true
+				},
+				{
+					"binding": "TENANT_D0_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "TenantD0Proxy",
+					"remote": true
+				},
+				{
+					"binding": "TENANT_D0_LOGS_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "TenantD0LogsProxy",
+					"remote": true
+				},
+				{
+					"binding": "USER_D0_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "UserD0Proxy",
+					"remote": true
+				}
+			],
 			"workflows": [
 				{
 					"name": "data-key-rotation",
