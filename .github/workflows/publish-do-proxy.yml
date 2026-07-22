@@ -1,0 +1,79 @@
+name: Publish `do-proxy`
+
+on:
+  push:
+    branches:
+      - production
+      - dev
+      - dependabot/npm_and_yarn/*
+      - feature/*
+      - bug/*
+    paths:
+      - '.github/workflows/publish-do-proxy.yml'
+      - 'eslint.config.mjs'
+      - 'prettier.config.mjs'
+      - 'package*.json'
+      - 'tsconfig.json'
+      - 'shared/**'
+      - 'workers/tsconfig.json'
+      - 'workers/do-proxy/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+    steps:
+      - uses: step-security/harden-runner@b09bb98e06d4d774595224525879c09bc6e98c40 # v2.20.1
+        with:
+          disable-sudo-and-containers: true
+          egress-policy: audit # TODO: change to 'egress-policy: block' after couple of runs
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: lts/*
+          check-latest: true
+          cache: 'npm'
+      - run: npm ci --ignore-scripts --include-workspace-root --workspace do-proxy --workspace db --workspace types
+      - run: npm run-script install --if-present --include-workspace-root --workspace do-proxy --workspace db --workspace types
+      - run: npm --workspace types run build
+      - run: npm --workspace db run build
+      - run: npm --workspace do-proxy run build:types:tsc
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - run: npm --workspace do-proxy run lint
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+      - name: Get Wrangler Version
+        run: echo "wrangler_version=$(npm ls wrangler --depth=0 --json | jq -r '.dependencies.wrangler.version')" >> $GITHUB_OUTPUT
+        id: npm_wrangler_version
+      - name: Deploying to Cloudflare's global network
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ github.ref_name == 'production' }}
+        id: wrangler_deploy
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: workers/do-proxy
+          vars: |
+            GIT_HASH
+        env:
+          GIT_HASH: ${{ github.sha }}
+      - name: Dry-run deployment for validation
+        uses: cloudflare/wrangler-action@da0e0dfe58b7a431659754fdf3f186c529afbe65 # v3.14.1
+        if: ${{ steps.wrangler_deploy.outcome == 'skipped' }}
+        id: wrangler_dry_run
+        with:
+          wranglerVersion: ${{ steps.npm_wrangler_version.outputs.wrangler_version }}
+          apiToken: ${{ secrets.WORKER_DEPLOY_CF_API_TOKEN }}
+          accountId: ${{ secrets.CF_ACCOUNT_ID }}
+          workingDirectory: workers/do-proxy
+          command: deploy --dry-run
