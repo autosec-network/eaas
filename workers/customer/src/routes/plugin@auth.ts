@@ -11,6 +11,7 @@ import type { UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import * as zm from 'zod/mini';
 import { D0Adapter } from '~/helpers/d0-adapter';
+import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 import type { Accept } from '~/routes/layout';
 import { COSEAlgorithms, type UserD0 } from '~/types';
 
@@ -29,39 +30,42 @@ export function getUserD0(platform: QwikCityPlatform, r_db: DrizzleD1Database, j
 export function getUserD0(platform: QwikCityPlatform, r_db: DrizzleD1Database, jurisdiction: DOJurisdictions | null, do_id_hex: string): DurableObjectStub<UserD0>;
 // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export function getUserD0(platform: QwikCityPlatform, r_db: DrizzleD1Database, jurisdiction: DOJurisdictions | null, do_id_hexOrUid: UUID | string) {
-	const doNamespace = jurisdiction ? platform.env.USER_D0.jurisdiction(jurisdiction) : platform.env.USER_D0;
-	const doId = zm
+	// Locally we can't derive a jurisdictional id (workerd throws), so defer that to the proxy and leave the derivation-carrying locator raw.
+	const local = isLocal(platform) && !!platform.env.USER_D0_PROXY;
+
+	const locator = zm
 		.union([
 			zm.pipe(
 				zm.uuidv7(),
-				zm.transform((u_id_utf8) => {
+				zm.transform((u_id_utf8): DOLocator => {
 					// Are they really not in the EU?
 					const currentlyEu = ((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1';
 
 					// Last chance for us to change jurisdiction, can't change after db is instantiated
-					const id = (jurisdiction === null && currentlyEu ? doNamespace.jurisdiction('eu') : doNamespace).idFromName(u_id_utf8);
+					const effectiveJurisdiction = jurisdiction === null && currentlyEu ? DOJurisdictions['The European Union'] : (jurisdiction ?? undefined);
 
 					platform.ctx.waitUntil(
 						r_db
 							.update(rootSchema.users)
 							.set({
 								jurisdiction: (jurisdiction ?? currentlyEu) ? DOJurisdictions['The European Union'] : null,
-								do_id: sql`unhex(${id.toString()})`,
+								// Cache do_id only when we can derive it (deployed). Local dev leaves it null (column is nullable) — reads re-derive from the name via `idFromName`.
+								...(local ? {} : { do_id: sql`unhex(${deriveId(platform.env.USER_D0, { name: u_id_utf8, jurisdiction: effectiveJurisdiction }).toString()})` }),
 							})
 							.where(eq(rootSchema.users.u_id, sql`unhex(${u_id_utf8.replaceAll('-', '')})`)),
 					);
 
-					return id;
+					return { name: u_id_utf8, jurisdiction: effectiveJurisdiction };
 				}),
 			),
 			zm.pipe(
 				zm.hex().check(zm.length(64)),
-				zm.transform((do_id_hex) => doNamespace.idFromString(do_id_hex)),
+				zm.transform((do_id_hex): DOLocator => ({ id: do_id_hex, jurisdiction: jurisdiction ?? undefined })),
 			),
 		])
 		.parse(do_id_hexOrUid);
 
-	return platform.env.USER_D0.get(doId);
+	return resolveDoStub(platform, platform.env.USER_D0, platform.env.USER_D0_PROXY, locator);
 }
 
 export async function hashBinding(bindingValues: (string | undefined)[] = []) {
@@ -323,7 +327,8 @@ export const { onRequest, useSession, useSignIn, useSignOut } = QwikAuth$(({ pla
 		session: {
 			strategy: 'database',
 			maxAge: parseInt(platform.env.SESSION_TTL, 10),
-			generateSessionToken: () => (((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1' ? platform.env.USER_SESSION.jurisdiction('eu') : platform.env.USER_SESSION).newUniqueId().toString(),
+			// Locally, jurisdictions don't exist (workerd throws on `.jurisdiction()`), so mint a plain id; a jurisdictional user's token is re-minted under jurisdiction by `createSession` anyway.
+			generateSessionToken: () => (!isLocal(platform) && ((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1' ? platform.env.USER_SESSION.jurisdiction('eu') : platform.env.USER_SESSION).newUniqueId().toString(),
 		},
 		trustHost: true,
 	};
