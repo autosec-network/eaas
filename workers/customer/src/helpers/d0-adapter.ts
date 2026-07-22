@@ -14,6 +14,7 @@ import { hexToUuid } from 'helpers';
 import { createHash, type UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import * as zm from 'zod/mini';
+import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 import { emailCanonicalize, getSessionBinding, getUserD0 } from '~/routes/plugin@auth';
 
 /**
@@ -62,8 +63,7 @@ export async function deleteSession(platform: QwikCityPlatform, r_db: DrizzleD1D
 			.limit(1);
 
 		if (selectedUser) {
-			const doId = selectedUser.jurisdiction ? platform.env.USER_SESSION.jurisdiction(selectedUser.jurisdiction).idFromString(sessionToken) : platform.env.USER_SESSION.idFromString(sessionToken);
-			const doStub = platform.env.USER_SESSION.get(doId);
+			const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, { id: sessionToken, jurisdiction: selectedUser.jurisdiction ?? undefined });
 
 			// Get properties before nuke, since after that they will be inaccessible
 			const { b_time, lite_binding, normal_binding, sensitive_binding, generated_registration_options, binding_debug } = returning ? await doStub.getProperties(undefined, true) : {};
@@ -94,8 +94,7 @@ export async function deleteSession(platform: QwikCityPlatform, r_db: DrizzleD1D
 	// Try to nuke session DO even if session wasn't found in DB, since it's orphaned
 	for (const jurisdiction of [...Object.values(DOJurisdictions), null]) {
 		try {
-			const doId = jurisdiction ? platform.env.USER_SESSION.jurisdiction(jurisdiction).idFromString(sessionToken) : platform.env.USER_SESSION.idFromString(sessionToken);
-			const doStub = platform.env.USER_SESSION.get(doId);
+			const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, { id: sessionToken, jurisdiction: jurisdiction ?? undefined });
 			platform.ctx.waitUntil(doStub.nuke('Session deleted'));
 			// eslint-disable-next-line @typescript-eslint/no-unused-vars
 		} catch (error) {
@@ -113,43 +112,47 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 	function getUserDb(jurisdiction: DOJurisdictions | null, do_id_hex: string): SqliteRemoteDatabase;
 	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 	function getUserDb(jurisdiction: DOJurisdictions | null, do_id_hexOrUid: UUID | string) {
-		const doNamespace = jurisdiction ? platform.env.USER_D0.jurisdiction(jurisdiction) : platform.env.USER_D0;
-		const doId = zm
+		// Locally we can't derive a jurisdictional id (workerd throws), so defer that to the proxy and leave the derivation-carrying locator raw.
+		const local = isLocal(platform) && !!platform.env.USER_D0_PROXY;
+
+		const locator = zm
 			.union([
 				zm.pipe(
 					zm.uuidv7(),
-					zm.transform((u_id_utf8) => {
+					zm.transform((u_id_utf8): DOLocator => {
 						// Are they really not in the EU?
 						const currentlyEu = ((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1';
 
 						// Last chance for us to change jurisdiction, can't change after db is instantiated
-						const id = (jurisdiction === null && currentlyEu ? doNamespace.jurisdiction('eu') : doNamespace).idFromName(u_id_utf8);
+						const effectiveJurisdiction = jurisdiction === null && currentlyEu ? DOJurisdictions['The European Union'] : (jurisdiction ?? undefined);
 
 						platform.ctx.waitUntil(
 							r_db
 								.update(rootSchema.users)
 								.set({
 									jurisdiction: (jurisdiction ?? currentlyEu) ? DOJurisdictions['The European Union'] : null,
-									do_id: sql`unhex(${id.toString()})`,
+									// Cache do_id only when we can derive it (deployed). Local dev leaves it null (column is nullable) — reads re-derive from the name via `idFromName`.
+									...(local ? {} : { do_id: sql`unhex(${deriveId(platform.env.USER_D0, { name: u_id_utf8, jurisdiction: effectiveJurisdiction }).toString()})` }),
 								})
 								.where(eq(rootSchema.users.u_id, sql`unhex(${u_id_utf8.replaceAll('-', '')})`)),
 						);
 
-						return id;
+						return { name: u_id_utf8, jurisdiction: effectiveJurisdiction };
 					}),
 				),
 				zm.pipe(
 					zm.hex().check(zm.length(64)),
-					zm.transform((do_id_hex) => doNamespace.idFromString(do_id_hex)),
+					zm.transform((do_id_hex): DOLocator => ({ id: do_id_hex, jurisdiction: jurisdiction ?? undefined })),
 				),
 			])
 			.parse(do_id_hexOrUid);
-		const doStub = platform.env.USER_D0.get(doId);
+		const doStub = resolveDoStub(platform, platform.env.USER_D0, platform.env.USER_D0_PROXY, locator);
 
 		return drizzleD0(doStub, {
 			cache: new SQLCache(
 				{
-					dbName: doId.toString(),
+					// Stable cache key: the resolved id hex when deployed, else whatever identifies the locator locally.
+					dbName: local ? (locator.id ?? locator.name!) : deriveId(platform.env.USER_D0, locator).toString(),
 					dbType: 'do',
 					strategy: toCache ? 'all' : 'explicit',
 					cacheTTL: parseInt(platform.env.SQL_TTL, 10),
@@ -283,21 +286,20 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 				.from(rootSchema.users)
 				.where(eq(rootSchema.users.u_id, sql`unhex(${session.userId.replaceAll('-', '')})`))
 				.limit(1);
-			const doId = selectedUser?.jurisdiction
-				? // Regenerate new one since the previous one has no jurisdiction
-					platform.env.USER_SESSION.jurisdiction(selectedUser.jurisdiction).newUniqueId()
-				: platform.env.USER_SESSION.idFromString(session.sessionToken);
+			// A jurisdictional session needs a fresh jurisdictional id (the previous one has no jurisdiction). Minting `newUniqueId()` under a jurisdiction can't happen in local workerd, so mint it on the proxy; non-jurisdictional sessions reuse the token minted by `generateSessionToken`.
+			const local = isLocal(platform) && !!platform.env.USER_SESSION_PROXY;
+			const sessionToken = selectedUser?.jurisdiction ? (local ? await platform.env.USER_SESSION_PROXY!.newUniqueId(selectedUser.jurisdiction) : platform.env.USER_SESSION.jurisdiction(selectedUser.jurisdiction).newUniqueId().toString()) : session.sessionToken;
 
 			const [{ lite, normal, sensitive, debug }] = await Promise.all([
 				getSessionBinding((platform.request ?? platform).cf as IncomingRequestCfProperties, (platform.request ?? request).headers),
 				r_db.insert(rootSchema.users_auth_sessions).values({
 					u_id: sql`unhex(${session.userId.replaceAll('-', '')})`,
-					session_token: sql`unhex(${doId.toString()})`,
+					session_token: sql`unhex(${sessionToken})`,
 					expires: session.expires,
 				}),
 			]);
 
-			const doStub = platform.env.USER_SESSION.get(doId);
+			const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, { id: sessionToken, jurisdiction: selectedUser?.jurisdiction ?? undefined });
 			await doStub.updateProperties(
 				{
 					b_time,
@@ -312,10 +314,10 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 
 			return {
 				...session,
-				sessionToken: doId.toString(),
+				sessionToken,
 				b_time,
 				do_jurisdiction: selectedUser?.jurisdiction ?? null,
-				do_id: doId.toString(),
+				do_id: sessionToken,
 				lite_binding: Buffer.from(lite).toString('base64'),
 				normal_binding: Buffer.from(normal).toString('base64'),
 				sensitive_binding: Buffer.from(sensitive).toString('base64'),
@@ -345,11 +347,11 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 				const u_id_hex = selectedUserSession.u_id.toString('hex');
 				const u_id_utf8 = hexToUuid(u_id_hex);
 
-				const doId = selectedUserSession.jurisdiction ? platform.env.USER_SESSION.jurisdiction(selectedUserSession.jurisdiction).idFromString(sessionToken) : platform.env.USER_SESSION.idFromString(sessionToken);
+				const sessionLocator: DOLocator = { id: sessionToken, jurisdiction: selectedUserSession.jurisdiction ?? undefined };
 
 				return Promise.all([
 					(async () => {
-						const doStub = platform.env.USER_SESSION.get(doId);
+						const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, sessionLocator);
 
 						const { b_time, lite_binding, normal_binding, sensitive_binding, generated_registration_options, binding_debug } = await doStub.getProperties(undefined, true);
 
@@ -392,7 +394,7 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 						console.error('Error getting session and user', error instanceof zm.core.$ZodError ? zm.prettifyError(error) : error);
 
 						// Nuke
-						const doStub = platform.env.USER_SESSION.get(doId);
+						const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, sessionLocator);
 						platform.ctx.waitUntil(doStub.nuke("Corrupted session - couldn't get properties"));
 
 						return null;
@@ -424,8 +426,7 @@ export function D0Adapter(platform: QwikCityPlatform, sharedMap: Map<string, any
 				);
 
 			if (selectedSession) {
-				const doId = selectedSession.jurisdiction ? platform.env.USER_SESSION.jurisdiction(selectedSession.jurisdiction).idFromString(sessionToken) : platform.env.USER_SESSION.idFromString(sessionToken);
-				const doStub = platform.env.USER_SESSION.get(doId);
+				const doStub = resolveDoStub(platform, platform.env.USER_SESSION, platform.env.USER_SESSION_PROXY, { id: sessionToken, jurisdiction: selectedSession.jurisdiction ?? undefined });
 
 				if ('b_time' in session || 'lite_binding' in session || 'normal_binding' in session || 'sensitive_binding' in session) {
 					await doStub.updateProperties(

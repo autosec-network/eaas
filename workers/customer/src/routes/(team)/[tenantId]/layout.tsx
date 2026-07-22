@@ -11,6 +11,7 @@ import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { hexToUuid } from 'helpers';
 import { Buffer } from 'node:buffer';
 import * as zm from 'zod/mini';
+import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 
 export const onRequest: RequestHandler = async ({ params, sharedMap, platform, redirect }) => {
 	const zm_t_id_base64url = await zm.base64url().check(zm.trim(), zm.length(22)).safeParseAsync(params['tenantId']);
@@ -51,19 +52,22 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, r
 				sharedMap.set('t_id_hex', t_id_hex);
 				sharedMap.set('t_id_base64', t_id.toString('base64'));
 
-				const doNamespace = tenant.jurisdiction ? platform.env.TENANT_D0.jurisdiction(tenant.jurisdiction) : platform.env.TENANT_D0;
-				const doId = tenant.do_id ? doNamespace.idFromString(tenant.do_id) : doNamespace.idFromName(hexToUuid(t_id_hex));
-				const doStub = doNamespace.get(doId);
+				// Locally we can't derive a jurisdictional id (workerd throws), so defer that to the proxy and leave the derivation-carrying locator raw.
+				const useProxy = isLocal(platform) && !!platform.env.TENANT_D0_PROXY;
+				const locator: DOLocator = tenant.do_id ? { id: tenant.do_id, jurisdiction: tenant.jurisdiction ?? undefined } : { name: hexToUuid(t_id_hex), jurisdiction: tenant.jurisdiction ?? undefined };
+				// Stable cache key: the resolved id hex when deployed, else whatever identifies the locator locally.
+				const doDbName = useProxy ? (locator.id ?? locator.name!) : deriveId(platform.env.TENANT_D0, locator).toString();
+				const doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, locator);
 				sharedMap.set('t_do', doStub);
 				const browserCache = sharedMap.get('browserCache') as boolean;
 				sharedMap.set(
 					't_db',
 					drizzleD0(doStub, {
-						// ...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(doId.toString()) }) }),
-						logger: new DefaultLogger({ writer: new DebugLogWriter(doId.toString()) }),
+						// ...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(doDbName) }) }),
+						logger: new DefaultLogger({ writer: new DebugLogWriter(doDbName) }),
 						cache: new SQLCache(
 							{
-								dbName: doId.toString(),
+								dbName: doDbName,
 								dbType: 'do',
 								strategy: browserCache ? 'all' : 'explicit',
 								cacheTTL: parseInt(platform.env.SQL_TTL, 10),

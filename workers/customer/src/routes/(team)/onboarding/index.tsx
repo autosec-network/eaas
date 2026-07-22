@@ -17,6 +17,7 @@ import { DOJurisdictions, Permissions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
+import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
 // @ts-ignore this gets generated automatically later in the build process
@@ -31,8 +32,10 @@ const CLOUD_PRESETS = {
 const useEu = routeLoader$(({ platform }) => ((platform.request ?? platform).cf as IncomingRequestCfProperties).isEUCountry === '1');
 
 const getProjects = server$(async function (jurisdiction: DOJurisdictions | null, baseEndpoint: string, authEndpoint: string, apiKey: string) {
-	const doId = jurisdiction ? this.platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction).newUniqueId() : this.platform.env.BITWARDEN_SESSION.newUniqueId();
-	const doStub = this.platform.env.BITWARDEN_SESSION.get(doId);
+	// This Bitwarden session is ephemeral (created and nuked within this call), so locally we skip the (workerd-unsupported) jurisdiction entirely and mint a plain id; deployed still pins it to the jurisdiction.
+	const useProxy = isLocal(this.platform) && !!this.platform.env.BITWARDEN_SESSION_PROXY;
+	const bwId = jurisdiction && !useProxy ? this.platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction).newUniqueId().toString() : this.platform.env.BITWARDEN_SESSION.newUniqueId().toString();
+	const doStub = resolveDoStub(this.platform, this.platform.env.BITWARDEN_SESSION, this.platform.env.BITWARDEN_SESSION_PROXY, { id: bwId, jurisdiction: useProxy ? undefined : (jurisdiction ?? undefined) });
 
 	try {
 		await doStub.init({ t_jurisdiction: null, t_do_id: null, endpoints: { base: baseEndpoint, authentication: authEndpoint } });
@@ -50,7 +53,7 @@ const getProjects = server$(async function (jurisdiction: DOJurisdictions | null
 	} catch (error) {
 		console.error('Error fetching projects', error);
 		// eslint-disable-next-line preserve-caught-error
-		throw new Error(`Unable to fetch projects. Attempt ${doId.toString()}`);
+		throw new Error(`Unable to fetch projects. Attempt ${bwId}`);
 	} finally {
 		this.platform.ctx.waitUntil(doStub.nuke('Session ended'));
 	}
@@ -84,9 +87,11 @@ const useOnboardTenant = routeAction$(
 		const t_id = uuidv7() as UUID;
 		const t_id_hex = t_id.replaceAll('-', '');
 		const t_id_base64url = Buffer.from(t_id_hex, 'hex').toString('base64url');
-		// Get placeholder for tenant DO
-		const t_doNamespace = data.jurisdiction ? platform.env.TENANT_D0.jurisdiction(data.jurisdiction) : platform.env.TENANT_D0;
-		const t_doId = t_doNamespace.idFromName(t_id);
+		// Locally we can't derive a jurisdictional id (workerd throws), so defer that to the proxy and leave the derivation-carrying locator raw.
+		const useProxy = isLocal(platform) && !!platform.env.TENANT_D0_PROXY;
+		const t_locator: DOLocator = { name: t_id, jurisdiction: data.jurisdiction ?? undefined };
+		// `tenants.do_id` is NOT NULL, so we must persist the resolved id hex — resolve it on the proxy when local (jurisdictional `idFromName` throws in workerd).
+		const t_do_id_hex = useProxy ? await platform.env.TENANT_D0_PROXY!.resolveId(t_locator) : deriveId(platform.env.TENANT_D0, t_locator).toString();
 
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 		const session = sharedMap.get('session') as Session;
@@ -96,7 +101,7 @@ const useOnboardTenant = routeAction$(
 			r_db.insert(rootSchema.tenants).values({
 				t_id: sql`unhex(${t_id_hex})`,
 				jurisdiction: data.jurisdiction,
-				do_id: sql`unhex(${t_doId.toString()})`,
+				do_id: sql`unhex(${t_do_id_hex})`,
 			}),
 			r_db.insert(rootSchema.users_tenants).values({
 				t_id: sql`unhex(${t_id_hex})`,
@@ -105,12 +110,13 @@ const useOnboardTenant = routeAction$(
 		]);
 
 		// Load tenant DO
-		const t_doStub = platform.env.TENANT_D0.get(t_doId);
+		const t_doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, t_locator);
 
 		if (data.vaultMode === 'bitwarden') {
-			// Store access token in our bitwarden securely
-			const bw_doId = data.jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction).newUniqueId() : platform.env.BITWARDEN_SESSION.newUniqueId();
-			const bw_doStub = platform.env.BITWARDEN_SESSION.get(bw_doId);
+			// Store access token in our bitwarden securely. This session is ephemeral, so locally we skip the (workerd-unsupported) jurisdiction and mint a plain id; deployed still pins it.
+			const bwUseProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
+			const bw_id = data.jurisdiction && !bwUseProxy ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction).newUniqueId().toString() : platform.env.BITWARDEN_SESSION.newUniqueId().toString();
+			const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: bwUseProxy ? undefined : (data.jurisdiction ?? undefined) });
 			try {
 				// Connect to our bitwarden, but respecting the jurisdiction
 				await bw_doStub.init({
@@ -164,7 +170,7 @@ const useOnboardTenant = routeAction$(
 				platform.ctx.waitUntil(t_doStub.nuke('Rolling back tenant creation'));
 
 				// eslint-disable-next-line preserve-caught-error
-				throw new Error(`Unable to save BYO bitwarden. Attempt ${bw_doId.toString()}`);
+				throw new Error(`Unable to save BYO bitwarden. Attempt ${bw_id}`);
 			} finally {
 				platform.ctx.waitUntil(bw_doStub.nuke('Session ended'));
 			}
@@ -184,10 +190,10 @@ const useOnboardTenant = routeAction$(
 
 		const browserCache = sharedMap.get('browserCache') as boolean;
 		const t_db = drizzleD0(t_doStub, {
-			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_doId.toString()) }) }),
+			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_do_id_hex) }) }),
 			cache: new SQLCache(
 				{
-					dbName: t_doId.toString(),
+					dbName: t_do_id_hex,
 					dbType: 'do',
 					strategy: browserCache ? 'all' : 'explicit',
 					cacheTTL: parseInt(platform.env.SQL_TTL, 10),
