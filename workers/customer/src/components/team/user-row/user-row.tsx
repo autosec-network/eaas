@@ -4,6 +4,7 @@ import * as rootSchema from 'db/schemas/root';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import { createHash } from 'node:crypto';
+import { resolveDoStub } from '~/helpers/do-proxy';
 
 const getUserProperties = server$(async function (u_id_hex: string, do_id: string) {
 	const r_db = this.sharedMap.get('r_db') as DrizzleD1Database;
@@ -15,8 +16,7 @@ const getUserProperties = server$(async function (u_id_hex: string, do_id: strin
 		.limit(1);
 
 	if (user) {
-		const doNamespace = user.jurisdiction ? this.platform.env.USER_D0.jurisdiction(user.jurisdiction) : this.platform.env.USER_D0;
-		const doStub = this.platform.env.USER_D0.get(doNamespace.idFromString(do_id));
+		const doStub = resolveDoStub(this.platform, this.platform.env.USER_D0, this.platform.env.USER_D0_PROXY, { id: do_id, jurisdiction: user.jurisdiction ?? undefined });
 		const { email } = await doStub.getProperties({ email: true }, true);
 
 		if (email) {
