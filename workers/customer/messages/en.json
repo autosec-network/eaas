@@ -133,6 +133,7 @@
 	"team_onboarding_jurisdiction_fedramp_high": "FedRAMP High authorization",
 	"team_onboarding_jurisdiction_help": "This is where we store your data (login info, logs and encrypted BYO connection info) and connect to Bitwarden from",
 	"team_onboarding_jurisdiction_label": "Data (General) Jurisdiction",
+	"team_onboarding_jurisdiction_us": "The United States",
 	"team_onboarding_name_label": "Team Name",
 	"team_onboarding_name_placeholder": "e.g. Acme Corp",
 	"team_onboarding_project_found_plural": "Projects found",
