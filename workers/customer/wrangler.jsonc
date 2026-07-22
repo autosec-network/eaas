@@ -151,7 +151,7 @@
 					"remote": true
 				}
 			],
-			// Local-dev-only: lets `wrangler dev` reach api's Durable Objects (which can't be bound `remote: true` directly) through `do-proxy`, which always runs deployed. Unused by live code. See workers/do-proxy/AGENTS.md.
+			// Local-dev-only: lets `wrangler dev` reach these Durable Objects through `do-proxy` (which always runs deployed) instead of a blank locally-simulated instance - DO bindings above can't be `remote: true` directly. Unused by live code. See workers/do-proxy/AGENTS.md.
 			"services": [
 				{
 					"binding": "BITWARDEN_SESSION_PROXY",
@@ -169,6 +169,12 @@
 					"binding": "USER_D0_PROXY",
 					"service": "eaas-do-proxy",
 					"entrypoint": "UserD0Proxy",
+					"remote": true
+				},
+				{
+					"binding": "USER_SESSION_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "UserSessionProxy",
 					"remote": true
 				}
 			]
