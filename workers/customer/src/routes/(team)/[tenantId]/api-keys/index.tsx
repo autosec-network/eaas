@@ -112,7 +112,7 @@ const useApiKeys = routeLoader$(({ sharedMap, resolveValue }) => async () => {
 				base64url: row.ak_id.toString('base64url'),
 			},
 			keyring_policies: policiesByAkId[row.ak_id.toString('base64url')] ?? [],
-		})) as ApiKeyRowWithPolicies[];
+		}));
 	} else {
 		return [] as ApiKeyRowWithPolicies[];
 	}
@@ -791,7 +791,7 @@ export default component$(() => {
 																onChange$={(_, target) =>
 																	void upsertPolicy({
 																		...policy,
-																		r_datakeys: Number(target.value) as Permissions,
+																		r_datakeys: Number(target.value),
 																	})
 																}>
 																<option value={Permissions.Read}>{m.apikeys_perm_datakeys_read()}</option>
