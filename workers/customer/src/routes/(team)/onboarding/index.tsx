@@ -473,7 +473,7 @@ export default component$(() => {
 					{vaultMode.value === 'bitwarden' && (
 						<>
 							<p class="mb-2 text-xs text-gray-400 dark:text-gray-500">{m.team_onboarding_byo_warning()}</p>
-							<p class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
+							<div class="mb-2 block font-medium text-gray-700 dark:text-gray-300">
 								{m.team_onboarding_instructions_title()}
 								<ol class="block list-inside list-decimal text-sm text-gray-700 dark:text-gray-300">
 									<li>
@@ -494,7 +494,7 @@ export default component$(() => {
 									<li>{m.team_onboarding_instruction_8()}</li>
 									<li>{m.team_onboarding_instruction_9()}</li>
 								</ol>
-							</p>
+							</div>
 
 							{/* Access Token */}
 							<div>
