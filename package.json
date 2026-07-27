@@ -32,14 +32,14 @@
 		"@eslint/js": "10.0.1",
 		"@microsoft/eslint-formatter-sarif": "3.1.0",
 		"@types/node": "24.13.3",
-		"eslint": "10.6.0",
+		"eslint": "10.8.0",
 		"eslint-config-prettier": "10.1.8",
-		"eslint-plugin-zod": "4.8.0",
-		"eslint-plugin-zod-mini": "1.5.0",
-		"prettier": "3.9.5",
+		"eslint-plugin-zod": "4.9.0",
+		"eslint-plugin-zod-mini": "1.6.0",
+		"prettier": "3.9.6",
 		"tsx": "4.23.1",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.63.0",
+		"typescript-eslint": "8.65.0",
 		"wrangler": "4.112.0"
 	}
 }
