@@ -1,8 +1,16 @@
 import { WorkerEntrypoint } from 'cloudflare:workers';
-import { getWireStub, type DOLocator } from '../helpers/locator';
+import type { DOJurisdictions } from 'types';
+import { getWireStub, mintUniqueId, type DOLocator } from '../helpers/locator';
 import type { BitwardenSession, EnvVars } from '../types';
 
 export class BitwardenSessionProxy extends WorkerEntrypoint<EnvVars> {
+	/**
+	 * Mint a fresh session id (optionally jurisdictional), returned as a string — an id minted by the caller's local `workerd` namespace is rejected by the deployed namespace's `idFromString` ("Invalid Durable Object ID"), and `newUniqueId()` can't run under a jurisdiction locally anyway.
+	 */
+	newUniqueId(jurisdiction?: DOJurisdictions) {
+		return mintUniqueId(this.env.BITWARDEN_SESSION, jurisdiction);
+	}
+
 	init(locator: DOLocator, ...args: Parameters<BitwardenSession['init']>) {
 		return getWireStub(this.env.BITWARDEN_SESSION, locator).init(...args);
 	}
