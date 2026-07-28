@@ -14,8 +14,9 @@ const loadUserEmail = server$(async function (doIdHex: string, jurisdiction: DOJ
 	return email ?? 'N/A';
 });
 
-interface UserRowProps {
+export const UserRow = component$<{
 	uidHex: string;
+	uidBase64Url: string;
 	doIdHex: string;
 	jurisdiction: DOJurisdictions | null;
 	userInit: boolean;
@@ -24,9 +25,7 @@ interface UserRowProps {
 	onToggleSelect$: () => void;
 	onDelete$: () => void;
 	onAssignTenant$: () => void;
-}
-
-export const UserRow = component$<UserRowProps>(({ uidHex, doIdHex, jurisdiction, userInit, doInstanceExists, ...props }) => {
+}>(({ uidHex, uidBase64Url, doIdHex, jurisdiction, userInit, doInstanceExists, ...props }) => {
 	const email = useSignal<string | undefined>(undefined);
 	const emailLoading = useSignal(false);
 
@@ -49,8 +48,11 @@ export const UserRow = component$<UserRowProps>(({ uidHex, doIdHex, jurisdiction
 
 			{/* User ID */}
 			<td class="px-4 py-3">
-				<Link prefetch="js" href={`/${loc.params['environment']}/users/${uidHex}/`} class="text-primary-accent hover:underline">
+				<Link prefetch="js" href={`/${loc.params['environment']}/users/${uidBase64Url}/`} class="text-primary-accent hover:underline">
 					<code class="text-xs break-all">{uidDisplay}</code>
+					<div class="mt-0.5 text-xs">
+						<code class="text-xs break-all">{uidBase64Url}</code>
+					</div>
 				</Link>
 			</td>
 
