@@ -109,6 +109,7 @@ export const useUsersPage = routeLoader$(async ({ sharedMap, url }) => async () 
 			rows.map((row) => ({
 				...row,
 				u_id: row.u_id.toString('hex'),
+				u_id_b64: row.u_id.toString('base64url'),
 				do_id: row.do_id?.toString('hex'),
 			})),
 		);
@@ -604,6 +605,7 @@ export default component$(() => {
 														<UserRow
 															key={String(user.u_id)}
 															uidHex={String(user.u_id)}
+															uidBase64Url={String(user.u_id_b64)}
 															doIdHex={String(doIdHex)}
 															jurisdiction={user.jurisdiction}
 															userInit={user.user_init}
@@ -633,6 +635,7 @@ export default component$(() => {
 														<UserRow
 															key={String(user.u_id)}
 															uidHex={String(user.u_id)}
+															uidBase64Url={String(user.u_id_b64)}
 															doIdHex={String(doIdHex)}
 															jurisdiction={user.jurisdiction}
 															userInit={user.user_init}
