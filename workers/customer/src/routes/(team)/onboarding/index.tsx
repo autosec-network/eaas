@@ -94,130 +94,147 @@ const useOnboardTenant = routeAction$(
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 		const session = sharedMap.get('session') as Session;
 
-		// Insert refs into root
-		await r_db.batch([
-			r_db.insert(rootSchema.tenants).values({
-				t_id: sql`unhex(${t_id_hex})`,
-				jurisdiction: data.jurisdiction,
-				do_id: sql`unhex(${t_do_id_hex})`,
-			}),
-			r_db.insert(rootSchema.users_tenants).values({
-				t_id: sql`unhex(${t_id_hex})`,
-				u_id: sql`unhex(${session.user!.u_id.hex})`,
-			}),
-		]);
-
-		// Load tenant DO
+		// Load tenant DO (not instantiated until the first RPC call, so resolving it here is safe even if we bail out before ever writing to it)
 		const t_doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, t_locator);
 
-		if (data.vaultMode === 'bitwarden') {
-			// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
-			const bwUseProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
-			const bw_id = bwUseProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(data.jurisdiction ?? undefined) : (data.jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
-			const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: data.jurisdiction ?? undefined });
-			try {
-				// Connect to our bitwarden, but respecting the jurisdiction
-				await bw_doStub.init({
-					t_jurisdiction: null,
-					t_do_id: null,
-					endpoints: {
-						base: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
-						authentication: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
-					},
-				});
-				const rootAccessToken = data.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
-				await bw_doStub.auth(rootAccessToken);
+		try {
+			// Insert refs into root
+			await r_db.batch([
+				r_db.insert(rootSchema.tenants).values({
+					t_id: sql`unhex(${t_id_hex})`,
+					jurisdiction: data.jurisdiction,
+					do_id: sql`unhex(${t_do_id_hex})`,
+				}),
+				r_db.insert(rootSchema.users_tenants).values({
+					t_id: sql`unhex(${t_id_hex})`,
+					u_id: sql`unhex(${session.user!.u_id.hex})`,
+				}),
+			]);
 
-				// Encrypt the access token and connection metadata and store it
-				const secret = await bw_doStub.setSecret({
-					projectId: data.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_PROJECT_ID : platform.env.US_BW_SM_PROJECT_ID,
-					key: await bw_doStub.encryptSecret(rootAccessToken, [t_id_base64url, 'bw'].join('/')),
-					value: await bw_doStub.encryptSecret(rootAccessToken, data.accessToken),
-					note: await bw_doStub.encryptSecret(
-						rootAccessToken,
-						JSON.stringify({
-							project: data.project,
-							endpoints: {
-								base: data.baseCloudEndpoint,
-								authentication: data.authCloudEndpoint,
-							},
-						} satisfies zm.input<typeof TenantByoBwNoteSchema>),
-					),
-				});
+			if (data.vaultMode === 'bitwarden') {
+				// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
+				const bwUseProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
+				const bw_id = bwUseProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(data.jurisdiction ?? undefined) : (data.jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
+				const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: data.jurisdiction ?? undefined });
+				// Tracks whether the secret landed in our root Bitwarden org, so a later failure (e.g. `updateProperties`) can delete it instead of leaving it orphaned there
+				let createdSecretId: string | undefined;
+				try {
+					// Connect to our bitwarden, but respecting the jurisdiction
+					await bw_doStub.init({
+						t_jurisdiction: null,
+						t_do_id: null,
+						endpoints: {
+							base: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
+							authentication: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
+						},
+					});
+					const rootAccessToken = data.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
+					await bw_doStub.auth(rootAccessToken);
 
-				platform.ctx.waitUntil(bw_doStub.nuke('Cleaning up'));
+					// Encrypt the access token and connection metadata and store it
+					const secret = await bw_doStub.setSecret({
+						projectId: data.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_PROJECT_ID : platform.env.US_BW_SM_PROJECT_ID,
+						key: await bw_doStub.encryptSecret(rootAccessToken, [t_id_base64url, 'bw'].join('/')),
+						value: await bw_doStub.encryptSecret(rootAccessToken, data.accessToken),
+						note: await bw_doStub.encryptSecret(
+							rootAccessToken,
+							JSON.stringify({
+								project: data.project,
+								endpoints: {
+									base: data.baseCloudEndpoint,
+									authentication: data.authCloudEndpoint,
+								},
+							} satisfies zm.input<typeof TenantByoBwNoteSchema>),
+						),
+					});
+					createdSecretId = secret.id;
 
-				// Now save the id ref to the tenant so we can retreive the access token when needed
-				await t_doStub.updateProperties(
-					{
-						byo_bw: secret.id,
-					},
-					false,
-					true,
-				);
-			} catch (error) {
-				console.error('Error saving BYO bitwarden', error);
+					// Now save the id ref to the tenant so we can retreive the access token when needed
+					await t_doStub.updateProperties(
+						{
+							byo_bw: secret.id,
+						},
+						false,
+						true,
+					);
+				} catch (error) {
+					console.error('Error saving BYO bitwarden', error);
 
-				// Rollback
-				platform.ctx.waitUntil(
-					r_db
-						.delete(rootSchema.tenants)
-						.where(eq(rootSchema.tenants.t_id, sql`unhex(${t_id_hex})`))
-						.limit(1),
-				);
-				platform.ctx.waitUntil(t_doStub.nuke('Rolling back tenant creation'));
+					// Roll back the secret we created in our root Bitwarden org, if we got that far, before the session gets nuked below
+					if (createdSecretId) {
+						try {
+							await bw_doStub.deleteSecrets([createdSecretId]);
+						} catch (cleanupError) {
+							console.error('Failed to roll back orphaned bitwarden secret', cleanupError);
+						}
+					}
 
-				// eslint-disable-next-line preserve-caught-error
-				throw new Error(`Unable to save BYO bitwarden. Attempt ${bw_id}`);
-			} finally {
-				platform.ctx.waitUntil(bw_doStub.nuke('Session ended'));
+					// eslint-disable-next-line preserve-caught-error
+					throw new Error(`Unable to save BYO bitwarden. Attempt ${bw_id}`);
+				} finally {
+					platform.ctx.waitUntil(bw_doStub.nuke('Session ended'));
+				}
 			}
-		}
 
-		const now = new Date();
-		// Save the rest of the tenant info
-		await t_doStub.updateProperties(
-			{
-				name: data.name,
-				avatar: data.avatar,
-				m_time: now,
-			},
-			false,
-			true,
-		);
-
-		const browserCache = sharedMap.get('browserCache') as boolean;
-		const t_db = drizzleD0(t_doStub, {
-			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_do_id_hex) }) }),
-			cache: new SQLCache(
+			const now = new Date();
+			// Save the rest of the tenant info
+			await t_doStub.updateProperties(
 				{
-					dbName: t_do_id_hex,
-					dbType: 'do',
-					strategy: browserCache ? 'all' : 'explicit',
-					cacheTTL: parseInt(platform.env.SQL_TTL, 10),
-					logging: platform.env.NODE_ENV !== 'production',
+					name: data.name,
+					avatar: data.avatar,
+					m_time: now,
 				},
-				// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
-				globalThis.caches ?? platform.caches,
-			),
-		});
+				false,
+				true,
+			);
 
-		await t_db.insert(tenantSchema.users).values({
-			u_id: sql`unhex(${session.user?.u_id.hex})`,
-			do_id: sql`unhex(${session.user?.do_id})`,
-			a_time: now,
-			b_time: now,
-			m_time: now,
-			approved: true,
-			r_tenant: Permissions.Admin,
-			r_users: Permissions.Admin,
-			r_roles: Permissions.Write,
-			r_billing: Permissions.Admin,
-			r_apikeys: Permissions.Admin,
-			r_keyring: Permissions.Admin,
-			r_datakey: Permissions.Admin,
-			r_logs: Permissions.Admin,
-		});
+			const browserCache = sharedMap.get('browserCache') as boolean;
+			const t_db = drizzleD0(t_doStub, {
+				...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_do_id_hex) }) }),
+				cache: new SQLCache(
+					{
+						dbName: t_do_id_hex,
+						dbType: 'do',
+						strategy: browserCache ? 'all' : 'explicit',
+						cacheTTL: parseInt(platform.env.SQL_TTL, 10),
+						logging: platform.env.NODE_ENV !== 'production',
+					},
+					// eslint-disable-next-line @typescript-eslint/no-unnecessary-condition
+					globalThis.caches ?? platform.caches,
+				),
+			});
+
+			await t_db.insert(tenantSchema.users).values({
+				u_id: sql`unhex(${session.user?.u_id.hex})`,
+				do_id: sql`unhex(${session.user?.do_id})`,
+				a_time: now,
+				b_time: now,
+				m_time: now,
+				approved: true,
+				r_tenant: Permissions.Admin,
+				r_users: Permissions.Admin,
+				r_roles: Permissions.Write,
+				r_billing: Permissions.Admin,
+				r_apikeys: Permissions.Admin,
+				r_keyring: Permissions.Admin,
+				r_datakey: Permissions.Admin,
+				r_logs: Permissions.Admin,
+			});
+		} catch (error) {
+			console.error('Error onboarding tenant, rolling back', error);
+
+			// `users_tenants.t_id` cascades on delete, so removing the tenant row is enough to clean up both root tables. `t_id` is a fresh UUIDv7, so this is a harmless no-op if the insert never happened.
+			platform.ctx.waitUntil(
+				r_db
+					.delete(rootSchema.tenants)
+					.where(eq(rootSchema.tenants.t_id, sql`unhex(${t_id_hex})`))
+					.limit(1),
+			);
+			// Wipes any properties/rows already written to the tenant DO (byo_bw ref, name/avatar, the admin user row); harmless no-op if nothing was ever written
+			platform.ctx.waitUntil(t_doStub.nuke('Rolling back tenant creation'));
+
+			throw error;
+		}
 
 		// Return the tenant ID for redirection
 		throw redirect(302, `/${t_id_base64url}`);
