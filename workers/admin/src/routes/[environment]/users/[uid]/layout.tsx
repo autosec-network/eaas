@@ -58,6 +58,6 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, n
 
 		await next();
 	} else {
-		throw redirect(307, `/${params['environment']}/users/`);
+		throw redirect(302, `/${params['environment']}/users/`);
 	}
 };

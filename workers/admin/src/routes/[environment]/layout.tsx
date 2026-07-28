@@ -36,6 +36,6 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, n
 
 		await next();
 	} else {
-		throw redirect(307, '/');
+		throw redirect(302, '/');
 	}
 };
