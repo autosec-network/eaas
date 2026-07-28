@@ -30,10 +30,10 @@ const CLOUD_PRESETS = {
 } as const;
 
 const getProjects = server$(async function (jurisdiction: DOJurisdictions | null, baseEndpoint: string, authEndpoint: string, apiKey: string) {
-	// This Bitwarden session is ephemeral (created and nuked within this call), so locally we skip the (workerd-unsupported) jurisdiction entirely and mint a plain id; deployed still pins it to the jurisdiction.
+	// An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against (`idFromString` throws "Invalid Durable Object ID"), so when proxying, mint it on the proxy — which can also apply the jurisdiction workerd doesn't support.
 	const useProxy = isLocal(this.platform) && !!this.platform.env.BITWARDEN_SESSION_PROXY;
-	const bwId = jurisdiction && !useProxy ? this.platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction).newUniqueId().toString() : this.platform.env.BITWARDEN_SESSION.newUniqueId().toString();
-	const doStub = resolveDoStub(this.platform, this.platform.env.BITWARDEN_SESSION, this.platform.env.BITWARDEN_SESSION_PROXY, { id: bwId, jurisdiction: useProxy ? undefined : (jurisdiction ?? undefined) });
+	const bwId = useProxy ? await this.platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(jurisdiction ?? undefined) : (jurisdiction ? this.platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : this.platform.env.BITWARDEN_SESSION).newUniqueId().toString();
+	const doStub = resolveDoStub(this.platform, this.platform.env.BITWARDEN_SESSION, this.platform.env.BITWARDEN_SESSION_PROXY, { id: bwId, jurisdiction: jurisdiction ?? undefined });
 
 	try {
 		await doStub.init({ t_jurisdiction: null, t_do_id: null, endpoints: { base: baseEndpoint, authentication: authEndpoint } });
@@ -111,10 +111,10 @@ const useOnboardTenant = routeAction$(
 		const t_doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, t_locator);
 
 		if (data.vaultMode === 'bitwarden') {
-			// Store access token in our bitwarden securely. This session is ephemeral, so locally we skip the (workerd-unsupported) jurisdiction and mint a plain id; deployed still pins it.
+			// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
 			const bwUseProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
-			const bw_id = data.jurisdiction && !bwUseProxy ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction).newUniqueId().toString() : platform.env.BITWARDEN_SESSION.newUniqueId().toString();
-			const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: bwUseProxy ? undefined : (data.jurisdiction ?? undefined) });
+			const bw_id = bwUseProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(data.jurisdiction ?? undefined) : (data.jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
+			const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: data.jurisdiction ?? undefined });
 			try {
 				// Connect to our bitwarden, but respecting the jurisdiction
 				await bw_doStub.init({
