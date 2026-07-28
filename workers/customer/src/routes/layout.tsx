@@ -95,13 +95,13 @@ export const onRequest: RequestHandler = async ({ sharedMap, redirect, url, plat
 	// Session
 	const session = sharedMap.get('session') as Session | null;
 	// If there's no session, we can't do any binding checks, so we redirect to sign in immediately. This also avoids running the binding check code for unauthenticated users, which would be a waste of resources.
-	if (!session) throw redirect(307, `/login?callbackUrl=${url.pathname}`);
+	if (!session) throw redirect(302, `/login?callbackUrl=${url.pathname}`);
 
 	// Detailed session check
 	await (async () => {
 		const forceSignIn = async () => {
 			if (session.do_id) await deleteSession(platform, r_db, session.do_id, false);
-			throw redirect(307, `/login?callbackUrl=${url.pathname}`);
+			throw redirect(302, `/login?callbackUrl=${url.pathname}`);
 		};
 
 		// If session is expired
