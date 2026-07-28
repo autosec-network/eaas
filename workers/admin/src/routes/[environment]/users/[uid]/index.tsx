@@ -1,5 +1,5 @@
 import { $, Resource, component$, useSignal, useStore } from '@builder.io/qwik';
-import { routeAction$, routeLoader$, useLocation, z, zod$, type DocumentHead } from '@builder.io/qwik-city';
+import { routeAction$, routeLoader$, z, zod$, type DocumentHead } from '@builder.io/qwik-city';
 import { USER_SYSTEM_ALARMS } from 'db';
 import * as rootSchema from 'db/schemas/root';
 import * as userSchema from 'db/schemas/user/main';
@@ -13,12 +13,22 @@ import { UserProperties } from '~/components/user-properties/user-properties';
 import { UserSessions } from '~/components/user-sessions/user-sessions';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 
-// eslint-disable-next-line @typescript-eslint/require-await
-export const useUserDetail = routeLoader$(async ({ sharedMap, params, platform }) => {
+const useUid = routeLoader$(async ({ params }) => {
+	return import('node:buffer')
+		.then(({ Buffer }) => Buffer.from(params['uid']!, 'base64url'))
+		.then((buf) => ({
+			utf8: hexToUuid(buf.toString('hex')),
+			hex: buf.toString('hex'),
+			base64: buf.toString('base64'),
+			base64url: buf.toString('base64url'),
+		}));
+});
+
+const useUserDetail = routeLoader$(async ({ sharedMap, resolveValue, platform }) => {
 	const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 	const u_db = sharedMap.get('u_db') as SqliteRemoteDatabase;
 	const u_do = sharedMap.get('u_do') as ReturnType<(typeof platform.env.USER_D0_PROD)['get']>;
-	const uidHex = params['uid']!;
+	const uidHex = await resolveValue(useUid).then(({ hex }) => hex);
 
 	return async () => {
 		const [user] = await r_db
@@ -50,7 +60,7 @@ export const useUserDetail = routeLoader$(async ({ sharedMap, params, platform }
 
 		if (doIdHex) {
 			// Load properties from u_do (set by layout)
-			const props = await u_do.getProperties(undefined, true).catch(() => ({}) as Record<string, unknown>);
+			const props = await u_do.getProperties(undefined, true).catch(() => ({}));
 			if ('email' in props && typeof props.email === 'string') {
 				email = props.email;
 			}
@@ -222,11 +232,10 @@ export const head: DocumentHead = {
 };
 
 export default component$(() => {
-	const loc = useLocation();
+	const uid = useUid();
 	const userData = useUserDetail();
 	const endSessionsAction = useEndSessions();
 	const scheduleAlarmAction = useScheduleAlarm();
-	const uidHex = loc.params['uid']!;
 
 	const selectedSessions = useStore<Record<string, boolean>>({});
 	const actionError = useSignal('');
@@ -249,14 +258,12 @@ export default component$(() => {
 		}
 	});
 
-	const uidDisplay = hexToUuid(uidHex);
-
 	return (
 		<section class="mx-auto max-w-7xl px-4 py-6">
 			{/* Header */}
 			<div class="mb-6">
 				<h1 class="text-heading text-2xl font-bold dark:text-white">User Detail</h1>
-				<p class="text-body-subtle mt-1 font-mono text-sm dark:text-gray-400">{uidDisplay}</p>
+				<p class="text-body-subtle mt-1 font-mono text-sm dark:text-gray-400">{JSON.stringify(uid.value)}</p>
 			</div>
 
 			{/* Error Banner */}
