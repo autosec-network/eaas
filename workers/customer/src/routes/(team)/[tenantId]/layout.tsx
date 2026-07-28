@@ -80,15 +80,15 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, r
 				);
 			} else {
 				// Tenant doesn't exist or user doesn't have access
-				throw redirect(307, '/');
+				throw redirect(302, '/');
 			}
 		} else {
 			// Not valid uuid
-			throw redirect(307, '/');
+			throw redirect(302, '/');
 		}
 	} else {
 		// Not base64url
-		throw redirect(307, '/');
+		throw redirect(302, '/');
 	}
 };
 
