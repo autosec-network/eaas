@@ -9,9 +9,10 @@ import * as zm from 'zod/mini';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 
 export const onRequest: RequestHandler = async ({ params, sharedMap, platform, next, redirect }) => {
-	const { success } = await zm.hex().check(zm.length(32)).safeParseAsync(params['uid']);
+	const { success } = await zm.base64url().check(zm.length(22)).safeParseAsync(params['uid']);
 
 	if (success) {
+		const uidHex = await import('node:buffer').then(({ Buffer }) => Buffer.from(params['uid']!, 'base64url').toString('hex'));
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 
 		const [user] = await r_db
@@ -20,7 +21,7 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, n
 				do_id: rootSchema.users.do_id,
 			})
 			.from(rootSchema.users)
-			.where(eq(rootSchema.users.u_id, sql`unhex(${params['uid']})`))
+			.where(eq(rootSchema.users.u_id, sql`unhex(${uidHex})`))
 			.limit(1)
 			.then((rows) =>
 				rows.map((row) => ({
@@ -31,7 +32,7 @@ export const onRequest: RequestHandler = async ({ params, sharedMap, platform, n
 
 		const doNamespace = platform.env.USER_D0_PROD;
 		const doNamespaceJurisdiction = user?.jurisdiction ? doNamespace.jurisdiction(user.jurisdiction) : doNamespace;
-		const doId = user?.do_id ? doNamespaceJurisdiction.idFromString(user.do_id) : doNamespaceJurisdiction.idFromName(hexToUuid(params['uid']!));
+		const doId = user?.do_id ? doNamespaceJurisdiction.idFromString(user.do_id) : doNamespaceJurisdiction.idFromName(hexToUuid(uidHex));
 		const doStub = doNamespace.get(doId);
 		sharedMap.set('u_do', doStub);
 		sharedMap.set('u_jurisdiction', user?.jurisdiction ?? null);
