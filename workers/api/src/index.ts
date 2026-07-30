@@ -1,4 +1,5 @@
-import { WorkerEntrypoint } from 'cloudflare:workers';
+import type { TenantLogQueueMessageSchema } from 'types/tenants/logging';
+import type * as zm from 'zod/mini';
 import type { ContextVariables, EnvVars } from '~/types';
 
 // Re-export Durable Objects since workerd can only find from wrangler's `main` file
@@ -10,8 +11,8 @@ export { UserD0 } from '~do/UserD0';
 // Re-export Workflows since workerd can only find from from `wrangler.jsonc`'s `main` file
 export { DataKeyRotation } from '~wf/dataKeyRotation';
 
-export default class extends WorkerEntrypoint<EnvVars> {
-	override async fetch(request: Request) {
+export default {
+	async fetch(request, env, ctx) {
 		const app = await import('hono').then(({ Hono }) => new Hono<{ Bindings: EnvVars; Variables: ContextVariables }>());
 
 		// Variable Setup
@@ -151,6 +152,9 @@ export default class extends WorkerEntrypoint<EnvVars> {
 
 		await import('~/base').then(({ default: baseApp }) => app.route('/', baseApp));
 
-		return app.fetch(request, this.env, this.ctx);
-	}
-}
+		return app.fetch(request, env, ctx);
+	},
+	async queue(batch, env, ctx) {
+		return import('~/queue').then(({ main }) => main(batch, env, ctx));
+	},
+} as ExportedHandler<EnvVars, zm.input<typeof TenantLogQueueMessageSchema>>;
