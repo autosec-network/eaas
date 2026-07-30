@@ -21,6 +21,28 @@ const NAV_TREE: NavNode[] = [
 				label: 'Users',
 				segment: 'users',
 			},
+			{
+				label: 'Tenant',
+				segment: 'tenants',
+				children: [
+					{
+						label: 'Properties',
+						segment: 'properties',
+					},
+					{
+						label: 'Users',
+						segment: 'users',
+					},
+					{
+						label: 'API Keys',
+						segment: 'api-keys',
+					},
+					{
+						label: 'Logs',
+						segment: 'logs',
+					},
+				],
+			},
 		],
 	},
 	{
@@ -30,6 +52,28 @@ const NAV_TREE: NavNode[] = [
 			{
 				label: 'Users',
 				segment: 'users',
+			},
+			{
+				label: 'Tenant',
+				segment: 'tenants',
+				children: [
+					{
+						label: 'Properties',
+						segment: 'properties',
+					},
+					{
+						label: 'Users',
+						segment: 'users',
+					},
+					{
+						label: 'API Keys',
+						segment: 'api-keys',
+					},
+					{
+						label: 'Logs',
+						segment: 'logs',
+					},
+				],
 			},
 		],
 	},

@@ -6,7 +6,7 @@ import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
 import type { ZodPick } from 'types/zod/mini';
 import type * as zm from 'zod/mini';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROD' | 'TENANT_D0_PROD' | 'USER_D0_PROD' | 'USER_SESSION_PROD'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROD' | 'TENANT_D0_PROD' | 'TENANT_D0_LOGS_PROD' | 'USER_D0_PROD' | 'USER_SESSION_PROD'>, TypedBindings {
 	GIT_HASH?: string;
 	CF_ACCOUNT_ID: string;
 }
@@ -16,6 +16,9 @@ interface TypedBindings {
 	BITWARDEN_SESSION_PROD: DurableObjectNamespace<BitwardenSession>;
 	// TENANT_D0_DEV: DurableObjectNamespace<TenantD0>;
 	TENANT_D0_PROD: DurableObjectNamespace<TenantD0>;
+	// TENANT_D0_LOGS_DEV: DurableObjectNamespace<BaseD0>;
+	/** Only ever read/wiped through the generic `BaseD0` surface, so it needs no class of its own here */
+	TENANT_D0_LOGS_PROD: DurableObjectNamespace<BaseD0>;
 	// USER_D0_DEV: DurableObjectNamespace<UserD0>;
 	USER_D0_PROD: DurableObjectNamespace<UserD0>;
 	// USER_SESSION_DEV: DurableObjectNamespace<UserSession>;
