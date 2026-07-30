@@ -94,8 +94,15 @@ export const useTenantIds = routeLoader$(({ params }) =>
 		})),
 );
 
+/** Tenant avatars are attacker-supplied URLs, so they render through the image proxy snippet instead of letting the browser hit the upstream host (which also keeps `img-src 'self'` enough in the CSP) */
+const proxiedImage = (origin: string, imageUrl: string) => {
+	const proxyUrl = new URL('/image/proxy', origin);
+	proxyUrl.searchParams.set('url', imageUrl);
+	return proxyUrl.href;
+};
+
 /** Root lookup row vs. live Durable Objects — the header states both, so drift is visible from every tab */
-export const useTenantOverview = routeLoader$(({ sharedMap, platform }) => {
+export const useTenantOverview = routeLoader$(({ sharedMap, platform, url }) => {
 	const t_do = sharedMap.get('t_do') as TenantDoStub;
 	const t_do_id_hex = sharedMap.get('t_do_id_hex') as string;
 	const t_logs_do_id_hex = sharedMap.get('t_logs_do_id_hex') as string;
@@ -107,9 +114,11 @@ export const useTenantOverview = routeLoader$(({ sharedMap, platform }) => {
 
 		const [properties, doInstances, logsDoInstances] = await Promise.all([t_do.getProperties({ name: true, avatar: true }, true).catch(() => ({}) as Record<string, never>), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Main['eaas-api-prod_TenantD0'], [t_do_id_hex]), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Logs['eaas-api-prod_TenantD0Logs'], [t_logs_do_id_hex])]);
 
+		const avatar = 'avatar' in properties && typeof properties.avatar === 'string' ? properties.avatar : null;
+
 		return {
 			name: 'name' in properties && typeof properties.name === 'string' ? properties.name : null,
-			avatar: 'avatar' in properties && typeof properties.avatar === 'string' ? properties.avatar : null,
+			avatar: avatar ? proxiedImage(url.origin, avatar) : null,
 			jurisdiction,
 			rootExists,
 			t_do_id_hex,
