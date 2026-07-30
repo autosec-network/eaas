@@ -1,7 +1,7 @@
-import m0000 from './20260711055424_redundant_vin_gonzales/migration.sql';
+import m0000 from './20260730035104_tranquil_nova/migration.sql';
 
 export default {
 	migrations: {
-		'20260711055424_redundant_vin_gonzales': m0000,
+		'20260730035104_tranquil_nova': m0000,
 	},
 };

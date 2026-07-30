@@ -40,8 +40,9 @@ export const logs = snakeCase.table(
 		timestamp: l.integer({ mode: 'timestamp_ms' }).notNull(),
 		event_type: l.integer({ mode: 'number' }).notNull().$type<TenantLogEventType>(),
 		context: l.text({ mode: 'json' }).notNull(),
-		ip: l.text({ mode: 'text' }).notNull(),
+		ip: l.text({ mode: 'text' }),
 		user_agent: l.text({ mode: 'text' }),
+		ray_id: l.blob({ mode: 'buffer' }),
 		/**
 		 * UUIDv7 (without hyphens)
 		 */

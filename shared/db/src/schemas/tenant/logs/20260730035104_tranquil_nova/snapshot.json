@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "9c7af413-433c-498b-b396-e4938a1cf0ed",
+	"id": "f1f44b4f-b378-4d6c-b4d9-67487d57951a",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -132,7 +132,7 @@
 		},
 		{
 			"type": "text",
-			"notNull": true,
+			"notNull": false,
 			"autoincrement": false,
 			"default": null,
 			"generated": null,
@@ -147,6 +147,16 @@
 			"default": null,
 			"generated": null,
 			"name": "user_agent",
+			"entityType": "columns",
+			"table": "logs"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "ray_id",
 			"entityType": "columns",
 			"table": "logs"
 		},
