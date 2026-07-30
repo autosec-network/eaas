@@ -161,7 +161,7 @@ export default component$(() => {
 	});
 
 	return (
-		<section class="mx-auto max-w-7xl px-4 py-6">
+		<section class="px-4 py-6">
 			{/* Header */}
 			<div class="mb-4 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
 				<div>

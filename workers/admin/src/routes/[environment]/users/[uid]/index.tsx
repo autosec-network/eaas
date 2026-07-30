@@ -259,7 +259,7 @@ export default component$(() => {
 	});
 
 	return (
-		<section class="mx-auto max-w-7xl px-4 py-6">
+		<section class="px-4 py-6">
 			{/* Header */}
 			<div class="mb-6">
 				<h1 class="text-heading text-2xl font-bold dark:text-white">User Detail</h1>
