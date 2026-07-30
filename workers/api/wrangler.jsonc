@@ -3,7 +3,7 @@
 	"name": "eaas-api-dev",
 	"main": "src/index.ts",
 	"compatibility_date": "2026-07-22",
-	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough"],
+	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough", "queue_consumer_no_wait_for_wait_until"],
 	"workers_dev": false,
 	"preview_urls": false,
 	"route": { "pattern": "dev.api.eaas.autosec.network", "custom_domain": true },
@@ -78,6 +78,24 @@
 			"state": "created",
 			"storage": "sqlite"
 		}
+	},
+	// This worker is the only writer of tenant audit logs - every worker produces onto the queue, `queue()` here fans each batch back out into the tenants' logs Durable Objects
+	"queues": {
+		"consumers": [
+			{
+				"queue": "eaas-logs-dev",
+				"max_batch_size": 100,
+				"max_batch_timeout": 5,
+				"max_retries": 100,
+				"retry_delay": 10
+			}
+		],
+		"producers": [
+			{
+				"queue": "eaas-logs-dev",
+				"binding": "LOGS"
+			}
+		]
 	},
 	"workflows": [
 		{
@@ -183,6 +201,23 @@
 					"remote": true
 				}
 			],
+			"queues": {
+				"consumers": [
+					{
+						"queue": "eaas-logs-prod",
+						"max_batch_size": 100,
+						"max_batch_timeout": 5,
+						"max_retries": 100,
+						"retry_delay": 10
+					}
+				],
+				"producers": [
+					{
+						"queue": "eaas-logs-prod",
+						"binding": "LOGS"
+					}
+				]
+			},
 			"workflows": [
 				{
 					"name": "data-key-rotation",
