@@ -116,6 +116,16 @@
 			{
 				"queue": "eaas-admin",
 				"binding": "ADMIN_MANAGEMENT"
+			},
+			{
+				"queue": "eaas-logs-dev",
+				"binding": "LOGS_DEV",
+				"remote": true
+			},
+			{
+				"queue": "eaas-logs-prod",
+				"binding": "LOGS_PROD",
+				"remote": true
 			}
 		]
 	}
