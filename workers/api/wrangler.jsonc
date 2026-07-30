@@ -79,6 +79,25 @@
 			"storage": "sqlite"
 		}
 	},
+	// This worker is the only writer of tenant audit logs - every worker produces onto the queue, `queue()` here fans each batch back out into the tenants' logs Durable Objects
+	"queues": {
+		"consumers": [
+			{
+				"queue": "eaas-logs-dev",
+				"max_batch_size": 100,
+				"max_batch_timeout": 5,
+				"max_retries": 100,
+				"retry_delay": 10
+			}
+		],
+		"producers": [
+			{
+				"queue": "eaas-logs-dev",
+				"binding": "LOGS",
+				"remote": true
+			}
+		]
+	},
 	"workflows": [
 		{
 			"name": "data-key-rotation-preview",
@@ -184,6 +203,24 @@
 					"remote": true
 				}
 			],
+			"queues": {
+				"consumers": [
+					{
+						"queue": "eaas-logs-prod",
+						"max_batch_size": 100,
+						"max_batch_timeout": 5,
+						"max_retries": 100,
+						"retry_delay": 10
+					}
+				],
+				"producers": [
+					{
+						"queue": "eaas-logs-prod",
+						"binding": "LOGS",
+						"remote": true
+					}
+				]
+			},
 			"workflows": [
 				{
 					"name": "data-key-rotation",

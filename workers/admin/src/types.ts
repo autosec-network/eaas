@@ -3,15 +3,21 @@ import type { SessionPropertiesSchema, TenantPropertiesSchema, UserPropertiesSch
 import type { UUID } from 'node:crypto';
 import type { DOJurisdictions } from 'types';
 import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
+import type { TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import type { ZodPick } from 'types/zod/mini';
 import type * as zm from 'zod/mini';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROD' | 'TENANT_D0_PROD' | 'TENANT_D0_LOGS_PROD' | 'USER_D0_PROD' | 'USER_SESSION_PROD'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS_DEV' | 'LOGS_PROD' | 'BITWARDEN_SESSION_PROD' | 'TENANT_D0_PROD' | 'TENANT_D0_LOGS_PROD' | 'USER_D0_PROD' | 'USER_SESSION_PROD'>, TypedBindings {
 	GIT_HASH?: string;
 	CF_ACCOUNT_ID: string;
 }
 
 interface TypedBindings {
+	/**
+	 * Tenant audit logs. Unlike the other bindings both environments are always wired, since a queue exists independently of whichever worker consumes it — pick with the `[environment]` route param, the same way `DB_ROOT_*` is picked. Send `TenantLogQueueMessageSchema`-parsed messages; `api`'s queue consumer is the only writer.
+	 */
+	LOGS_DEV: Queue<zm.input<typeof TenantLogQueueMessageSchema>>;
+	LOGS_PROD: Queue<zm.input<typeof TenantLogQueueMessageSchema>>;
 	// BITWARDEN_SESSION_DEV: DurableObjectNamespace<BitwardenSession>;
 	BITWARDEN_SESSION_PROD: DurableObjectNamespace<BitwardenSession>;
 	// TENANT_D0_DEV: DurableObjectNamespace<TenantD0>;
