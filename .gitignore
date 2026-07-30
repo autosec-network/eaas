@@ -167,6 +167,7 @@ workers/customer/dist
 
 # Qwik
 workers/admin/server
+!workers/*/src/**/logs
 workers/customer/server
 
 # Inlang
