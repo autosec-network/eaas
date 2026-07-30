@@ -3,9 +3,11 @@ import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import type { TimingVariables } from 'hono/timing';
 import type { Buffer } from 'node:buffer';
 import type { DOJurisdictions, Permissions } from 'types';
+import type { TenantLogQueueMessageSchema } from 'types/tenants/logging';
+import type * as zm from 'zod/mini';
 import type { BitwardenSessionProxy, TenantD0LogsProxy, TenantD0Proxy, UserD0Proxy } from '../../do-proxy/src/index';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY'>, TypedBindings {
 	GIT_HASH?: string;
 	CF_ACCOUNT_ID: string;
 	EU_BW_SM_PROJECT_ID: string;
@@ -13,6 +15,7 @@ export interface EnvVars extends Omit<Cloudflare.Env, 'BITWARDEN_SESSION_PROXY' 
 }
 
 interface TypedBindings {
+	LOGS: Queue<zm.input<typeof TenantLogQueueMessageSchema>>;
 	/**
 	 * Local-dev-only proxy to this worker's own `BITWARDEN_SESSION`, only present in the `prod` deployment (see `workers/do-proxy`). Unused by live code.
 	 */

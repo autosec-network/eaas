@@ -7,7 +7,6 @@ import { TenantByoBwNoteSchema, TenantPropertiesSchema } from 'db';
 import { SQLCache } from 'db/cache';
 import { DebugLogWriter, drizzleD0 } from 'db/core';
 import * as rootSchema from 'db/schemas/root';
-import * as tenantLogsSchema from 'db/schemas/tenant/logs';
 import * as tenantSchema from 'db/schemas/tenant/main';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
@@ -16,7 +15,7 @@ import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
 import { DOJurisdictions, Permissions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
-import { TenantLogEventStatus, TenantLogEventType } from 'types/tenants/logging';
+import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
@@ -98,34 +97,38 @@ const useOnboardTenant = routeAction$(
 
 		// Load tenant DO (not instantiated until the first RPC call, so resolving it here is safe even if we bail out before ever writing to it)
 		const t_doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, t_locator);
-		// The tenant's logs live in their own DO, named after the tenant with a `_logs` suffix so it's derivable from `t_id` alone
+		// The tenant's logs live in their own DO, named after the tenant with a `_logs` suffix so it's derivable from `t_id` alone. Only reached to wipe it on rollback — the rows themselves are written by `api`'s queue consumer, which derives the same name off the message's `t_id`.
 		const t_logs_locator: DOLocator = { name: `${t_id}_logs`, jurisdiction: data.jurisdiction ?? undefined };
 		const t_logs_doStub = resolveDoStub(platform, platform.env.TENANT_D0_LOGS, platform.env.TENANT_D0_LOGS_PROXY, t_logs_locator);
-		// No cache — logs are only ever written here, and the first write is also what brings the logs DO into existence
-		const t_logs_db = drizzleD0(t_logs_doStub, {
-			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_logs_locator.name!) }) }),
-		});
 		/**
-		 * Writes one audit log as its event happens, so the rows land in the same order as the steps below. Only successes are recorded — any failure rolls the whole tenant back, logs DO included.
+		 * Audit logs for this onboarding, buffered rather than enqueued as they happen: any failure below rolls the whole tenant back — logs DO included — and a message already on the queue would land *after* that rollback and resurrect it. They go out in one batch at the very end, once nothing can roll back anymore.
+		 *
+		 * Order is still the order the events happened in, not the order they're enqueued, because each row's UUIDv7 is minted at the moment it's recorded. Only successes are recorded.
 		 */
-		const logTenantEvent = (event_type: TenantLogEventType, context: Record<string, unknown>) => {
+		const pendingLogs: zm.input<typeof TenantLogQueueMessageSchema>[] = [];
+		const logTenantEvent = async (event_type: TenantLogEventType, context: Record<string, unknown>) => {
 			// The log's UUIDv7 carries this same millisecond, matching the `timestamp` column
 			const timestamp = new Date();
 			const headers = (platform.request ?? request).headers;
 			// `Cf-Ray` is `<hex id>-<colo>`, and only the id half is hex, so that's all the blob column can hold
 			const ray_id = headers.get('CF-Ray')?.split('-')[0];
 
-			return t_logs_db.insert(tenantLogsSchema.logs).values({
-				id: sql`unhex(${uuidv7({ msecs: timestamp.getTime() }).replaceAll('-', '')})`,
-				timestamp,
+			const log: zm.input<typeof TenantLogQueueMessageSchema> = {
+				t_id: t_id_hex,
+				jurisdiction: data.jurisdiction,
+				id: uuidv7({ msecs: timestamp.getTime() }).replaceAll('-', ''),
+				timestamp: timestamp.toISOString(),
 				event_type,
 				context,
 				ip: headers.get('CF-Connecting-IP'),
 				user_agent: headers.get('User-Agent'),
-				...(ray_id && { ray_id: sql`unhex(${ray_id})` }),
-				u_id: sql`unhex(${session.user!.u_id.hex})`,
+				ray_id,
+				u_id: session.user!.u_id.hex,
 				status: TenantLogEventStatus.success,
-			});
+			};
+			// We want to post the raw version to the queue, not the parsed version, so we can validate it in the consumer. This also ensures we don't accidentally mutate the object after validation.
+			await TenantLogQueueMessageSchema.parseAsync(log);
+			return pendingLogs.push(log);
 		};
 
 		try {
@@ -142,15 +145,13 @@ const useOnboardTenant = routeAction$(
 				}),
 			]);
 
-			// The tenant exists as of the root rows landing, so this is both its first audit log and what creates the logs DO
-			platform.ctx.waitUntil(
-				logTenantEvent(TenantLogEventType.created, {
-					name: data.name,
-					avatar: data.avatar,
-					jurisdiction: data.jurisdiction,
-					vault: data.vaultMode,
-				}),
-			);
+			// The tenant exists as of the root rows landing, so this is its first audit log
+			await logTenantEvent(TenantLogEventType.created, {
+				name: data.name,
+				avatar: data.avatar,
+				jurisdiction: data.jurisdiction,
+				vault: data.vaultMode,
+			});
 
 			if (data.vaultMode === 'bitwarden') {
 				// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
@@ -191,16 +192,14 @@ const useOnboardTenant = routeAction$(
 					createdSecretId = secret.id;
 
 					// The token itself never goes in the log - only where it now lives and what it connects to
-					platform.ctx.waitUntil(
-						logTenantEvent(TenantLogEventType['changed byo vault token'], {
-							secret: secret.id,
-							project: data.project,
-							endpoints: {
-								base: data.baseCloudEndpoint,
-								authentication: data.authCloudEndpoint,
-							},
-						}),
-					);
+					await logTenantEvent(TenantLogEventType['changed byo vault token'], {
+						secret: secret.id,
+						project: data.project,
+						endpoints: {
+							base: data.baseCloudEndpoint,
+							authentication: data.authCloudEndpoint,
+						},
+					});
 
 					// Now save the id ref to the tenant so we can retreive the access token when needed
 					await t_doStub.updateProperties(
@@ -212,12 +211,10 @@ const useOnboardTenant = routeAction$(
 					);
 
 					// Pointing `byo_bw` at that secret is what actually moves the tenant off our managed vault
-					platform.ctx.waitUntil(
-						logTenantEvent(TenantLogEventType['changed vault'], {
-							from: null,
-							to: 'bitwarden',
-						}),
-					);
+					await logTenantEvent(TenantLogEventType['changed vault'], {
+						from: null,
+						to: 'bitwarden',
+					});
 				} catch (error) {
 					console.error('Error saving BYO bitwarden', error);
 
@@ -281,6 +278,9 @@ const useOnboardTenant = routeAction$(
 				r_datakey: Permissions.Admin,
 				r_logs: Permissions.Admin,
 			});
+
+			// Nothing can roll the tenant back past this point, so the buffered audit trail is safe to hand over. `api`'s queue consumer is what creates the logs DO, on its first insert. A failed enqueue mustn't undo a tenant that's otherwise fully created, so it's logged and swallowed rather than thrown.
+			platform.ctx.waitUntil(platform.env.LOGS.sendBatch(pendingLogs.map((body) => ({ body, contentType: 'json' }))));
 		} catch (error) {
 			console.error('Error onboarding tenant, rolling back', error);
 
