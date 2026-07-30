@@ -58,6 +58,11 @@
 				"script_name": "eaas-api-dev"
 			},
 			{
+				"name": "TENANT_D0_LOGS",
+				"class_name": "TenantD0Logs",
+				"script_name": "eaas-api-dev"
+			},
+			{
 				"name": "USER_D0",
 				"class_name": "UserD0",
 				"script_name": "eaas-api-dev"
@@ -132,6 +137,11 @@
 						"script_name": "eaas-api-prod"
 					},
 					{
+						"name": "TENANT_D0_LOGS",
+						"class_name": "TenantD0Logs",
+						"script_name": "eaas-api-prod"
+					},
+					{
 						"name": "USER_D0",
 						"class_name": "UserD0",
 						"script_name": "eaas-api-prod"
@@ -163,6 +173,12 @@
 					"binding": "TENANT_D0_PROXY",
 					"service": "eaas-do-proxy",
 					"entrypoint": "TenantD0Proxy",
+					"remote": true
+				},
+				{
+					"binding": "TENANT_D0_LOGS_PROXY",
+					"service": "eaas-do-proxy",
+					"entrypoint": "TenantD0LogsProxy",
 					"remote": true
 				},
 				{
