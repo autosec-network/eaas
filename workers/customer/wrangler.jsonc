@@ -82,6 +82,14 @@
 			"remote": true
 		}
 	],
+	"queues": {
+		"producers": [
+			{
+				"queue": "eaas-logs-dev",
+				"binding": "LOGS"
+			}
+		]
+	},
 	"env": {
 		"prod": {
 			"name": "eaas-customer-prod",
@@ -193,7 +201,15 @@
 					"entrypoint": "UserSessionProxy",
 					"remote": true
 				}
-			]
+			],
+			"queues": {
+				"producers": [
+					{
+						"queue": "eaas-logs-prod",
+						"binding": "LOGS"
+					}
+				]
+			}
 		}
 	}
 }
