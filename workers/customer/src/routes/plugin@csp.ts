@@ -251,7 +251,7 @@ class CSPGenerator {
 		this.addDefault({ self: true });
 		this.addScript({ self: true, nonce: true, domains: ['https://challenges.cloudflare.com', 'https://static.cloudflareinsights.com'] });
 		this.addStyle({ self: true, unsafeInline: true });
-		this.addImage({ self: true, all: true });
+		this.addImage({ self: true, domains: ['https://gravatar.com'] });
 		this.addFrame({ self: true, domains: ['https://challenges.cloudflare.com'] });
 		this.addUpgradeInsecureRequests();
 	}
