@@ -71,6 +71,16 @@
 				"script_name": "eaas-api-prod"
 			},
 			// {
+			// 	"name": "TENANT_D0_LOGS_DEV",
+			// 	"class_name": "TenantD0Logs",
+			// 	"script_name": "eaas-api-dev"
+			// },
+			{
+				"name": "TENANT_D0_LOGS_PROD",
+				"class_name": "TenantD0Logs",
+				"script_name": "eaas-api-prod"
+			},
+			// {
 			// 	"name": "USER_D0_DEV",
 			// 	"class_name": "UserD0",
 			// 	"script_name": "eaas-api-dev"
