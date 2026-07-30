@@ -18,3 +18,10 @@ export function calcInitDaysLeft(uidHex: string): number {
 	const remaining = deadline.getTime() - Date.now();
 	return Math.max(0, Math.ceil(remaining / (24 * 60 * 60 * 1000)));
 }
+
+/** Every tab of a user is its own route segment, so switching tabs (and any filter inside one) is bookmarkable */
+export const USER_TABS = [
+	{ label: 'Properties', segment: 'properties' },
+	{ label: 'Alarms', segment: 'alarms' },
+	{ label: 'Sessions', segment: 'sessions' },
+] as const;
