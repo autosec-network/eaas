@@ -18,6 +18,7 @@ import { AssignTenantModal } from '~/components/assign-tenant-modal/assign-tenan
 import { Pagination } from '~/components/pagination/pagination';
 import { UserRow } from '~/components/user-row/user-row';
 import { UsersToolbar } from '~/components/users-toolbar/users-toolbar';
+import { purgeUser } from '~/routes/[environment]/users/user-ops';
 
 const PAGE_SIZE = 100;
 
@@ -289,57 +290,13 @@ export const useDeleteUsers = routeAction$(
 		let deleted = 0;
 		for (const uidHex of data.userIds) {
 			try {
-				// Can't do join table in `returning` clause, so need to select sessions before deleting user
-				const sessions = await r_db
-					.select({
-						session_token: rootSchema.users_auth_sessions.session_token,
-					})
-					.from(rootSchema.users_auth_sessions)
-					.where(eq(rootSchema.users_auth_sessions.u_id, sql`unhex(${uidHex})`))
-					.then((rows) =>
-						rows.map((row) => ({
-							...row,
-							session_token: row.session_token.toString('hex'),
-						})),
-					);
-
-				const [deletedUser] = await r_db
-					.delete(rootSchema.users)
-					.where(eq(rootSchema.users.u_id, sql`unhex(${uidHex})`))
-					.returning({
-						jurisdiction: rootSchema.users.jurisdiction,
-						do_id: rootSchema.users.do_id,
-					})
-					.then((rows) =>
-						rows.map((row) => ({
-							...row,
-							do_id: row.do_id?.toString('hex') ?? null,
-						})),
-					);
-
-				deleted++;
-				await Promise.allSettled([
-					(async () => {
-						// If DO was instantiated
-						if (deletedUser?.do_id) {
-							const doNamespace = platform.env.USER_D0_PROD;
-							const doId = deletedUser.jurisdiction ? doNamespace.jurisdiction(deletedUser.jurisdiction).idFromString(deletedUser.do_id) : doNamespace.idFromString(deletedUser.do_id);
-							const doStub = doNamespace.get(doId);
-							await doStub.nuke('User deleted');
-						}
-					})(),
-					...sessions.map(async (session) => {
-						const doNamespace = platform.env.USER_SESSION_PROD;
-						const doId = deletedUser?.jurisdiction ? doNamespace.jurisdiction(deletedUser.jurisdiction).idFromString(session.session_token) : doNamespace.idFromString(session.session_token);
-						const doStub = doNamespace.get(doId);
-						await doStub.nuke('User deleted');
-					}),
-				]).then((settled) => {
-					// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-					const errors = settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => result.reason);
-
-					if (errors.length > 0) throw new AggregateError(errors, 'Failed to delete one or more user durable objects/sessions');
+				await purgeUser({
+					r_db,
+					u_id_hex: uidHex,
+					userNamespace: platform.env.USER_D0_PROD,
+					sessionNamespace: platform.env.USER_SESSION_PROD,
 				});
+				deleted++;
 			} catch (error) {
 				return fail(500, serializeActionError(error));
 			}
