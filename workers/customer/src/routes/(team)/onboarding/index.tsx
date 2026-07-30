@@ -7,6 +7,7 @@ import { TenantByoBwNoteSchema, TenantPropertiesSchema } from 'db';
 import { SQLCache } from 'db/cache';
 import { DebugLogWriter, drizzleD0 } from 'db/core';
 import * as rootSchema from 'db/schemas/root';
+import * as tenantLogsSchema from 'db/schemas/tenant/logs';
 import * as tenantSchema from 'db/schemas/tenant/main';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
@@ -15,6 +16,7 @@ import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
 import { DOJurisdictions, Permissions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
+import { TenantLogEventStatus, TenantLogEventType } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
@@ -80,7 +82,7 @@ const useOnboardTenantBaseSchema = z.object({
 });
 // eslint-disable-next-line qwik/loader-location
 const useOnboardTenant = routeAction$(
-	async (data, { sharedMap, platform, redirect }) => {
+	async (data, { sharedMap, platform, redirect, request }) => {
 		// Generate tenant ID
 		const t_id = uuidv7() as UUID;
 		const t_id_hex = t_id.replaceAll('-', '');
@@ -96,6 +98,35 @@ const useOnboardTenant = routeAction$(
 
 		// Load tenant DO (not instantiated until the first RPC call, so resolving it here is safe even if we bail out before ever writing to it)
 		const t_doStub = resolveDoStub(platform, platform.env.TENANT_D0, platform.env.TENANT_D0_PROXY, t_locator);
+		// The tenant's logs live in their own DO, named after the tenant with a `_logs` suffix so it's derivable from `t_id` alone
+		const t_logs_locator: DOLocator = { name: `${t_id}_logs`, jurisdiction: data.jurisdiction ?? undefined };
+		const t_logs_doStub = resolveDoStub(platform, platform.env.TENANT_D0_LOGS, platform.env.TENANT_D0_LOGS_PROXY, t_logs_locator);
+		// No cache — logs are only ever written here, and the first write is also what brings the logs DO into existence
+		const t_logs_db = drizzleD0(t_logs_doStub, {
+			...(platform.env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(t_logs_locator.name!) }) }),
+		});
+		/**
+		 * Writes one audit log as its event happens, so the rows land in the same order as the steps below. Only successes are recorded — any failure rolls the whole tenant back, logs DO included.
+		 */
+		const logTenantEvent = (event_type: TenantLogEventType, context: Record<string, unknown>) => {
+			// The log's UUIDv7 carries this same millisecond, matching the `timestamp` column
+			const timestamp = new Date();
+			const headers = (platform.request ?? request).headers;
+			// `Cf-Ray` is `<hex id>-<colo>`, and only the id half is hex, so that's all the blob column can hold
+			const ray_id = headers.get('CF-Ray')?.split('-')[0];
+
+			return t_logs_db.insert(tenantLogsSchema.logs).values({
+				id: sql`unhex(${uuidv7({ msecs: timestamp.getTime() }).replaceAll('-', '')})`,
+				timestamp,
+				event_type,
+				context,
+				ip: headers.get('CF-Connecting-IP'),
+				user_agent: headers.get('User-Agent'),
+				...(ray_id && { ray_id: sql`unhex(${ray_id})` }),
+				u_id: sql`unhex(${session.user!.u_id.hex})`,
+				status: TenantLogEventStatus.success,
+			});
+		};
 
 		try {
 			// Insert refs into root
@@ -110,6 +141,16 @@ const useOnboardTenant = routeAction$(
 					u_id: sql`unhex(${session.user!.u_id.hex})`,
 				}),
 			]);
+
+			// The tenant exists as of the root rows landing, so this is both its first audit log and what creates the logs DO
+			platform.ctx.waitUntil(
+				logTenantEvent(TenantLogEventType.created, {
+					name: data.name,
+					avatar: data.avatar,
+					jurisdiction: data.jurisdiction,
+					vault: data.vaultMode,
+				}),
+			);
 
 			if (data.vaultMode === 'bitwarden') {
 				// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
@@ -149,6 +190,18 @@ const useOnboardTenant = routeAction$(
 					});
 					createdSecretId = secret.id;
 
+					// The token itself never goes in the log - only where it now lives and what it connects to
+					platform.ctx.waitUntil(
+						logTenantEvent(TenantLogEventType['changed byo vault token'], {
+							secret: secret.id,
+							project: data.project,
+							endpoints: {
+								base: data.baseCloudEndpoint,
+								authentication: data.authCloudEndpoint,
+							},
+						}),
+					);
+
 					// Now save the id ref to the tenant so we can retreive the access token when needed
 					await t_doStub.updateProperties(
 						{
@@ -156,6 +209,14 @@ const useOnboardTenant = routeAction$(
 						},
 						false,
 						true,
+					);
+
+					// Pointing `byo_bw` at that secret is what actually moves the tenant off our managed vault
+					platform.ctx.waitUntil(
+						logTenantEvent(TenantLogEventType['changed vault'], {
+							from: null,
+							to: 'bitwarden',
+						}),
 					);
 				} catch (error) {
 					console.error('Error saving BYO bitwarden', error);
@@ -232,6 +293,8 @@ const useOnboardTenant = routeAction$(
 			);
 			// Wipes any properties/rows already written to the tenant DO (byo_bw ref, name/avatar, the admin user row); harmless no-op if nothing was ever written
 			platform.ctx.waitUntil(t_doStub.nuke('Rolling back tenant creation'));
+			// Same for the logs DO, so a tenant that never finished onboarding doesn't leave one behind; wiping the storage is what makes a Durable Object stop existing, so this is harmless even if we bailed out before creating it
+			platform.ctx.waitUntil(t_logs_doStub.nuke('Rolling back tenant creation'));
 
 			throw error;
 		}
