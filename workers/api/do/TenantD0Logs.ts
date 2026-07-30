@@ -16,6 +16,12 @@ import { BaseD0 } from '~do/BaseD0';
 // https://developers.cloudflare.com/durable-objects/platform/limits/#what-happens-when-a-durable-object-exceeds-its-storage-limit
 
 export class TenantD0Logs extends BaseD0 {
+	/**
+	 * Self-imposed ceiling on `ctx.storage.sql.databaseSize` (which reports **bytes**). The hard limit is 10 GB, but Durable Object performance tanks past ~8.5 GB, so prune down to that instead of riding the `SQLITE_FULL` fallback all the way up.
+	 * GB * MB * KB * B
+	 */
+	private static readonly MAX_DATABASE_SIZE = 8.5 * 1000 * 1000 * 1000;
+
 	constructor(ctx: DurableObjectState, env: EnvVars) {
 		super(ctx, env);
 
@@ -38,22 +44,10 @@ export class TenantD0Logs extends BaseD0 {
 		const attemptExec = (): ReturnType<BaseD0['sqlExec']> =>
 			super.sqlExec(statements).catch(async (error) => {
 				if (error instanceof Error && error.message.toUpperCase().includes('SQLITE_FULL')) {
-					const [deletedLog] = await this.drizzle
-						.delete(tenantLogsSchema.logs)
-						// Oldest log first
-						.orderBy(asc(tenantLogsSchema.logs.id))
-						// Only 1 at a time
-						.limit(1)
-						.returning({ id: tenantLogsSchema.logs.id })
-						.then((rows) =>
-							rows.map((row) => ({
-								...row,
-								id: row.id.toString('hex'),
-							})),
-						);
+					const deletedLog = await this._deleteOldestLog();
 
 					if (deletedLog) {
-						console.warn('Storage full: Deleted log from', new Date(parseInt(deletedLog.id.substring(0, 12), 16)).toISOString());
+						console.warn('Storage full: Deleted log from', deletedLog.toISOString());
 						return attemptExec();
 					} else {
 						throw new Error('Storage is full and there are no logs to delete.');
@@ -63,7 +57,43 @@ export class TenantD0Logs extends BaseD0 {
 				}
 			});
 
-		return attemptExec();
+		// Enforce our own ceiling only once the incoming statements have landed, so the newest log is never the one evicted
+		return attemptExec().then(async (results) => {
+			await this._enforceStorageLimit();
+			return results;
+		});
+	}
+
+	/**
+	 * Deletes the single oldest log, returning when it was created (the timestamp baked into its UUIDv7 id) or `undefined` if there was nothing left to delete.
+	 */
+	private async _deleteOldestLog() {
+		const [deletedLog] = await this.drizzle
+			.delete(tenantLogsSchema.logs)
+			// Oldest log first
+			.orderBy(asc(tenantLogsSchema.logs.id))
+			// Only 1 at a time
+			.limit(1)
+			.returning({ timestamp: tenantLogsSchema.logs.timestamp });
+
+		return deletedLog?.timestamp;
+	}
+
+	/**
+	 * Deletes the oldest logs until the database is back under {@link TenantD0Logs.MAX_DATABASE_SIZE}. Complements the `SQLITE_FULL` handling in {@link sqlExec}, which only kicks in at the platform's hard ceiling.
+	 */
+	private async _enforceStorageLimit() {
+		// Sync getter, so the overwhelmingly common under-limit case costs nothing. Read off `ctx.storage` rather than the instrumented `_storage` proxy, whose `Reflect.get` would invoke this native getter with the wrong receiver.
+		while (this.ctx.storage.sql.databaseSize > TenantD0Logs.MAX_DATABASE_SIZE) {
+			const deletedLog = await this._deleteOldestLog();
+
+			if (deletedLog) {
+				console.warn('Storage limit exceeded: Deleted log from', deletedLog.toISOString());
+			} else {
+				console.error('Storage limit exceeded and there are no logs to delete.');
+				break;
+			}
+		}
 	}
 
 	private async _setupSystemAlarms() {
