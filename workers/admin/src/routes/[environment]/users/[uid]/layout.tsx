@@ -191,7 +191,7 @@ export default component$(() => {
 						value={overview}
 						onPending={() => <span class="text-body-subtle text-xs dark:text-gray-500">Checking durable objects…</span>}
 						onResolved={(data) => (
-							<div class="flex flex-col items-start gap-1 text-xs sm:items-end">
+							<div class="text-body flex flex-col items-start gap-1 text-xs sm:items-end dark:text-gray-300">
 								<span class="inline-flex items-center gap-1.5">
 									{data.rootExists ? <LuCheck class="h-3.5 w-3.5 text-green-500" /> : <LuX class="h-3.5 w-3.5 text-red-500" />}
 									Root lookup row
