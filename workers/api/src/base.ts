@@ -24,10 +24,11 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 	/**
 	 * @link z.regexes.base64url
 	 */
-	const apiTokenFormat = new RegExp(/^\d+\.[a-z\d_-]+\.[a-z\d_-]+$/i);
+	const apiTokenFormat = new RegExp(/^ase_\d+\.[a-z\d_-]+\.[a-z\d_-]+$/i);
 
 	if (apiTokenFormat.test(token)) {
-		const [version, ak_id_base64url, ak_secret_base64url] = token.split('.') as [`${ApiKeyVersions}`, string, string];
+		const [versionPart, ak_id_base64url, ak_secret_base64url] = token.split('.') as [`ase_${ApiKeyVersions}`, string, string];
+		const version = versionPart.slice('ase_'.length) as `${ApiKeyVersions}`;
 		const versionExists = version in ApiKeyVersions;
 
 		if (versionExists) {

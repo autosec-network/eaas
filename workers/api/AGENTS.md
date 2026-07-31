@@ -25,7 +25,7 @@ Nothing writes a row into a tenant's `TenantD0Logs` directly. Every worker — `
 
 Middleware in `src/index.ts` sets up context vars **before** routing: `contextStorage`, browser-cache decision (from `Cache-Control`), then three DB handles on the context — `a_db` (Analytics Engine), `r_db` (root D1), and later `t_db` (tenant DO, set during auth). CORS/timing/logger follow. The `logger` middleware is dev-only (`c.env.NODE_ENV === 'development'`).
 
-**Auth** (`verifyToken` in `base.ts`): bearer API keys of the form `version.ak_id_base64url.ak_secret_base64url`. It resolves the tenant from root D1, opens the tenant DO DB, `timingSafeEqual`-checks the secret hash (sha256/384/512 by version), and loads per-keyring permissions onto `c.var.permissions`. Some routes are exempted via `except([...])` (e.g. `random`, `hash`, `stats`, `apikeys` which self-auth).
+**Auth** (`verifyToken` in `base.ts`): bearer API keys of the form `ase_version.ak_id_base64url.ak_secret_base64url`. It resolves the tenant from root D1, opens the tenant DO DB, `timingSafeEqual`-checks the secret hash (sha256/384/512 by version), and loads per-keyring permissions onto `c.var.permissions`. Some routes are exempted via `except([...])` (e.g. `random`, `hash`, `stats`, `apikeys` which self-auth).
 
 Env/bindings you'll touch: `CF_ACCOUNT_ID`, `CF_API_TOKEN`, `DB_ROOT` (D1), `TENANT_D0`/`USER_D0`/`USER_SESSION` (DO namespaces, with `.jurisdiction(...)`), Bitwarden `*_BW_SM_*` vars, `SQL_TTL`, `NODE_ENV`, `ENVIRONMENT`. Regenerate `worker-configuration.d.ts` with `npm -w api run build:types:cf` after editing `wrangler.jsonc`.
 
