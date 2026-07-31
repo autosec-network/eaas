@@ -10,7 +10,7 @@ import { Pagination } from '~/components/pagination/pagination';
 import { TenantRow } from '~/components/tenant-row/tenant-row';
 import { TenantsToolbar } from '~/components/tenants-toolbar/tenants-toolbar';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
-import { listDoInstances, purgeTenant, resolveDoIdFromString, serializeActionError, tryResolveTenantLogsDoIdHex, uuidAnyFormatSchema } from '~/routes/[environment]/tenants/tenant-ops';
+import { bitwardenProjectIdsFromEnv, listDoInstances, purgeTenant, resolveDoIdFromString, resolveTenantDoId, serializeActionError, tenantHasDatakeys, tryResolveTenantLogsDoIdHex, uuidAnyFormatSchema } from '~/routes/[environment]/tenants/tenant-ops';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 
 const PAGE_SIZE = 100;
@@ -127,6 +127,8 @@ export const useTenantsPage = routeLoader$(({ sharedMap, url, platform }) => {
 export const useDeleteTenants = routeAction$(
 	async (data, { sharedMap, platform, fail }) => {
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
+		const isProd = sharedMap.get('isProd') as boolean;
+		const bitwardenProjectIds = bitwardenProjectIdsFromEnv(platform.env);
 
 		let deleted = 0;
 		for (const t_id_hex of data.tenantIds) {
@@ -154,6 +156,10 @@ export const useDeleteTenants = routeAction$(
 				do_id_hex: tenant.do_id,
 				tenantNamespace: platform.env.TENANT_D0_PROD,
 				logsNamespace: platform.env.TENANT_D0_LOGS_PROD,
+				bitwardenNamespace: platform.env.BITWARDEN_SESSION_PROD,
+				bitwardenAccessTokens: { us: platform.env.US_BW_SM_ACCESS_TOKEN, eu: platform.env.EU_BW_SM_ACCESS_TOKEN },
+				bitwardenProjectIds,
+				isProd,
 			})
 				.then(() => true)
 				.catch((err: unknown) => fail(500, serializeActionError(err)));
@@ -164,6 +170,44 @@ export const useDeleteTenants = routeAction$(
 		}
 
 		return { deleted };
+	},
+	zod$({ tenantIds: z.array(uuidAnyFormatSchema) }),
+);
+
+/** Which of the given tenants have datakeys — checked on demand right before a delete confirm, not on every list load, since it means opening each tenant's own database */
+export const useCheckDatakeys = routeAction$(
+	async (data, { sharedMap, platform }) => {
+		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
+
+		const withDatakeys = await Promise.all(
+			data.tenantIds.map(async (t_id_hex) => {
+				const [tenant] = await r_db
+					.select({
+						jurisdiction: rootSchema.tenants.jurisdiction,
+						do_id: rootSchema.tenants.do_id,
+					})
+					.from(rootSchema.tenants)
+					.where(eq(rootSchema.tenants.t_id, sql`unhex(${t_id_hex})`))
+					.limit(1)
+					.then((rows) =>
+						rows.map((row) => ({
+							...row,
+							do_id: row.do_id.toString('hex'),
+						})),
+					);
+
+				if (!tenant) return null;
+
+				const doNamespace = platform.env.TENANT_D0_PROD;
+				const doStub = doNamespace.get(resolveTenantDoId(doNamespace, tenant.jurisdiction, t_id_hex, tenant.do_id));
+
+				return tenantHasDatakeys(doStub)
+					.then((has) => (has ? t_id_hex : null))
+					.catch(() => null);
+			}),
+		);
+
+		return { tenantIds: withDatakeys.filter((id): id is string => id !== null) };
 	},
 	zod$({ tenantIds: z.array(uuidAnyFormatSchema) }),
 );
@@ -206,6 +250,7 @@ export default component$(() => {
 	const nav = useNavigate();
 	const pageData = useTenantsPage();
 	const deleteTenantsAction = useDeleteTenants();
+	const checkDatakeysAction = useCheckDatakeys();
 	const nukeOrphanedDoAction = useNukeOrphanedDo();
 
 	const selectedIds = useStore<Record<string, boolean>>({});
@@ -232,6 +277,10 @@ export default component$(() => {
 	const handleDeleteTenants = $(async (tenantIds: string[]) => {
 		if (tenantIds.length === 0) return;
 		if (!window.confirm(`Are you sure you want to delete ${tenantIds.length} tenant(s)? This wipes their durable objects (including logs) and every root reference to them.`)) return;
+
+		const checkResult = await checkDatakeysAction.submit({ tenantIds });
+		const datakeyCount = checkResult.value.failed ? 0 : checkResult.value.tenantIds.length;
+		if (datakeyCount > 0 && !window.confirm(`${datakeyCount} of these tenant(s) have datakeys. Deleting them destroys those datakeys permanently — they cannot be recovered. Continue?`)) return;
 
 		const result = await deleteTenantsAction.submit({ tenantIds });
 		if (result.value.failed) {
