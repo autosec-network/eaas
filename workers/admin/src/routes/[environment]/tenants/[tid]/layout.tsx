@@ -11,7 +11,7 @@ import { eq, sql } from 'drizzle-orm/sql';
 import type { DOJurisdictions } from 'types';
 import { TenantTabs } from '~/components/tenant-tabs/tenant-tabs';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
-import { lookupDoInstances, purgeTenant, resolveTenantDoId, resolveTenantLogsDoId, serializeActionError, tenantIdParamSchema, type TenantDoStub } from '~/routes/[environment]/tenants/tenant-ops';
+import { bitwardenProjectIdsFromEnv, lookupDoInstances, purgeTenant, resolveTenantDoId, resolveTenantLogsDoId, serializeActionError, tenantHasDatakeys, tenantIdParamSchema, type TenantDoStub } from '~/routes/[environment]/tenants/tenant-ops';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 import { useCfAccountId } from '~/routes/layout';
 
@@ -112,7 +112,7 @@ export const useTenantOverview = routeLoader$(({ sharedMap, platform, url }) => 
 	return async () => {
 		const cf = new Cloudflare({ apiToken: platform.env.CF_API_TOKEN });
 
-		const [properties, doInstances, logsDoInstances] = await Promise.all([t_do.getProperties({ name: true, avatar: true }, true).catch(() => ({}) as Record<string, never>), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Main['eaas-api-prod_TenantD0'], [t_do_id_hex]), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Logs['eaas-api-prod_TenantD0Logs'], [t_logs_do_id_hex])]);
+		const [properties, doInstances, logsDoInstances] = await Promise.all([t_do.getProperties({ name: true, avatar: true, byo_bw: true }, true).catch(() => ({}) as Record<string, never>), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Main['eaas-api-prod_TenantD0'], [t_do_id_hex]), lookupDoInstances(cf, platform.env.CF_ACCOUNT_ID, StaticDatabase.Tenant.Logs['eaas-api-prod_TenantD0Logs'], [t_logs_do_id_hex])]);
 
 		const avatar = 'avatar' in properties && typeof properties.avatar === 'string' ? properties.avatar : null;
 
@@ -125,8 +125,15 @@ export const useTenantOverview = routeLoader$(({ sharedMap, platform, url }) => 
 			t_logs_do_id_hex,
 			doExists: doInstances[t_do_id_hex] ?? false,
 			logsDoExists: logsDoInstances[t_logs_do_id_hex] ?? false,
+			isByo: 'byo_bw' in properties && typeof properties.byo_bw === 'string' && properties.byo_bw.length > 0,
 		};
 	};
+});
+
+/** Whether the tenant's own database has any datakeys — the extra "are you sure" delete warning hinges on this */
+export const useTenantHasDatakeys = routeLoader$(({ sharedMap }) => {
+	const t_do = sharedMap.get('t_do') as TenantDoStub;
+	return tenantHasDatakeys(t_do).catch(() => false);
 });
 
 export const useDeleteTenant = routeAction$(async (_data, { sharedMap, platform, fail }) => {
@@ -134,6 +141,7 @@ export const useDeleteTenant = routeAction$(async (_data, { sharedMap, platform,
 	const t_id_hex = sharedMap.get('t_id_hex') as string;
 	const jurisdiction = sharedMap.get('t_jurisdiction') as DOJurisdictions | null;
 	const t_do_id_hex = sharedMap.get('t_do_id_hex') as string;
+	const isProd = sharedMap.get('isProd') as boolean;
 
 	return purgeTenant({
 		r_db,
@@ -142,6 +150,10 @@ export const useDeleteTenant = routeAction$(async (_data, { sharedMap, platform,
 		do_id_hex: t_do_id_hex,
 		tenantNamespace: platform.env.TENANT_D0_PROD,
 		logsNamespace: platform.env.TENANT_D0_LOGS_PROD,
+		bitwardenNamespace: platform.env.BITWARDEN_SESSION_PROD,
+		bitwardenAccessTokens: { us: platform.env.US_BW_SM_ACCESS_TOKEN, eu: platform.env.EU_BW_SM_ACCESS_TOKEN },
+		bitwardenProjectIds: bitwardenProjectIdsFromEnv(platform.env),
+		isProd,
 	})
 		.then(() => ({ deleted: true }))
 		.catch((err: unknown) => fail(500, serializeActionError(err)));
@@ -152,6 +164,7 @@ export default component$(() => {
 	const nav = useNavigate();
 	const ids = useTenantIds();
 	const overview = useTenantOverview();
+	const hasDatakeys = useTenantHasDatakeys();
 	const deleteTenantAction = useDeleteTenant();
 	const cfAccountId = useCfAccountId();
 
@@ -159,6 +172,7 @@ export default component$(() => {
 
 	const handleDelete = $(async () => {
 		if (!window.confirm('Are you sure you want to delete this tenant? This wipes its durable object, its logs durable object, and every root reference to it.')) return;
+		if (hasDatakeys.value && !window.confirm('This tenant has datakeys. Deleting it destroys those datakeys permanently — they cannot be recovered. Continue?')) return;
 
 		const result = await deleteTenantAction.submit({});
 		if (result.value.failed) {
@@ -182,6 +196,7 @@ export default component$(() => {
 								{data.avatar ? <img src={data.avatar} alt="Tenant avatar" width={40} height={40} class="rounded-full" /> : null}
 								<h1 class="text-heading text-2xl font-bold dark:text-white">{data.name ?? 'Tenant'}</h1>
 								{data.jurisdiction ? <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{data.jurisdiction}</span> : null}
+								{data.isByo ? <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">BYO vault</span> : <span class="bg-surface-light inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Autosec managed</span>}
 							</div>
 						)}
 					/>
