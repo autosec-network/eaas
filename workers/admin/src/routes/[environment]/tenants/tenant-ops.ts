@@ -1,10 +1,13 @@
 import { z } from '@builder.io/qwik-city';
 import type { Cloudflare } from 'cloudflare';
+import { drizzleD0 } from 'db/core';
 import * as rootSchema from 'db/schemas/root';
+import * as tenantSchema from 'db/schemas/tenant/main';
 import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import { Buffer } from 'node:buffer';
 import { DOJurisdictions } from 'types';
+import { BitwardenCloudEndpoints } from 'types/bw';
 import * as zm from 'zod/mini';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 import type { EnvVars } from '~/types';
@@ -140,17 +143,95 @@ export async function lookupDoInstances(cf: Cloudflare, accountId: string, names
 }
 
 /**
- * Deletes a tenant everywhere it exists: its Durable Object, its logs Durable Object, and every root lookup row pointing at it.
+ * Whether a tenant's own database has any datakeys. Omitting `cache` from {@link drizzleD0} skips standing up drizzle's cache machinery just to answer a boolean.
+ */
+export async function tenantHasDatakeys(doStub: TenantDoStub): Promise<boolean> {
+	const t_db = drizzleD0(doStub);
+	const rows = await t_db.select({ dk_id: tenantSchema.datakeys.dk_id }).from(tenantSchema.datakeys).limit(1);
+	return rows.length > 0;
+}
+
+/**
+ * Deletes a tenant's BYO connection secret (key `<t_id base64url>/bw`) from Autosec's root Bitwarden org. That secret only points at the customer's own vault — it holds their access token and project, not a copy of their data — so removing it just forgets the connection.
+ *
+ * Before deleting, confirms the secret actually lives in the project this admin environment (dev/prod) + jurisdiction expects — `byo_bw` is just an id pointer, so this catches it having drifted onto the wrong project (e.g. a dev root row pointing at a prod secret) instead of silently deleting someone else's connection.
+ */
+async function deleteByoBwSecret(options: { bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null; accessToken: string; projectId: string; secretId: string }) {
+	const { bitwardenNamespace, jurisdiction, accessToken, projectId, secretId } = options;
+
+	const doId = jurisdiction ? bitwardenNamespace.jurisdiction(jurisdiction).newUniqueId() : bitwardenNamespace.newUniqueId();
+	const stub = bitwardenNamespace.get(doId);
+
+	try {
+		await stub.init({
+			t_jurisdiction: null,
+			t_do_id: null,
+			endpoints: {
+				base: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
+				authentication: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
+			},
+		});
+		await stub.auth(accessToken);
+
+		const [secret] = await stub.getSecrets([secretId]);
+		if (!secret?.projects.some((project) => project.id === projectId)) {
+			throw new Error(`BYO Bitwarden secret ${secretId} does not belong to the expected project ${projectId} — refusing to delete`);
+		}
+
+		await stub.deleteSecrets([secretId]);
+	} finally {
+		await stub.nuke('Session ended');
+	}
+}
+
+/** Reads the four per-(cloud, admin environment) root Bitwarden project ids off `platform.env` into the shape {@link purgeTenant} expects */
+export function bitwardenProjectIdsFromEnv(env: Pick<EnvVars, 'EU_BW_SM_PROJECT_ID_PROD' | 'EU_BW_SM_PROJECT_ID_DEV' | 'US_BW_SM_PROJECT_ID_PROD' | 'US_BW_SM_PROJECT_ID_DEV'>) {
+	return {
+		eu: { prod: env.EU_BW_SM_PROJECT_ID_PROD, dev: env.EU_BW_SM_PROJECT_ID_DEV },
+		us: { prod: env.US_BW_SM_PROJECT_ID_PROD, dev: env.US_BW_SM_PROJECT_ID_DEV },
+	};
+}
+
+/**
+ * Deletes a tenant everywhere it exists: its Durable Object, its logs Durable Object, its BYO Bitwarden connection secret (if it has one), and every root lookup row pointing at it.
  *
  * The Durable Objects go first — `do_id` only lives in the root row, so dropping that row before the wipes would strand storage nobody can address anymore. A failed wipe therefore leaves the root rows intact and throws, making the delete safe to retry.
  */
-export async function purgeTenant(options: { r_db: DrizzleD1Database; t_id_hex: string; jurisdiction: DOJurisdictions | null; do_id_hex?: string | null; tenantNamespace: EnvVars['TENANT_D0_PROD']; logsNamespace: EnvVars['TENANT_D0_LOGS_PROD'] }) {
-	const { r_db, t_id_hex, jurisdiction, do_id_hex, tenantNamespace, logsNamespace } = options;
+export async function purgeTenant(options: {
+	r_db: DrizzleD1Database;
+	t_id_hex: string;
+	jurisdiction: DOJurisdictions | null;
+	do_id_hex?: string | null;
+	tenantNamespace: EnvVars['TENANT_D0_PROD'];
+	logsNamespace: EnvVars['TENANT_D0_LOGS_PROD'];
+	bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD'];
+	bitwardenAccessTokens: { us: string; eu: string };
+	/** Which root Bitwarden project the tenant's BYO secret should live in — split by admin environment (dev/prod) since dev-onboarded and prod-onboarded tenants land in different projects, even though they share an access token */
+	bitwardenProjectIds: { us: { prod: string; dev: string }; eu: { prod: string; dev: string } };
+	isProd: boolean;
+}) {
+	const { r_db, t_id_hex, jurisdiction, do_id_hex, tenantNamespace, logsNamespace, bitwardenNamespace, bitwardenAccessTokens, bitwardenProjectIds, isProd } = options;
+
+	const tenantDoStub = tenantNamespace.get(resolveTenantDoId(tenantNamespace, jurisdiction, t_id_hex, do_id_hex));
+	// Read before nuking below wipes it out from under us
+	const { byo_bw } = await tenantDoStub.getProperties({ byo_bw: true }, true).catch(() => ({}) as Record<string, never>);
+
+	const isEu = jurisdiction === DOJurisdictions['The European Union'];
 
 	await Promise.allSettled([
-		//
-		tenantNamespace.get(resolveTenantDoId(tenantNamespace, jurisdiction, t_id_hex, do_id_hex)).nuke('Tenant deleted by admin'),
+		tenantDoStub.nuke('Tenant deleted by admin'),
 		logsNamespace.get(resolveTenantLogsDoId(logsNamespace, jurisdiction, t_id_hex)).nuke('Tenant deleted by admin'),
+		...(byo_bw
+			? [
+					deleteByoBwSecret({
+						bitwardenNamespace,
+						jurisdiction,
+						accessToken: isEu ? bitwardenAccessTokens.eu : bitwardenAccessTokens.us,
+						projectId: isEu ? (isProd ? bitwardenProjectIds.eu.prod : bitwardenProjectIds.eu.dev) : isProd ? bitwardenProjectIds.us.prod : bitwardenProjectIds.us.dev,
+						secretId: byo_bw,
+					}),
+				]
+			: []),
 	]).then((settled) => {
 		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 		const errors = settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => result.reason);
