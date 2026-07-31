@@ -52,7 +52,7 @@ export async function createApiKey(_existingAk_id_hex?: string) {
 
 	return {
 		ak_id,
-		token: [ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_buffer.toString('base64url')].join('.'),
+		token: `ase_${[ApiKeyVersions['512base64urlSha512'], ak_id.base64url, ak_secret_buffer.toString('base64url')].join('.')}`,
 		ak_secret_hash: {
 			hex: ak_secret_hash_hex,
 		},
