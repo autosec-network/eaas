@@ -10,6 +10,10 @@ import type * as zm from 'zod/mini';
 export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS_DEV' | 'LOGS_PROD' | 'BITWARDEN_SESSION_PROD' | 'TENANT_D0_PROD' | 'TENANT_D0_LOGS_PROD' | 'USER_D0_PROD' | 'USER_SESSION_PROD'>, TypedBindings {
 	GIT_HASH?: string;
 	CF_ACCOUNT_ID: string;
+	EU_BW_SM_PROJECT_ID_PROD: string;
+	EU_BW_SM_PROJECT_ID_DEV: string;
+	US_BW_SM_PROJECT_ID_PROD: string;
+	US_BW_SM_PROJECT_ID_DEV: string;
 }
 
 interface TypedBindings {
