@@ -180,8 +180,18 @@ async function deleteByoBwSecret(options: { bitwardenNamespace: EnvVars['BITWARD
 
 		await stub.deleteSecrets([secretId]);
 	} finally {
-		await stub.nuke('Session ended');
+		// A `finally` block that throws replaces whatever the `try` block returned or threw, so the expected nuke rejection must be swallowed here — otherwise it would mask a real error above (or a clean success) with `nuked: Session ended`.
+		await stub.nuke('Session ended').catch((error: unknown) => {
+			if (!isNukedError(error)) throw error;
+		});
 	}
+}
+
+/**
+ * `.nuke(reason)` on a Durable Object stub always rejects — even when the nuke itself succeeded — with `Error: nuked: <reason>` (or bare `nuked` when no reason was passed). That rejection is not a failure signal; any code awaiting a nuke (directly, or via `Promise.allSettled` alongside other cleanup) must exclude it before deciding whether a *real* error occurred.
+ */
+export function isNukedError(error: unknown): boolean {
+	return error instanceof Error && error.message.startsWith('nuked');
 }
 
 /** Reads the four per-(cloud, admin environment) root Bitwarden project ids off `platform.env` into the shape {@link purgeTenant} expects */
@@ -233,10 +243,16 @@ export async function purgeTenant(options: {
 				]
 			: []),
 	]).then((settled) => {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-		const errors = settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => result.reason);
+		const errors = settled
+			.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+			.map((result) => result.reason)
+			// The two `nuke()` calls above always reject on success too — that's not a failure, so it must not be counted as one
+			.filter((error) => !isNukedError(error));
 
-		if (errors.length > 0) throw new AggregateError(errors, 'Failed to wipe one or more of the tenant durable objects. Root references were left intact so the delete can be retried.');
+		if (errors.length > 0) {
+			throw new AggregateError(errors, 'Failed to wipe one or more of the tenant durable objects. Root references were left intact so the delete can be retried.');
+		}
 	});
 
 	// `users_tenants.t_id` and `api_keys_tenants.t_id` both cascade on delete, so the tenant row is all it takes to clear every root reference

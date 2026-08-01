@@ -3,6 +3,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import type { DOJurisdictions } from 'types';
 import * as zm from 'zod/mini';
+import { isNukedError } from '~/routes/[environment]/tenants/tenant-ops';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 import type { EnvVars } from '~/types';
 
@@ -62,8 +63,12 @@ export async function purgeUser(options: { r_db: DrizzleD1Database; u_id_hex: st
 			await sessionNamespace.get(jurisdictionalNamespace.idFromString(session_token)).nuke('User deleted');
 		}),
 	]).then((settled) => {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-		const errors = settled.filter((result): result is PromiseRejectedResult => result.status === 'rejected').map((result) => result.reason);
+		const errors = settled
+			.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
+			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+			.map((result) => result.reason)
+			// Both `nuke()` calls above always reject on success too — that's not a failure, so it must not be counted as one
+			.filter((error) => !isNukedError(error));
 
 		if (errors.length > 0) throw new AggregateError(errors, 'Failed to wipe one or more of the user durable objects/sessions');
 	});
