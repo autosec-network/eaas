@@ -14,6 +14,7 @@ export const api_keys_tenants = snakeCase.table(
 			.notNull()
 			.references(() => tenants.t_id, { onUpdate: 'cascade', onDelete: 'cascade' }),
 		expires: akt.integer({ mode: 'timestamp_ms' }).notNull(),
+		enabled: akt.integer({ mode: 'boolean' }).notNull().default(true),
 	}),
 	(akt) => [
 		//

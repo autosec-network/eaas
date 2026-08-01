@@ -1,7 +1,7 @@
-import m0000 from './20260711055422_tan_darkhawk/migration.sql';
+import m0000 from './20260805014641_purple_giant_man/migration.sql';
 
 export default {
 	migrations: {
-		'20260711055422_tan_darkhawk': m0000,
+		'20260805014641_purple_giant_man': m0000,
 	},
 };

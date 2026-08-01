@@ -67,6 +67,7 @@ export const apikeyOutput = apikeyEditable.extend({
 	lastRotation: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
 	expired: z.boolean(),
 	lastModified: z.iso.datetime({ precision: 3 }).openapi({ example: new Date(0).toISOString() }),
+	enabled: z.boolean().describe('Whether the API key is active. A disabled key fails authentication without being deleted'),
 });
 
 export const createApikeyOutput = apikeyOutput.extend({

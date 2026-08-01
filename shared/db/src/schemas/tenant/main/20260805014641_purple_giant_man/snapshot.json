@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "744a3d6c-98d2-4ca9-9197-fceb560442a2",
+	"id": "c13f99db-0eef-40c7-a5c8-458153c7e0e4",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -139,6 +139,16 @@
 			"default": null,
 			"generated": null,
 			"name": "last_identifier",
+			"entityType": "columns",
+			"table": "api_keys"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "enabled",
 			"entityType": "columns",
 			"table": "api_keys"
 		},
