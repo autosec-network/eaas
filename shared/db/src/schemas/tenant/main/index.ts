@@ -41,6 +41,10 @@ export const api_keys = snakeCase.table(
 		 */
 		hash: ak.blob({ mode: 'buffer' }).unique().notNull(),
 		last_identifier: ak.text({ mode: 'text', length: 4 }).notNull(),
+		/**
+		 * Allows disabling a key without deleting it
+		 */
+		enabled: ak.integer({ mode: 'boolean' }).notNull().default(true),
 		expires: ak.integer({ mode: 'timestamp_ms' }).notNull(),
 		/**
 		 * last time key was used
