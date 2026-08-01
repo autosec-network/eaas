@@ -196,11 +196,7 @@ export default component$(() => {
 								{data.avatar ? <img src={data.avatar} alt="Tenant avatar" width={40} height={40} class="rounded-full" /> : null}
 								<h1 class="text-heading text-2xl font-bold dark:text-white">{data.name ?? 'Tenant'}</h1>
 								{data.jurisdiction ? <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-800 dark:bg-blue-900/30 dark:text-blue-400">{data.jurisdiction}</span> : null}
-								{data.isByo ? (
-									<span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">BYO vault</span>
-								) : (
-									<span class="bg-surface-light inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Autosec managed</span>
-								)}
+								{data.isByo ? <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-800 dark:bg-purple-900/30 dark:text-purple-400">BYO vault</span> : <span class="bg-surface-light inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium text-gray-800 dark:bg-gray-700 dark:text-gray-300">Autosec managed</span>}
 							</div>
 						)}
 					/>
