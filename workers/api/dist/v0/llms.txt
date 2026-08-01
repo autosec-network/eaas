@@ -335,6 +335,49 @@ Get a list of Api Keys.
 ]
 ```
 
+##### Status: 401 Unauthorized: the provided API key does not exist, or has been destroyed.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
 ### GET /keyrings
 
 - **Method:** `GET`
