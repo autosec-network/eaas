@@ -207,6 +207,7 @@ app.use(
 			// OpenAPI Schemas
 			'/:version/generate/*',
 			// Has it's own auth check
+			'/:version/gss/*',
 			'/:version/apikeys/*',
 			// Free (non-gated)
 			'/:version/random',
