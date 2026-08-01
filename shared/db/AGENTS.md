@@ -14,7 +14,7 @@ The platform spreads data across three Cloudflare stores, each with its own Driz
 
 ## Never write raw SQL
 
-Always query through Drizzle's builder, even for a one-off existence check or count. Raw SQL (`sql\`...\``, `doStub.sqlExec(...)`) bypasses type-checking and the schema as the source of truth; only reach for it when Drizzle genuinely can't express the query. Don't reach for it just to skip building a `drizzleD0` instance — instantiating `drizzleD0(doStub)` is cheap; caching is what's expensive, and it's opt-in. If you don't want caching, simply omit the `cache` key from the config passed to `drizzleD0`/`drizzle` — that alone avoids standing up `SQLCache`, no need to drop to raw SQL.
+Always query through Drizzle's builder, even for a one-off existence check or count. Raw SQL (`sql\`...\``, `doStub.sqlExec(...)`) bypasses type-checking and the schema as the source of truth; only reach for it when Drizzle genuinely can't express the query. Don't reach for it just to skip building a `drizzleD0`instance — instantiating`drizzleD0(doStub)`is cheap; caching is what's expensive, and it's opt-in. If you don't want caching, simply omit the`cache`key from the config passed to`drizzleD0`/`drizzle`— that alone avoids standing up`SQLCache`, no need to drop to raw SQL.
 
 ## Blob columns — the `unhex` rule
 
