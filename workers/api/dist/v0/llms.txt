@@ -13,6 +13,83 @@ Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:
 
 ## Operations
 
+### POST /gss/alert
+
+- **Method:** `POST`
+- **Path:** `/gss/alert`
+- **Tags:** GitHub Secrets Scanning
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**Array of:**
+
+- **`source` (required)**
+
+  `string`, possible values: `"content", "commit", "pull_request_title", "pull_request_description", "pull_request_comment", "issue_title", "issue_description", "issue_comment", "discussion_title", "discussion_body", "discussion_comment", "commit_comment", "gist_content", "gist_comment", "wiki_content", "wiki_commit", "npm", "manual_submission", "unknown"`
+
+- **`token` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`
+
+- **`url`**
+
+  `string`, format: `uri`
+
+* Min items: `1`
+
+**Example:**
+
+```json
+[
+  {
+    "token": "",
+    "type": "",
+    "url": "",
+    "source": "content"
+  }
+]
+```
+
+#### Responses
+
+##### Status: 200
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`label` (required)**
+
+  `string`, possible values: `"true_positive", "false_positive"`
+
+- **`token_hash` (required)**
+
+  `string`
+
+- **`token_type` (required)**
+
+  `string`
+
+* Min items: `1`
+
+**Example:**
+
+```json
+[
+  {
+    "token_hash": "",
+    "token_type": "",
+    "label": "true_positive"
+  }
+]
+```
+
 ### DELETE /apikeys/{token\_id}
 
 - **Method:** `DELETE`
