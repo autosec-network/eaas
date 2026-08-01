@@ -63,6 +63,7 @@ app.openapi(route, async (c) => {
 					m_time: tenantSchema.api_keys.m_time,
 					expires: tenantSchema.api_keys.expires,
 					c_time: tenantSchema.api_keys.c_time,
+					enabled: tenantSchema.api_keys.enabled,
 					r_apikeys: tenantSchema.api_keys.r_apikeys,
 					r_keyrings: tenantSchema.api_keys.r_keyrings,
 				})
@@ -129,6 +130,7 @@ app.openapi(route, async (c) => {
 				expires: row.expires.toISOString(),
 				lastModified: row.c_time.toISOString(),
 				lastRotation: row.m_time.toISOString(),
+				enabled: row.enabled,
 				name: row.name,
 				token_id: row.ak_id.base64url,
 				// It's the string version
