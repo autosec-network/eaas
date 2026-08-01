@@ -6,7 +6,7 @@ import { eq, sql } from 'drizzle-orm/sql';
 import type { DOJurisdictions } from 'types';
 import { UserSessions } from '~/components/user-sessions/user-sessions';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
-import { serializeActionError } from '~/routes/[environment]/tenants/tenant-ops';
+import { isNukedError, serializeActionError } from '~/routes/[environment]/tenants/tenant-ops';
 
 /**
  * Sessions are listed in root, but everything worth seeing about one (when it was minted, which bindings it holds) lives in the session's own Durable Object — so each row is filled in from both.
@@ -78,6 +78,10 @@ export const useEndSessions = routeAction$(
 			const result = await sessionNamespace
 				.get(sessionNamespaceJurisdiction.idFromString(tokenHex))
 				.nuke('Ended by admin')
+				// `.nuke()` always rejects, even on success (see `isNukedError`) — swallow that expected rejection so the root delete below still runs; anything else is a real failure and gets rethrown into the outer catch
+				.catch((err: unknown) => {
+					if (!isNukedError(err)) throw err;
+				})
 				.then(() =>
 					r_db
 						.delete(rootSchema.users_auth_sessions)
