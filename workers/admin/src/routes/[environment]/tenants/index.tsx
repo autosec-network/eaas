@@ -217,19 +217,21 @@ export const useNukeOrphanedDo = routeAction$(
 		const reason = 'Orphaned tenant durable object deleted by admin';
 
 		return (
-			data.namespace === 'logs'
-				? (() => {
-						const namespace = platform.env.TENANT_D0_LOGS_PROD;
-						return namespace.get(resolveDoIdFromString(namespace, data.doId)).nuke(reason);
-					})()
-				: (() => {
-						const namespace = platform.env.TENANT_D0_PROD;
-						return namespace.get(resolveDoIdFromString(namespace, data.doId)).nuke(reason);
-					})()
-		)
-			.then(() => ({ nuked: true }))
-			// `.nuke()` always rejects, even on success (see `isNukedError`) — that expected rejection is the intended outcome here, not a failure
-			.catch((err: unknown) => (isNukedError(err) ? { nuked: true } : fail(500, serializeActionError(err))));
+			(
+				data.namespace === 'logs'
+					? (() => {
+							const namespace = platform.env.TENANT_D0_LOGS_PROD;
+							return namespace.get(resolveDoIdFromString(namespace, data.doId)).nuke(reason);
+						})()
+					: (() => {
+							const namespace = platform.env.TENANT_D0_PROD;
+							return namespace.get(resolveDoIdFromString(namespace, data.doId)).nuke(reason);
+						})()
+			)
+				.then(() => ({ nuked: true }))
+				// `.nuke()` always rejects, even on success (see `isNukedError`) — that expected rejection is the intended outcome here, not a failure
+				.catch((err: unknown) => (isNukedError(err) ? { nuked: true } : fail(500, serializeActionError(err))))
+		);
 	},
 	zod$({
 		namespace: z.enum(['main', 'logs']),
