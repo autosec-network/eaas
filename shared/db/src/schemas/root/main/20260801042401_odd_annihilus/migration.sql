@@ -2,6 +2,7 @@ CREATE TABLE `api_keys_tenants` (
 	`ak_id` blob PRIMARY KEY,
 	`t_id` blob NOT NULL,
 	`expires` integer NOT NULL,
+	`enabled` integer DEFAULT true NOT NULL,
 	CONSTRAINT `fk_api_keys_tenants_t_id_tenants_t_id_fk` FOREIGN KEY (`t_id`) REFERENCES `tenants`(`t_id`) ON UPDATE CASCADE ON DELETE CASCADE,
 	CONSTRAINT `api_keys_tenants_ak_id_t_id_unique` UNIQUE(`ak_id`,`t_id`)
 ) WITHOUT ROWID, STRICT;

@@ -284,6 +284,10 @@ Get a specific Api Key by its token ID.
 
   `string`, format: `date-time`
 
+- **`enabled` (required)**
+
+  `boolean` — Whether the API key is active. A disabled key fails authentication without being deleted
+
 - **`expired` (required)**
 
   `boolean`
@@ -333,7 +337,8 @@ Get a specific Api Key by its token ID.
   "created": "1970-01-01T00:00:00.000Z",
   "lastRotation": "1970-01-01T00:00:00.000Z",
   "expired": true,
-  "lastModified": "1970-01-01T00:00:00.000Z"
+  "lastModified": "1970-01-01T00:00:00.000Z",
+  "enabled": true
 }
 ```
 
@@ -356,6 +361,10 @@ Get a list of Api Keys.
 - **`created` (required)**
 
   `string`, format: `date-time`
+
+- **`enabled` (required)**
+
+  `boolean` — Whether the API key is active. A disabled key fails authentication without being deleted
 
 - **`expired` (required)**
 
@@ -407,7 +416,8 @@ Get a list of Api Keys.
     "created": "1970-01-01T00:00:00.000Z",
     "lastRotation": "1970-01-01T00:00:00.000Z",
     "expired": true,
-    "lastModified": "1970-01-01T00:00:00.000Z"
+    "lastModified": "1970-01-01T00:00:00.000Z",
+    "enabled": true
   }
 ]
 ```
