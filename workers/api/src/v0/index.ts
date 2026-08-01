@@ -4,6 +4,7 @@ import { version } from '~/../package.json';
 import { problemJsonValidation } from '~/errors';
 import type { ContextVariables, EnvVars } from '~/types';
 import apikeys from '~/v0/apikeys/index';
+import gss from '~/v0/gss/index';
 import keyrings from '~/v0/keyrings/index';
 import random from '~/v0/random';
 import stats from '~/v0/stats/index';
@@ -101,11 +102,22 @@ app.doc('/generate/v0.eaas.cf-apig.openapi', {
 	],
 });
 
+app.openAPIRegistry.registerComponent('securitySchemes', 'GithubPublicKeyIdentifier', {
+	type: 'apiKey',
+	in: 'header',
+	name: 'Github-Public-Key-Identifier',
+});
+app.openAPIRegistry.registerComponent('securitySchemes', 'GithubPublicKeySignature', {
+	type: 'apiKey',
+	in: 'header',
+	name: 'Github-Public-Key-Signature',
+});
+app.route('/gss', gss);
+
 app.openAPIRegistry.registerComponent('securitySchemes', 'ApiToken', {
 	type: 'http',
 	scheme: 'bearer',
 });
-
 app.route('/apikeys', apikeys);
 app.route('/keyrings', keyrings);
 app.route('/random', random);
