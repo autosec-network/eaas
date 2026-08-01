@@ -10,7 +10,7 @@ import { Pagination } from '~/components/pagination/pagination';
 import { TenantRow } from '~/components/tenant-row/tenant-row';
 import { TenantsToolbar } from '~/components/tenants-toolbar/tenants-toolbar';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
-import { bitwardenProjectIdsFromEnv, listDoInstances, purgeTenant, resolveDoIdFromString, resolveTenantDoId, serializeActionError, tenantHasDatakeys, tryResolveTenantLogsDoIdHex, uuidAnyFormatSchema } from '~/routes/[environment]/tenants/tenant-ops';
+import { bitwardenProjectIdsFromEnv, isNukedError, listDoInstances, purgeTenant, resolveDoIdFromString, resolveTenantDoId, serializeActionError, tenantHasDatakeys, tryResolveTenantLogsDoIdHex, uuidAnyFormatSchema } from '~/routes/[environment]/tenants/tenant-ops';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 
 const PAGE_SIZE = 100;
@@ -228,7 +228,8 @@ export const useNukeOrphanedDo = routeAction$(
 					})()
 		)
 			.then(() => ({ nuked: true }))
-			.catch((err: unknown) => fail(500, serializeActionError(err)));
+			// `.nuke()` always rejects, even on success (see `isNukedError`) — that expected rejection is the intended outcome here, not a failure
+			.catch((err: unknown) => (isNukedError(err) ? { nuked: true } : fail(500, serializeActionError(err))));
 	},
 	zod$({
 		namespace: z.enum(['main', 'logs']),
