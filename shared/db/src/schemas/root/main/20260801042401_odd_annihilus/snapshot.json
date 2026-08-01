@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "5adea58e-681c-40f8-86a5-fbc74e9d6938",
+	"id": "164b6ab0-4b89-43d7-a165-5dfb85ba0d20",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -55,6 +55,16 @@
 			"default": null,
 			"generated": null,
 			"name": "expires",
+			"entityType": "columns",
+			"table": "api_keys_tenants"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": "true",
+			"generated": null,
+			"name": "enabled",
 			"entityType": "columns",
 			"table": "api_keys_tenants"
 		},
