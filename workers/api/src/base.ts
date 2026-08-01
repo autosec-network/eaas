@@ -45,6 +45,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 			const [rootApiKey] = await c.var.r_db
 				.select({
 					expires: rootSchema.api_keys_tenants.expires,
+					enabled: rootSchema.api_keys_tenants.enabled,
 					t_id: rootSchema.tenants.t_id,
 					jurisdiction: rootSchema.tenants.jurisdiction,
 					do_id: rootSchema.tenants.do_id,
@@ -68,6 +69,11 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 			endTime(c, 'auth-r_db-fetch', 3);
 
 			if (rootApiKey) {
+				if (!rootApiKey.enabled) {
+					console.error(new Error('Token disabled'));
+					return false;
+				}
+
 				const expired = rootApiKey.expires < new Date();
 
 				if (expired && failExpire) {
@@ -97,6 +103,7 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 					const [tenantApiKey] = await c.var.t_db
 						.select({
 							hash: tenantSchema.api_keys.hash,
+							enabled: tenantSchema.api_keys.enabled,
 							r_keyrings: tenantSchema.api_keys.r_keyrings,
 							r_apikeys: tenantSchema.api_keys.r_apikeys,
 						})
@@ -106,6 +113,11 @@ export async function verifyToken(token: string, c: Context<{ Bindings: EnvVars;
 					endTime(c, 'auth-t_db-fetch', 3);
 
 					if (tenantApiKey) {
+						if (!tenantApiKey.enabled) {
+							console.error(new Error('Token disabled'));
+							return false;
+						}
+
 						const receivedSecret = Buffer.from(ak_secret_base64url, 'base64url');
 						let calculatedHash: Uint8Array;
 

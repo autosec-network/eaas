@@ -88,6 +88,7 @@ app.openapi(route, async (c) => {
 						m_time: tenantSchema.api_keys.m_time,
 						expires: tenantSchema.api_keys.expires,
 						c_time: tenantSchema.api_keys.c_time,
+						enabled: tenantSchema.api_keys.enabled,
 						r_apikeys: tenantSchema.api_keys.r_apikeys,
 						r_keyrings: tenantSchema.api_keys.r_keyrings,
 					})
@@ -132,6 +133,7 @@ app.openapi(route, async (c) => {
 					expires: row.expires.toISOString(),
 					expired: row.expires < new Date(),
 					lastModified: row.c_time.toISOString(),
+					enabled: row.enabled,
 					apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
 					// It's the string version
 					keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
