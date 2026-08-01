@@ -7,6 +7,7 @@ import type { Buffer } from 'node:buffer';
 import { createHash } from 'node:crypto';
 import { Permissions } from 'types';
 import { verifyToken } from '~/base';
+import { problemResponse } from '~/errors';
 import type { ContextVariables, EnvVars } from '~/types';
 import { apikeyOutput } from '~/v0/apikeys/shared';
 import { APITags } from '~/v0/extras';
@@ -46,6 +47,7 @@ export const route = createRoute({
 			},
 			description: 'Depending on key permissions, list all api keys, or fallback to itself.',
 		},
+		401: problemResponse('Unauthorized: the provided API key does not exist, or has been destroyed.'),
 	},
 });
 
@@ -119,25 +121,32 @@ app.openapi(route, async (c) => {
 		};
 	}
 
-	return c.json(
-		apiKeyRows.map(
-			(row) =>
-				({
-					created: row.b_time.toISOString(),
-					expired: row.expires < new Date(),
-					expires: row.expires.toISOString(),
-					lastModified: row.c_time.toISOString(),
-					lastRotation: row.m_time.toISOString(),
-					name: row.name,
-					token_id: row.ak_id.base64url,
-					// It's the string version
-					apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
-					// It's the string version
-					keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
-					keyrings: keyringsByApiKey.get(row.ak_id.base64url) ?? {},
-				}) satisfies z.output<typeof apikeyOutput>,
-		),
+	const output = apiKeyRows.map(
+		(row) =>
+			({
+				created: row.b_time.toISOString(),
+				expired: row.expires < new Date(),
+				expires: row.expires.toISOString(),
+				lastModified: row.c_time.toISOString(),
+				lastRotation: row.m_time.toISOString(),
+				name: row.name,
+				token_id: row.ak_id.base64url,
+				// It's the string version
+				apikeysPermission: Permissions[row.r_apikeys] as unknown as Permissions,
+				// It's the string version
+				keyringsPermission: Permissions[row.r_keyrings] as unknown as Permissions,
+				keyrings: keyringsByApiKey.get(row.ak_id.base64url) ?? {},
+			}) satisfies z.output<typeof apikeyOutput>,
 	);
+
+	// Always surface the caller's own key at index 0, regardless of DB row order
+	const selfIndex = output.findIndex((row) => row.token_id === c.var.ak_id.base64url);
+	if (selfIndex > 0) {
+		const [selfRow] = output.splice(selfIndex, 1);
+		output.unshift(selfRow);
+	}
+
+	return c.json(output);
 });
 
 export default app;
