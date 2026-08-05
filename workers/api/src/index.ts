@@ -1,3 +1,4 @@
+import { methodNotAllowed } from 'hono/method-not-allowed';
 import type { TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import type * as zm from 'zod/mini';
 import type { ContextVariables, EnvVars } from '~/types';
@@ -101,6 +102,7 @@ export default {
 				),
 			),
 		);
+		app.use('*', methodNotAllowed());
 
 		// Debug
 		app.use('*', (c, next) =>
