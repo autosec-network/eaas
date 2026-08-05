@@ -111,6 +111,15 @@ export default {
 				),
 			),
 		);
+		app.use('*', (c, next) =>
+			import('hono/method-not-allowed').then(({ methodNotAllowed }) =>
+				methodNotAllowed({ app })(
+					// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+					c,
+					next,
+				),
+			),
+		);
 
 		// Debug
 		app.use('*', (c, next) =>
