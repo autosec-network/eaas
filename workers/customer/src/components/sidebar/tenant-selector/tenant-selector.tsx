@@ -1,7 +1,8 @@
 import { Resource, component$, useResource$, useSignal, useVisibleTask$ } from '@builder.io/qwik';
-import { Link } from '@builder.io/qwik-city';
+import { Link, useLocation } from '@builder.io/qwik-city';
 import { LuChevronsUpDown, LuPlus } from '@qwikest/icons/lucide';
 import type { DOJurisdictions } from 'types';
+import { proxiedImageUrl } from '~/helpers/image-proxy';
 import { getTenantPickerProperties, useTenants } from '~/routes/layout';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -10,6 +11,7 @@ import * as m from '~/paraglide/messages';
 
 /** Mini tenant avatar + name for a single row in the selector dropdown */
 const TenantMiniRow = component$<{ jurisdiction: DOJurisdictions | null; do_id: string }>(({ jurisdiction, do_id }) => {
+	const location = useLocation();
 	const rowRef = useSignal<HTMLElement>();
 	const isVisible = useSignal(false);
 
@@ -66,7 +68,7 @@ const TenantMiniRow = component$<{ jurisdiction: DOJurisdictions | null; do_id: 
 				)}
 				onResolved={(tenant) => (
 					<div class="flex w-full items-center gap-2.5">
-						{tenant?.avatar ? <img src={tenant.avatar} alt={tenant.name ?? ''} width={28} height={28} class="h-7 w-7 rounded-full object-cover" /> : <div class="bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold">{tenant?.name?.charAt(0)}</div>}
+						{tenant?.avatar ? <img src={proxiedImageUrl(location.url.origin, tenant.avatar)} alt={tenant.name ?? ''} width={28} height={28} class="h-7 w-7 rounded-full object-cover" /> : <div class="bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20 flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold">{tenant?.name?.charAt(0)}</div>}
 						<span class="w-full flex-1 truncate text-sm font-medium text-gray-900 dark:text-white">{tenant?.name}</span>
 					</div>
 				)}
