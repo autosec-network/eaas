@@ -12,7 +12,7 @@ CREATE TABLE `api_keys` (
 	`ak_id` blob PRIMARY KEY,
 	`name` text NOT NULL,
 	`hash` blob NOT NULL UNIQUE,
-	`last_identifier` text(4) NOT NULL,
+	`last_identifier` text NOT NULL,
 	`enabled` integer DEFAULT true NOT NULL,
 	`expires` integer NOT NULL,
 	`a_time` integer,
