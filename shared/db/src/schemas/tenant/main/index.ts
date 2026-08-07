@@ -40,7 +40,7 @@ export const api_keys = snakeCase.table(
 		 * Hashed value of api key secret
 		 */
 		hash: ak.blob({ mode: 'buffer' }).unique().notNull(),
-		last_identifier: ak.text({ mode: 'text', length: 4 }).notNull(),
+		last_identifier: ak.text({ mode: 'text' }).notNull(),
 		/**
 		 * Allows disabling a key without deleting it
 		 */

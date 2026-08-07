@@ -1,7 +1,7 @@
-import m0000 from './20260805014641_purple_giant_man/migration.sql';
+import m0000 from './20260807224930_slow_prima/migration.sql';
 
 export default {
 	migrations: {
-		'20260805014641_purple_giant_man': m0000,
+		'20260807224930_slow_prima': m0000,
 	},
 };
