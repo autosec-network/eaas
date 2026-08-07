@@ -19,6 +19,7 @@ import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema }
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
+import { proxiedImageUrl } from '~/helpers/image-proxy';
 import { useSession } from '~/routes/plugin@auth';
 
 // eslint-disable-next-line @typescript-eslint/ban-ts-comment
@@ -409,9 +410,7 @@ export default component$(() => {
 								class={[inputClass, 'font-mono']}
 								onInput$={(_, el) => {
 									if (TenantPropertiesSchema.def.shape.avatar.safeParse(el.value).success) {
-										const proxyUrl = new URL('/image/proxy', location.url.origin);
-										proxyUrl.searchParams.set('url', el.value);
-										avatarPreview.value = proxyUrl.href;
+										avatarPreview.value = proxiedImageUrl(location.url.origin, el.value);
 									}
 								}}
 							/>
