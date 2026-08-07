@@ -1,5 +1,7 @@
 import { Resource, component$, getLocale, useResource$ } from '@builder.io/qwik';
+import { useLocation } from '@builder.io/qwik-city';
 import type { DOJurisdictions } from 'types';
+import { proxiedImageUrl } from '~/helpers/image-proxy';
 import { getTenantPickerProperties, useTimezone } from '~/routes/layout';
 
 interface Props {
@@ -8,6 +10,7 @@ interface Props {
 }
 
 export default component$<Props>((props) => {
+	const location = useLocation();
 	const locale = getLocale();
 	const timezone = useTimezone();
 	const tenantData = useResource$(() => getTenantPickerProperties(props.jurisdiction, props.do_id));
@@ -26,7 +29,7 @@ export default component$<Props>((props) => {
 			)}
 			onResolved={(data) => (
 				<div class="flex items-center gap-4 p-5">
-					{data.avatar ? <img src={data.avatar} alt={data.name} width={44} height={44} class="ring-surface-light dark:ring-surface-dark h-11 w-11 rounded-full object-cover ring-2" /> : <div class="bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20 flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold">{data.name?.charAt(0)}</div>}
+					{data.avatar ? <img src={proxiedImageUrl(location.url.origin, data.avatar)} alt={data.name} width={44} height={44} class="ring-surface-light dark:ring-surface-dark h-11 w-11 rounded-full object-cover ring-2" /> : <div class="bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20 flex h-11 w-11 items-center justify-center rounded-full text-sm font-bold">{data.name?.charAt(0)}</div>}
 
 					<div class="min-w-0 flex-1">
 						<div class="flex items-center gap-2">
