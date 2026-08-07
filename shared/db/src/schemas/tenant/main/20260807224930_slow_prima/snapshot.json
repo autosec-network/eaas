@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "c13f99db-0eef-40c7-a5c8-458153c7e0e4",
+	"id": "e55d00d1-7720-4309-a023-7d4c7f1a49f0",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -133,7 +133,7 @@
 			"table": "api_keys"
 		},
 		{
-			"type": "text(4)",
+			"type": "text",
 			"notNull": true,
 			"autoincrement": false,
 			"default": null,
