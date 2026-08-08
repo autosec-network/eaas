@@ -7,6 +7,15 @@ export function hexToUuid(hex: string): UUID {
 	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
 }
 
+/**
+ * Recover the creation time a UUIDv7 carries in its first 48 bits (a big-endian Unix timestamp in milliseconds).
+ * @param uuid Hyphenated or hex (hyphen-less) UUIDv7
+ * @link https://datatracker.ietf.org/doc/html/rfc9562#name-uuid-version-7
+ */
+export function uuidv7ToDate(uuid: string): Date {
+	return new Date(parseInt(uuid.replaceAll('-', '').slice(0, 12), 16));
+}
+
 export async function createApiKey(_existingAk_id_hex?: string) {
 	const existingAk_id_hex = await zm
 		.optional(
