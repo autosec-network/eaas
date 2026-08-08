@@ -39,6 +39,10 @@
 			"import": "./dist/tenants/logging.js",
 			"types": "./dist/tenants/logging.d.ts"
 		},
+		"./tenants/verification": {
+			"import": "./dist/tenants/verification.js",
+			"types": "./dist/tenants/verification.d.ts"
+		},
 		"./zod/mini": {
 			"import": "./dist/zod-mini/index.js",
 			"types": "./dist/zod-mini/index.d.ts"

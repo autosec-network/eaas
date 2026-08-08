@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "e55d00d1-7720-4309-a023-7d4c7f1a49f0",
+	"id": "3b2881d9-1b35-4c6a-a391-5ccd0d21e256",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -30,6 +30,10 @@
 		},
 		{
 			"name": "users_keyrings",
+			"entityType": "tables"
+		},
+		{
+			"name": "verification_tokens",
 			"entityType": "tables"
 		},
 		{
@@ -673,6 +677,36 @@
 			"table": "users_keyrings"
 		},
 		{
+			"type": "text",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "action",
+			"entityType": "columns",
+			"table": "verification_tokens"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "hashed_token",
+			"entityType": "columns",
+			"table": "verification_tokens"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "verification_tokens"
+		},
+		{
 			"columns": ["ak_id"],
 			"tableTo": "api_keys",
 			"columnsTo": ["ak_id"],
@@ -774,6 +808,13 @@
 			"nameExplicit": false,
 			"name": "users_pk",
 			"table": "users",
+			"entityType": "pks"
+		},
+		{
+			"columns": ["hashed_token"],
+			"nameExplicit": false,
+			"name": "verification_tokens_pk",
+			"table": "verification_tokens",
 			"entityType": "pks"
 		},
 		{
@@ -929,6 +970,20 @@
 			"name": "idx_users_keyrings_kr_id",
 			"entityType": "indexes",
 			"table": "users_keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "expires",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_verification_tokens_expires",
+			"entityType": "indexes",
+			"table": "verification_tokens"
 		},
 		{
 			"columns": ["hash"],

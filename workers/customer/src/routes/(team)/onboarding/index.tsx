@@ -1,6 +1,6 @@
 import type { Session } from '@auth/qwik';
 import { Resource, component$, useResource$, useSignal, type ClassList } from '@builder.io/qwik';
-import { Form, routeAction$, server$, useLocation, z, zod$ } from '@builder.io/qwik-city';
+import { Form, routeAction$, useLocation, z, zod$ } from '@builder.io/qwik-city';
 import { LuLoader } from '@qwikest/icons/lucide';
 import { SiBitwarden } from '@qwikest/icons/simpleicons';
 import { TenantByoBwNoteSchema, TenantPropertiesSchema } from 'db';
@@ -18,6 +18,7 @@ import { BitwardenCloudEndpoints } from 'types/bw';
 import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
+import { getProjects } from '~/helpers/bitwarden-projects';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 import { proxiedImageUrl } from '~/helpers/image-proxy';
 import { useSession } from '~/routes/plugin@auth';
@@ -30,34 +31,6 @@ const CLOUD_PRESETS = {
 	us: { base: BitwardenCloudEndpoints.Api.us, auth: BitwardenCloudEndpoints.Identity.us },
 	eu: { base: BitwardenCloudEndpoints.Api.eu, auth: BitwardenCloudEndpoints.Identity.eu },
 } as const;
-
-const getProjects = server$(async function (jurisdiction: DOJurisdictions | null, baseEndpoint: string, authEndpoint: string, apiKey: string) {
-	// An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against (`idFromString` throws "Invalid Durable Object ID"), so when proxying, mint it on the proxy — which can also apply the jurisdiction workerd doesn't support.
-	const useProxy = isLocal(this.platform) && !!this.platform.env.BITWARDEN_SESSION_PROXY;
-	const bwId = useProxy ? await this.platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(jurisdiction ?? undefined) : (jurisdiction ? this.platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : this.platform.env.BITWARDEN_SESSION).newUniqueId().toString();
-	const doStub = resolveDoStub(this.platform, this.platform.env.BITWARDEN_SESSION, this.platform.env.BITWARDEN_SESSION_PROXY, { id: bwId, jurisdiction: jurisdiction ?? undefined });
-
-	try {
-		await doStub.init({ t_jurisdiction: null, t_do_id: null, endpoints: { base: baseEndpoint, authentication: authEndpoint } });
-		await doStub.auth(apiKey);
-		const projects = await doStub.getProjects();
-
-		return Promise.all(
-			projects
-				.sort((a, b) => new Date(b.revisionDate).getTime() - new Date(a.revisionDate).getTime())
-				.map(async ({ id, name }) => ({
-					id,
-					name: await doStub.decryptSecret(apiKey, name),
-				})),
-		);
-	} catch (error) {
-		console.error('Error fetching projects', error);
-		// eslint-disable-next-line preserve-caught-error
-		throw new Error(`Unable to fetch projects. Attempt ${bwId}`);
-	} finally {
-		this.platform.ctx.waitUntil(doStub.nuke('Session ended'));
-	}
-});
 
 const useOnboardTenantBaseSchema = z.object({
 	name: z.string().nonempty(),
@@ -612,7 +585,7 @@ export default component$(() => {
 												<select id="project" name="project" class={inputClass} required>
 													{resolved.map(({ id, name }, index) => (
 														<option selected={index === 0} key={id} value={id}>
-															{name}
+															{`${name} (${id})`}
 														</option>
 													))}
 												</select>
