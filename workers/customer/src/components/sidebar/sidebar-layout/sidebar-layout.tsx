@@ -20,6 +20,8 @@ export default component$(() => {
 	const tenantId = isTenantScope ? pathParts[0] : null;
 	const usersPath = tenantId ? `/${tenantId}/users` : '/';
 	const isUsersRoute = location.url.pathname === usersPath || location.url.pathname === `${usersPath}/`;
+	const vaultPath = tenantId ? `/${tenantId}/vault` : '/';
+	const isVaultRoute = location.url.pathname === vaultPath || location.url.pathname === `${vaultPath}/`;
 
 	return (
 		<div class="flex h-dvh min-h-0 overflow-hidden">
@@ -46,6 +48,9 @@ export default component$(() => {
 							<p class="px-2 text-xs font-semibold tracking-wide text-gray-500 uppercase dark:text-gray-400">{m.sidebar_group_settings()}</p>
 							<Link prefetch="js" href={usersPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isUsersRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
 								{m.sidebar_group_users()}
+							</Link>
+							<Link prefetch="js" href={vaultPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isVaultRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
+								{m.sidebar_group_vault()}
 							</Link>
 						</div>
 					) : null}

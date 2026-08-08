@@ -6,6 +6,7 @@ export enum TenantLogEventType {
 	created = 0,
 	'changed vault' = 1,
 	'changed byo vault token' = 2,
+	'rescanned vault' = 3,
 }
 
 export enum TenantLogEventStatus {
