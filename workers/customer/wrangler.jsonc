@@ -91,6 +91,13 @@
 			}
 		]
 	},
+	"ratelimits": [
+		{
+			"name": "VAULT_RESCAN_RATE_LIMITER",
+			"namespace_id": "1001",
+			"simple": { "limit": 1, "period": 60 }
+		}
+	],
 	"env": {
 		"prod": {
 			"name": "eaas-customer-prod",
@@ -211,7 +218,14 @@
 						"remote": true
 					}
 				]
-			}
+			},
+			"ratelimits": [
+				{
+					"name": "VAULT_RESCAN_RATE_LIMITER",
+					"namespace_id": "1001",
+					"simple": { "limit": 1, "period": 60 }
+				}
+			]
 		}
 	}
 }
