@@ -90,6 +90,12 @@ CREATE TABLE `users_keyrings` (
 	CONSTRAINT `fk_users_keyrings_kr_id_keyrings_kr_id_fk` FOREIGN KEY (`kr_id`) REFERENCES `keyrings`(`kr_id`) ON UPDATE CASCADE ON DELETE CASCADE
 ) WITHOUT ROWID, STRICT;
 --> statement-breakpoint
+CREATE TABLE `verification_tokens` (
+	`action` text NOT NULL,
+	`hashed_token` blob PRIMARY KEY,
+	`expires` integer NOT NULL
+) WITHOUT ROWID, STRICT;
+--> statement-breakpoint
 CREATE INDEX `idx_alarms_type` ON `alarms` (`type`);--> statement-breakpoint
 CREATE INDEX `idx_alarms_next_time` ON `alarms` (`next_time`);--> statement-breakpoint
 CREATE UNIQUE INDEX `case_insensitive_apikey_name` ON `api_keys` (lower("name"));--> statement-breakpoint
@@ -100,4 +106,5 @@ CREATE INDEX `idx_datakeys_kr_id` ON `datakeys` (`kr_id`);--> statement-breakpoi
 CREATE UNIQUE INDEX `case_insensitive_keyring_name` ON `keyrings` (lower("name"));--> statement-breakpoint
 CREATE INDEX `idx_keyrings_name` ON `keyrings` (`name`);--> statement-breakpoint
 CREATE INDEX `idx_users_keyrings_u_id` ON `users_keyrings` (`u_id`);--> statement-breakpoint
-CREATE INDEX `idx_users_keyrings_kr_id` ON `users_keyrings` (`kr_id`);
+CREATE INDEX `idx_users_keyrings_kr_id` ON `users_keyrings` (`kr_id`);--> statement-breakpoint
+CREATE INDEX `idx_verification_tokens_expires` ON `verification_tokens` (`expires`);

@@ -1,5 +1,6 @@
 import type { DurableObject } from 'cloudflare:workers';
 import type { TenantPropertiesSchema, UserPropertiesSchema } from 'db';
+import type { VaultMigrationParamsSchema } from 'helpers/vault-migration';
 import type { UUID } from 'node:crypto';
 import type { DOJurisdictions } from 'types';
 import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
@@ -8,7 +9,7 @@ import type { ZodPick } from 'types/zod/mini';
 import type * as zm from 'zod/mini';
 import type { BitwardenSessionProxy, TenantD0LogsProxy, TenantD0Proxy, UserD0Proxy, UserSessionProxy } from '../../do-proxy/src/index';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'BITWARDEN_SESSION' | 'TENANT_D0' | 'TENANT_D0_LOGS' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY' | 'USER_SESSION_PROXY'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'VAULT_MIGRATION' | 'BITWARDEN_SESSION' | 'TENANT_D0' | 'TENANT_D0_LOGS' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY' | 'USER_SESSION_PROXY'>, TypedBindings {
 	GIT_HASH?: string;
 	EU_BW_SM_PROJECT_ID: string;
 	US_BW_SM_PROJECT_ID: string;
@@ -16,6 +17,7 @@ export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'BITWARDEN_SESSIO
 
 interface TypedBindings {
 	LOGS: Queue<zm.input<typeof TenantLogQueueMessageSchema>>;
+	VAULT_MIGRATION: Workflow<zm.input<typeof VaultMigrationParamsSchema>>;
 	BITWARDEN_SESSION: DurableObjectNamespace<BitwardenSession>;
 	TENANT_D0: DurableObjectNamespace<TenantD0>;
 	TENANT_D0_LOGS: DurableObjectNamespace<BaseD0>;
