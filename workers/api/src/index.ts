@@ -10,6 +10,7 @@ export { UserD0 } from '~do/UserD0';
 
 // Re-export Workflows since workerd can only find from from `wrangler.jsonc`'s `main` file
 export { DataKeyRotation } from '~wf/dataKeyRotation';
+export { VaultMigration } from '~wf/vaultMigration';
 
 export default {
 	async fetch(request, env, ctx) {
