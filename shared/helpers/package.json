@@ -17,6 +17,10 @@
 			"import": "./dist/noise.js",
 			"types": "./dist/noise.d.ts"
 		},
+		"./vault-migration": {
+			"import": "./dist/vault-migration.js",
+			"types": "./dist/vault-migration.d.ts"
+		},
 		"./zod/mini": {
 			"import": "./dist/zod-mini/index.js",
 			"types": "./dist/zod-mini/index.d.ts"

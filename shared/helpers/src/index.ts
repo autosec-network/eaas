@@ -16,6 +16,20 @@ export function uuidv7ToDate(uuid: string): Date {
 	return new Date(parseInt(uuid.replaceAll('-', '').slice(0, 12), 16));
 }
 
+/**
+ * Every Cloudflare Workflow instance in this platform is id'd `<tenant id hex><uuidv7 hex>`, both hyphen-stripped - the tenant it acts on, then a unique run. Not specific to any one workflow: it's a system-wide convention so the admin dashboard can list/filter instances by tenant prefix without a side table mapping instance ids back to tenants.
+ */
+export function workflowInstanceId(t_id_hex: string, run_id: UUID) {
+	return `${t_id_hex.replaceAll('-', '')}${run_id.replaceAll('-', '')}`;
+}
+
+/**
+ * Whether `instanceId` is a {@link workflowInstanceId} minted for this tenant.
+ */
+export function isTenantWorkflowInstanceId(instanceId: string, t_id_hex: string) {
+	return /^[0-9a-f]{64}$/.test(instanceId) && instanceId.startsWith(t_id_hex.toLowerCase());
+}
+
 export async function createApiKey(_existingAk_id_hex?: string) {
 	const existingAk_id_hex = await zm
 		.optional(

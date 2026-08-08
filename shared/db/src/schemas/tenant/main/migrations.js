@@ -1,7 +1,7 @@
-import m0000 from './20260807224930_slow_prima/migration.sql';
+import m0000 from './20260808054036_real_mongu/migration.sql';
 
 export default {
 	migrations: {
-		'20260807224930_slow_prima': m0000,
+		'20260808054036_real_mongu': m0000,
 	},
 };
