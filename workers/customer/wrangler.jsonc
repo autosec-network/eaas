@@ -91,6 +91,15 @@
 			}
 		]
 	},
+	"workflows": [
+		{
+			"name": "vault-migration-preview",
+			"binding": "VAULT_MIGRATION",
+			"class_name": "VaultMigration",
+			"script_name": "eaas-api-dev",
+			"limits": { "steps": 25000 }
+		}
+	],
 	"ratelimits": [
 		{
 			"name": "VAULT_RESCAN_RATE_LIMITER",
@@ -219,6 +228,15 @@
 					}
 				]
 			},
+			"workflows": [
+				{
+					"name": "vault-migration",
+					"binding": "VAULT_MIGRATION",
+					"class_name": "VaultMigration",
+					"script_name": "eaas-api-prod",
+					"limits": { "steps": 25000 }
+				}
+			],
 			"ratelimits": [
 				{
 					"name": "VAULT_RESCAN_RATE_LIMITER",

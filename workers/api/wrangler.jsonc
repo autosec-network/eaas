@@ -104,6 +104,12 @@
 			"binding": "DATA_KEY_ROTATION",
 			"class_name": "DataKeyRotation",
 			"limits": { "steps": 25000 }
+		},
+		{
+			"name": "vault-migration-preview",
+			"binding": "VAULT_MIGRATION",
+			"class_name": "VaultMigration",
+			"limits": { "steps": 25000 }
 		}
 	],
 	"env": {
@@ -226,6 +232,12 @@
 					"name": "data-key-rotation",
 					"binding": "DATA_KEY_ROTATION",
 					"class_name": "DataKeyRotation",
+					"limits": { "steps": 25000 }
+				},
+				{
+					"name": "vault-migration",
+					"binding": "VAULT_MIGRATION",
+					"class_name": "VaultMigration",
 					"limits": { "steps": 25000 }
 				}
 			]
