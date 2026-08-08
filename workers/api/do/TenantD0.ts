@@ -282,6 +282,15 @@ export class TenantD0 extends BaseD0 {
 		this.ctx.waitUntil(this._scheduleNextAlarm());
 	}
 
+	/**
+	 * Sweeps expired rows out of `verification_tokens`. Scheduled by {@link TENANT_SYSTEM_ALARMS} every 15 minutes - the same window a token is valid for, so a redeemed-or-abandoned approval never lingers much past its own lifetime.
+	 *
+	 * Expiry is enforced at redemption time too (the lookup filters on `expires`), so this is hygiene rather than a security boundary.
+	 */
+	public _cleanupVerificationTokens() {
+		this.ctx.waitUntil(this.drizzle.delete(tenantSchema.verification_tokens).where(lte(tenantSchema.verification_tokens.expires, new Date())));
+	}
+
 	public async getProperties(_keys?: ZodPick<typeof TenantPropertiesSchema>, lazy: boolean = true): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>> {
 		return zm
 			.pipe(

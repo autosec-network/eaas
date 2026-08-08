@@ -7,6 +7,9 @@ export enum TenantLogEventType {
 	'changed vault' = 1,
 	'changed byo vault token' = 2,
 	'rescanned vault' = 3,
+	'requested vault migration' = 4,
+	'approved vault migration' = 5,
+	'completed vault migration' = 6,
 }
 
 export enum TenantLogEventStatus {

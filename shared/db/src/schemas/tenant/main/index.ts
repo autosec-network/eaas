@@ -3,6 +3,7 @@ import { index, primaryKey, snakeCase, uniqueIndex } from 'drizzle-orm/sqlite-co
 import type { Permissions } from 'types';
 import { KeyAlgorithms } from 'types/crypto';
 import { workersCryptoCatalog } from 'types/crypto/catalog';
+import { TenantVerificationAction } from 'types/tenants/verification';
 
 /**
  * Based on @link https://github.com/cloudflare/actors/blob/main/packages/alarms/src/index.ts
@@ -359,5 +360,35 @@ export const users_keyrings = snakeCase.table(
 		// To search
 		index('idx_users_keyrings_u_id').on(uk.u_id),
 		index('idx_users_keyrings_kr_id').on(uk.kr_id),
+	],
+);
+
+/**
+ * Out-of-band approvals for tenant operations too destructive to run off a single session - the tenant-side sibling of the user DB's `auth_verification_token`.
+ *
+ * Rows are short lived (minutes) and swept by `TenantD0._cleanupVerificationTokens`, so this table is never a long-term store.
+ */
+// `WITHOUT ROWID`
+export const verification_tokens = snakeCase.table(
+	'verification_tokens',
+	(vt) => ({
+		/**
+		 * What redeeming this token authorizes. Readers should match with `inArray()` against the members they handle - {@link TenantVerificationAction} grows over time.
+		 */
+		action: vt
+			.text({ enum: Object.values(TenantVerificationAction) as [`${TenantVerificationAction}`] })
+			.$type<TenantVerificationAction>()
+			.notNull(),
+		/**
+		 * **sha512** of the raw token, not sha256.
+		 *
+		 * The migration workflow derives its ChaCha20-Poly1305 key from `sha256(raw token)`, so storing that same digest here would hand anyone who can read this table the key to the workflow's encrypted parameters. A different digest keeps the lookup value and the key material disjoint.
+		 */
+		hashed_token: vt.blob({ mode: 'buffer' }).primaryKey().notNull(),
+		expires: vt.integer({ mode: 'timestamp_ms' }).notNull(),
+	}),
+	(vt) => [
+		// To search
+		index('idx_verification_tokens_expires').on(vt.expires),
 	],
 );
