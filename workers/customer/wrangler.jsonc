@@ -95,8 +95,7 @@
 			"name": "vault-migration-preview",
 			"binding": "VAULT_MIGRATION",
 			"class_name": "VaultMigration",
-			"script_name": "eaas-api-dev",
-			"limits": { "steps": 25000 }
+			"script_name": "eaas-api-dev"
 		}
 	],
 	"ratelimits": [
@@ -231,8 +230,7 @@
 					"name": "vault-migration",
 					"binding": "VAULT_MIGRATION",
 					"class_name": "VaultMigration",
-					"script_name": "eaas-api-prod",
-					"limits": { "steps": 25000 }
+					"script_name": "eaas-api-prod"
 				}
 			],
 			"ratelimits": [
