@@ -96,30 +96,27 @@ export abstract class BaseD0 extends DurableObject<EnvVars> {
 			...(env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(ctx.id.toString()) }) }),
 		});
 
+		/**
+		 * Everything that writes storage stays **inside** `blockConcurrencyWhile` — nothing may be handed to `waitUntil` or left floating in a `.then()` chained onto it. Work started here and finished later escapes the blocked window and lands after whatever RPC ran next: when that RPC is {@link nuke}, its `deleteAll()` is followed by a write that brings the object back from the dead (an alarm re-armed by `_setupSystemAlarms`, a `PRAGMA optimize` writing stats), and a per-tenant `TenantD0`/`TenantD0Logs` then keeps itself alive forever off its own cron alarms.
+		 */
 		// eslint-disable-next-line @typescript-eslint/no-floating-promises
-		this.ctx
-			.blockConcurrencyWhile(async () => {
-				const startTime = hrtime.bigint();
-				await this._migrate();
-				return hrtime.bigint() - startTime;
-			})
-			.then((nsDuration) => {
-				/**
-				 * > We recommend running this command after making any changes to the schema
-				 * @link https://developers.cloudflare.com/d1/sql-api/sql-statements/#pragma-optimize
-				 * Since drizzle doesn't expose if a migration changed the database, we use the duration of the migration as a heuristic. Since time doesn't advance if no I/O is done, no changes always returns 0.
-				 */
-				if (nsDuration > 0n)
-					this.ctx.waitUntil(
-						// Don't use `Promise.resolve` to actually create background thread and not block
-						// eslint-disable-next-line @typescript-eslint/require-await
-						(async () => this.optimize())(),
-					);
+		this.ctx.blockConcurrencyWhile(async () => {
+			const startTime = hrtime.bigint();
+			await this._migrate();
+			const nsDuration = hrtime.bigint() - startTime;
 
-				const msDuration = parseFloat(`${(nsDuration / 1_000_000n).toString()}.${(nsDuration % 1_000_000n).toString().padStart(6, '0')}`);
+			/**
+			 * > We recommend running this command after making any changes to the schema
+			 * @link https://developers.cloudflare.com/d1/sql-api/sql-statements/#pragma-optimize
+			 * Since drizzle doesn't expose if a migration changed the database, we use the duration of the migration as a heuristic. Since time doesn't advance if no I/O is done, no changes always returns 0.
+			 */
+			// `durable-sqlite` is a synchronous driver (`SQLiteAsyncDatabase<'sync', …>`), so this runs to completion right here — no `await` to add, and nothing left over to escape the block
+			if (nsDuration > 0n) this.optimize();
 
-				console.info('Migration completed in', msDuration.toFixed(4), 'ms');
-			});
+			const msDuration = parseFloat(`${(nsDuration / 1_000_000n).toString()}.${(nsDuration % 1_000_000n).toString().padStart(6, '0')}`);
+
+			console.info('Migration completed in', msDuration.toFixed(4), 'ms');
+		});
 	}
 
 	protected abstract _migrate(): Promise<void>;
