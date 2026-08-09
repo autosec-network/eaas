@@ -12,7 +12,7 @@ import * as tenantSchema from 'db/schemas/tenant/main';
 import { drizzle } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { eq, sql } from 'drizzle-orm/sql';
-import { ZodUuidInputConverted } from 'helpers/zod/mini';
+import { ZodUuidHex, ZodUuidInputConverted } from 'helpers/zod/mini';
 import { createHash, randomBytes } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
@@ -25,6 +25,11 @@ import type { EnvVars } from '~/types';
 export const workflowParams = zm.object({
 	t_id: ZodUuidInputConverted(7),
 	kr_id: ZodUuidInputConverted(7),
+	/**
+	 * Whoever triggered this rotation, for the Bitwarden sessions it opens to audit-log against - a dashboard "rotate now" click carries {@link u_id}, an API-key-triggered one carries {@link ak_id}, and a cron/count-based rotation (`keyrings.time_rotation`/`count_rotation`) leaves both `null`, which is what makes those sessions log as `system`.
+	 */
+	u_id: zm.nullable(ZodUuidHex(7)),
+	ak_id: zm.nullable(ZodUuidHex(7)),
 });
 
 export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof workflowParams>> {
@@ -733,6 +738,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 						const mainBuffer = Buffer.from(tenant.do_id, 'hex');
 						return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
 					})(),
+					t_id: parsedPayload.t_id.hex,
+					// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
+					u_id: parsedPayload.u_id,
+					ak_id: parsedPayload.ak_id,
 					endpoints: {
 						base: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
 						authentication: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
@@ -760,6 +769,10 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 									const mainBuffer = Buffer.from(tenant.do_id, 'hex');
 									return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
 								})(),
+								t_id: parsedPayload.t_id.hex,
+								// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
+								u_id: parsedPayload.u_id,
+								ak_id: parsedPayload.ak_id,
 								endpoints: {
 									base: note.endpoints.base,
 									authentication: note.endpoints.authentication,
