@@ -1,7 +1,9 @@
 import { DebugLogWriter, drizzleD0 } from 'db/core';
+import * as rootSchema from 'db/schemas/root';
 import * as tenantLogsSchema from 'db/schemas/tenant/logs';
+import { drizzle } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
-import { sql } from 'drizzle-orm/sql';
+import { eq, sql } from 'drizzle-orm/sql';
 import { hexToUuid } from 'helpers';
 import type { DOJurisdictions } from 'types';
 import { TenantLogQueueMessageSchema, type TenantLogQueueMessage } from 'types/tenants/logging';
@@ -16,6 +18,24 @@ interface TenantLogGroup {
 	jurisdiction: DOJurisdictions | null;
 	logs: TenantLogQueueMessage[];
 	messages: Message<zm.input<typeof TenantLogQueueMessageSchema>>[];
+}
+
+/**
+ * Whether `t_id_hex` is a tenant this batch is allowed to write logs for, checked cheapest-first: does its own logs DO already have a row (true for any tenant a few messages into its life), then does its root row exist (the only signal left for a tenant so new its logs DO is still empty). A tenant that fails both is either mid-onboarding-rollback, already purged, or - just as likely - the root lookup below hit a stale `first-unconstrained` D1 read of a tenant that exists but hasn't replicated yet. Writing on a false "doesn't exist" would resurrect a logs DO as an orphan nothing will ever clean up again (see `workers/api/AGENTS.md`), so a "no" here isn't trusted as final - see the caller, which retries rather than acking.
+ *
+ * A thrown check (D1/DO outage, not a "the tenant doesn't exist" answer) is left to propagate - the caller's `catch` retries the whole group on it the same way.
+ */
+async function tenantIsLegitimate(env: EnvVars, logsDb: ReturnType<typeof drizzleD0>, t_id_hex: string): Promise<boolean> {
+	const [priorLog] = await logsDb.select({ id: tenantLogsSchema.logs.id }).from(tenantLogsSchema.logs).limit(1);
+	if (priorLog) return true;
+
+	const r_db = drizzle(env.DB_ROOT.withSession('first-unconstrained') as unknown as D1Database);
+	const [tenantRow] = await r_db
+		.select({ t_id: rootSchema.tenants.t_id })
+		.from(rootSchema.tenants)
+		.where(eq(rootSchema.tenants.t_id, sql`unhex(${t_id_hex})`))
+		.limit(1);
+	return Boolean(tenantRow);
 }
 
 export async function main(batch: MessageBatch<zm.input<typeof TenantLogQueueMessageSchema>>, env: EnvVars, ctx: ExecutionContext) {
@@ -58,6 +78,13 @@ export async function main(batch: MessageBatch<zm.input<typeof TenantLogQueueMes
 					...(env.NODE_ENV !== 'production' && { logger: new DefaultLogger({ writer: new DebugLogWriter(doName) }) }),
 					throwOnError: true,
 				});
+
+				if (!(await tenantIsLegitimate(env, db, group.t_id))) {
+					// Not acked: this "no" could be a stale root read racing a tenant that's still being created, not a real verdict. Retrying lets a later attempt see the tenant once it's replicated; a tenant that's genuinely gone just keeps failing this check until `max_retries` is exhausted and Cloudflare drops the message on its own (no `dead_letter_queue` configured) - no code here needs to give up on its behalf.
+					console.warn(`Retrying ${group.logs.length} log(s) for tenant ${group.t_id} - no prior logs and no root row (yet, at least)`);
+					group.messages.forEach((message) => message.retry());
+					return;
+				}
 
 				const inserts = group.logs.map((log) =>
 					db.insert(tenantLogsSchema.logs).values({

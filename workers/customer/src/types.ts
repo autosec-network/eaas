@@ -352,6 +352,9 @@ declare class BitwardenSession extends DurableObject {
 	public init(_options: {
 		t_jurisdiction: DOJurisdictions | null;
 		t_do_id: ArrayBuffer | null;
+		t_id: string | null;
+		u_id: string | null;
+		ak_id: string | null;
 		endpoints: {
 			base: string;
 			authentication: string;
