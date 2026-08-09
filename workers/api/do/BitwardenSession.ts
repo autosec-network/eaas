@@ -1,9 +1,16 @@
 import { DurableObject } from 'cloudflare:workers';
+import * as rootSchema from 'db/schemas/root';
+import { drizzle } from 'drizzle-orm/d1';
+import { eq, sql } from 'drizzle-orm/sql';
+import { hexToUuid } from 'helpers';
+import { ZodUuidHex, ZodUuidInputConverted } from 'helpers/zod/mini';
 import * as jose from 'jose';
 import { Buffer } from 'node:buffer';
 import { createCipheriv, createDecipheriv, createHmac, randomBytes, timingSafeEqual, type UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import type { ProjectResponse, SecretCreateRequest, SecretDeleteResponse, SecretResponse } from 'types/bw/schemas';
+import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
+import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
 import type { EnvVars } from '~/types';
 
@@ -35,6 +42,18 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	public static initOptions = zm.object({
 		t_jurisdiction: zm.nullable(zm.enum(DOJurisdictions)),
 		t_do_id: zm.nullable(zm.instanceof(ArrayBuffer)),
+		/**
+		 * The tenant this session is opened on behalf of, if any — accepts any UUID encoding since every caller carries it in a different shape. Lets the session log its own lifecycle audit rows (see {@link logSessionEvent}) without every caller separately doing so. When omitted but {@link t_do_id} is given, `init()` resolves it with a root lookup instead - most callers already had `t_do_id` on hand before this field existed, so this keeps them working without a change. Truly `null` (both this and `t_do_id` absent) only for sessions that aren't tied to a tenant yet at all - e.g. the live "which projects can this token see" preview a customer sees while still typing a token, before any tenant exists - and those sessions simply go unlogged.
+		 */
+		t_id: zm.nullable(ZodUuidInputConverted(7)),
+		/**
+		 * Who opened this session, for the audit trail {@link logSessionEvent} builds — the human behind it, if any. A Workflow or admin operation passes through whoever (or whatever) actually triggered it: a dashboard action still carries the acting `u_id` even though a Workflow is what's calling `init()`, an API-key-triggered one carries {@link ak_id} instead, and only a genuinely unattended trigger (e.g. a cron/count-based key rotation) leaves both `null`, which is what makes the row log as `system`.
+		 */
+		u_id: zm.nullable(ZodUuidHex(7)),
+		/**
+		 * The API key behind this session, if it was a key rather than a human that triggered it. Mutually exclusive with {@link u_id} in practice, though nothing here enforces that — the audit row just needs at least one of `u_id`/`ak_id`/`system` (see `TenantLogQueueMessageSchema`'s check), and {@link logSessionEvent} picks `u_id` first if somehow both are set.
+		 */
+		ak_id: zm.nullable(ZodUuidHex(7)),
 		endpoints: zm.object({
 			/**
 			 * @link https://bitwarden.com/help/public-api/#base-url
@@ -49,11 +68,32 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	public async init(_options: zm.input<typeof BitwardenSession.initOptions>) {
 		const options = await BitwardenSession.initOptions.parseAsync(_options);
 
+		// Most callers pass `t_do_id` (the tenant's own Durable Object id) but not `t_id` (its UUID) - resolved here, once, with a root lookup, so a caller that already had `t_do_id` on hand doesn't also have to plumb `t_id` through just for this session to audit-log itself.
+		let t_id_utf8 = options.t_id?.utf8 ?? null;
+		if (!t_id_utf8 && options.t_do_id) {
+			try {
+				const do_id_hex = Buffer.from(options.t_do_id).toString('hex');
+				const r_db = drizzle(this.env.DB_ROOT.withSession('first-unconstrained') as unknown as D1Database);
+				const [row] = await r_db
+					.select({ t_id: rootSchema.tenants.t_id })
+					.from(rootSchema.tenants)
+					.where(eq(rootSchema.tenants.do_id, sql`unhex(${do_id_hex})`))
+					.limit(1);
+				if (row) t_id_utf8 = hexToUuid(row.t_id.toString('hex'));
+			} catch (error) {
+				// Best-effort: an unresolvable tenant means this session's lifecycle just goes unlogged, not that the session fails to open
+				console.error('Failed to resolve tenant id for bitwarden session audit log', error);
+			}
+		}
+
 		// Start save task
 		const saveEndpoints = this.ctx.storage.put(
 			{
 				t_jurisdiction: options.t_jurisdiction,
 				t_do_id: options.t_do_id,
+				t_id_utf8,
+				u_id: options.u_id,
+				ak_id: options.ak_id,
 				apiEndpoint: options.endpoints.base,
 				identityEndpoint: options.endpoints.authentication,
 			},
@@ -64,6 +104,40 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 
 		// Make sure everything completes before method finishes
 		await Promise.all([saveEndpoints]);
+	}
+
+	/**
+	 * Builds, validates, and sends one audit log row for this session's lifecycle (open/close) straight onto the `eaas-logs-*` queue - never written to a tenant's `TenantD0Logs` directly, since that queue is what accounts for D1/DO outages and overload, not just a convenience (see `workers/api/AGENTS.md`). Fully self-contained: this DO is the single source of truth for its own lifecycle events, so it owns sending them too instead of handing a message back for some caller to send or buffer - `env.LOGS` (the same queue binding every other producer uses) is available here just as it is anywhere else on the `api` worker.
+	 *
+	 * A message queued for a tenant that no longer exists by the time it's processed (e.g. onboarding rolled back, or a tenant was purged) isn't this method's problem - see the consumer's tenant-legitimacy check in `workers/api/src/queue.ts`.
+	 *
+	 * Best-effort: build, validation, and send failures are all swallowed here (logged, not thrown) so a logging bug can never break session creation or teardown, which is what the caller actually needs to succeed.
+	 */
+	private async logSessionEvent(event_type: TenantLogEventType, context: Record<string, unknown>): Promise<void> {
+		try {
+			const [t_id_utf8, t_jurisdiction, u_id, ak_id] = await Promise.all([this.ctx.storage.get<string | null>('t_id_utf8', { allowConcurrency: true }), this.ctx.storage.get<DOJurisdictions | null>('t_jurisdiction', { allowConcurrency: true }), this.ctx.storage.get<string | null>('u_id', { allowConcurrency: true }), this.ctx.storage.get<string | null>('ak_id', { allowConcurrency: true })]);
+
+			// No tenant to attribute this to (see `initOptions.t_id`'s doc comment) - nothing to log
+			if (!t_id_utf8) return;
+
+			const now = new Date();
+			const log: zm.input<typeof TenantLogQueueMessageSchema> = {
+				t_id: t_id_utf8.replaceAll('-', ''),
+				jurisdiction: t_jurisdiction,
+				id: uuidv7({ msecs: now.getTime() }).replaceAll('-', ''),
+				timestamp: now.toISOString(),
+				event_type,
+				context,
+				...(u_id ? { u_id } : ak_id ? { ak_id } : { system: true }),
+				status: TenantLogEventStatus.success,
+			};
+
+			// Validated here so a producer bug surfaces at the source; the raw (pre-parse) version is still what's sent, same as every other producer, so the queue consumer validates independently
+			await TenantLogQueueMessageSchema.parseAsync(log);
+			await this.env.LOGS.sendBatch([{ body: log, contentType: 'json' }]);
+		} catch (error) {
+			console.error(`Failed to enqueue "${TenantLogEventType[event_type]}" audit log`, error);
+		}
 	}
 
 	/**
@@ -163,6 +237,7 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 				if (jwt.exp) {
 					// Delete the session DO when the token expires.
 					this.ctx.waitUntil(this.ctx.storage.setAlarm(jwt.exp * 1000, { allowConcurrency: true }));
+					this.ctx.waitUntil(this.logSessionEvent(TenantLogEventType['created bitwarden session'], { session: this.ctx.id.toString() }));
 				} else {
 					// Put in waitUntil() so that it can perform the nuke even on a uncaught exception.
 					this.ctx.waitUntil(this.nuke('Access token missing exp claim, something went wrong with the token response'));
@@ -577,12 +652,21 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	}
 
 	/**
-	 * Wipes all persisted state.
+	 * Wipes all persisted state, logging this session's closing itself (see {@link logSessionEvent}) before it does - the only caller of `nuke()` that could still send that log after the fact is this class, so it owns sending it, same as {@link auth} owns the "created" side.
 	 * @param reason Optional reason for the nuke.
 	 * @param [hard=false] Optionally force exit the DO
 	 */
 	public async nuke(reason?: string, hard: boolean = false) {
 		if (reason) console.warn(reason);
+
+		const closeLog = this.logSessionEvent(TenantLogEventType['ended bitwarden session'], { session: this.ctx.id.toString(), reason });
+		if (hard) {
+			// Awaited, not `waitUntil`, and ahead of `deleteAll` below: `ctx.abort()` further down is uncatchable and would tear the DO down mid-flight, silently dropping this row if it were still in-progress when that happens
+			await closeLog;
+		} else {
+			this.ctx.waitUntil(closeLog);
+		}
+
 		await this.ctx.storage.deleteAll({ allowConcurrency: false });
 		// To ensure that the DO is fully evicted, this.ctx.abort() is called
 		// `ctx.abort` throws an uncatchable error, so we yield to the event loop to avoid capturing it and let handlers finish cleaning up

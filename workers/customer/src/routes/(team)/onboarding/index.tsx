@@ -104,7 +104,6 @@ const useOnboardTenant = routeAction$(
 			await TenantLogQueueMessageSchema.parseAsync(log);
 			return pendingLogs.push(log);
 		};
-
 		try {
 			// Insert refs into root
 			await r_db.batch([
@@ -137,8 +136,11 @@ const useOnboardTenant = routeAction$(
 				try {
 					// Connect to our bitwarden, but respecting the jurisdiction
 					await bw_doStub.init({
-						t_jurisdiction: null,
+						t_jurisdiction: data.jurisdiction,
 						t_do_id: null,
+						t_id: t_id_hex,
+						u_id: session.user!.u_id.hex,
+						ak_id: null,
 						endpoints: {
 							base: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
 							authentication: data.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
