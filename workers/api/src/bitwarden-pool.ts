@@ -70,23 +70,4 @@ export async function openBitwardenSession(env: EnvVars, options: PooledBitwarde
 	});
 }
 
-/**
- * End every Bitwarden session pooled for a tenant, expired ones included.
- *
- * For tenant teardown only, and it has to run **before** the tenant's own Durable Object is wiped: each session removes its own pool row as it goes (see `BitwardenSession.nuke`), and any RPC to an already-purged tenant would recreate it as an orphan. Leaving the sessions behind instead would leave objects holding live vault credentials with nothing left to account for them.
- */
-export async function nukeTenantBitwardenSessions(env: EnvVars, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, reason: string) {
-	const namespace = sessionNamespace(env, jurisdiction);
-	const sessions = await tenantStub(env, jurisdiction, t_do_id_hex)
-		.listBitwardenSessions({ includeExpired: true })
-		// A pool that can't be read just means its sessions expire on their own schedule instead of now - never a reason to fail the teardown that asked
-		.catch((error: unknown) => {
-			console.error('Failed to list pooled bitwarden sessions for teardown', error);
-			return [];
-		});
-
-	const settled = await Promise.allSettled(sessions.map(({ do_id }) => env.BITWARDEN_SESSION.get(namespace.idFromString(do_id)).nuke(reason)));
-	settled.forEach((result) => result.status === 'rejected' && console.error('Failed to nuke pooled bitwarden session', result.reason));
-
-	return { nuked: settled.filter(({ status }) => status === 'fulfilled').length, total: sessions.length };
-}
+// Tearing a tenant's pool down is deliberately not here: it's the tenant's own job (see `TenantD0.purge`, which ends every pooled session as the first stage of wiping itself). Driving it from out here left sessions deregistering into a tenant that no longer existed, which recreated it as an orphan.
