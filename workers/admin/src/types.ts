@@ -60,7 +60,8 @@ declare class BitwardenSession extends DurableObject {
 	 */
 	public available(): Promise<{ expires: Date }>;
 	public activeTasks(): { active: number; max: number };
-	public nuke(reason?: string, hard?: boolean): Promise<void>;
+	/** `tenantGone` is for a tenant tearing itself down (`TenantD0.purge`) — it skips the closing audit row and the pool deregistration, both of which would otherwise be addressed to a tenant that no longer exists */
+	public nuke(reason?: string, hard?: boolean, tenantGone?: boolean): Promise<void>;
 }
 
 /**
@@ -87,6 +88,12 @@ declare class BaseD0 extends DurableObject {
 	public nuke(reason?: string, hard?: boolean): Promise<void>;
 }
 declare class TenantD0 extends BaseD0 {
+	/**
+	 * Tears the whole tenant down from inside itself — pooled Bitwarden sessions, root Bitwarden secrets, logs Durable Object, then its own storage. Everything except the root `tenants` row, which the caller owns (see `purgeTenant`).
+	 *
+	 * `t_id` accepts any UUID encoding. `rootBitwardenProjectId` is `null` for a caller that has already dealt with the tenant's secrets itself. Resolves normally on success — the self-wipe is soft, so a rejection here is a real failure.
+	 */
+	public purge(_options: { t_id: string; jurisdiction: DOJurisdictions | null; rootBitwardenProjectId: string | null; reason?: string }): Promise<{ sessions: number; totalSessions: number; secrets: number }>;
 	public registerBitwardenSession(_options: { do_id: string; fingerprint: string; expires: Date }): Promise<void>;
 	public listBitwardenSessions(_options?: { fingerprint?: string; includeExpired?: boolean }): Promise<PooledBitwardenSession[]>;
 	public unregisterBitwardenSession(do_id: string): Promise<void>;
