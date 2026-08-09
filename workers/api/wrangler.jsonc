@@ -2,7 +2,7 @@
 	"$schema": "../../node_modules/wrangler/config-schema.json",
 	"name": "eaas-api-dev",
 	"main": "src/index.ts",
-	"compatibility_date": "2026-07-30",
+	"compatibility_date": "2026-08-01",
 	"compatibility_flags": ["nodejs_compat", "enable_request_signal", "request_signal_passthrough", "queue_consumer_no_wait_for_wait_until"],
 	"workers_dev": false,
 	"preview_urls": false,
