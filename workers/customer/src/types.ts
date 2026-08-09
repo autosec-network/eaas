@@ -392,8 +392,23 @@ declare class BitwardenSession extends DurableObject {
 	public deleteSecrets(_secretIds: string[]): Promise<UUID[]>;
 	public decryptSecret(accessToken: string, cipherText: string): Promise<string>;
 	public encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version?: 0 | 1 | 2): Promise<string>;
+	/**
+	 * Rejects when this session can't take work - already at its concurrency cap, or no longer authenticated. See `acquireBitwardenSession` in `helpers/bitwarden-sessions`.
+	 */
+	public available(): Promise<{ expires: Date }>;
+	public activeTasks(): { active: number; max: number };
 
 	public nuke(reason?: string, hard?: boolean): Promise<void>;
+}
+
+/**
+ * One row of a tenant's Bitwarden session pool, as `TenantD0.listBitwardenSessions` hands it back.
+ */
+export interface PooledBitwardenSession {
+	do_id: string;
+	fingerprint: string;
+	expires: Date;
+	b_time: Date;
 }
 
 declare class BaseD0 extends DurableObject {
@@ -412,6 +427,9 @@ declare class BaseD0 extends DurableObject {
 }
 
 export declare class TenantD0 extends BaseD0 {
+	public registerBitwardenSession(_options: { do_id: string; fingerprint: string; expires: Date }): Promise<void>;
+	public listBitwardenSessions(_options?: { fingerprint?: string; includeExpired?: boolean }): Promise<PooledBitwardenSession[]>;
+	public unregisterBitwardenSession(do_id: string): Promise<void>;
 	public getProperties(_keys?: ZodPick<typeof TenantPropertiesSchema>, lazy?: boolean): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>>;
 	public getPropertiesSync(_keys?: ZodPick<typeof TenantPropertiesSchema>): Partial<zm.output<typeof TenantPropertiesSchema>>;
 	public updateProperties(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background?: boolean, lazy?: boolean): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>>;
