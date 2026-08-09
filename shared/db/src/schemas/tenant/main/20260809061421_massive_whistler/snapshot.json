@@ -1,7 +1,7 @@
 {
 	"version": "7",
 	"dialect": "sqlite",
-	"id": "3b2881d9-1b35-4c6a-a391-5ccd0d21e256",
+	"id": "b2afbe84-ded5-4d9e-b313-a93b2858fedd",
 	"prevIds": ["00000000-0000-0000-0000-000000000000"],
 	"ddl": [
 		{
@@ -14,6 +14,10 @@
 		},
 		{
 			"name": "api_keys_keyrings",
+			"entityType": "tables"
+		},
+		{
+			"name": "bitwarden_sessions",
 			"entityType": "tables"
 		},
 		{
@@ -315,6 +319,46 @@
 			"name": "r_hmac",
 			"entityType": "columns",
 			"table": "api_keys_keyrings"
+		},
+		{
+			"type": "blob",
+			"notNull": false,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "do_id",
+			"entityType": "columns",
+			"table": "bitwarden_sessions"
+		},
+		{
+			"type": "blob",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "fingerprint",
+			"entityType": "columns",
+			"table": "bitwarden_sessions"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "expires",
+			"entityType": "columns",
+			"table": "bitwarden_sessions"
+		},
+		{
+			"type": "integer",
+			"notNull": true,
+			"autoincrement": false,
+			"default": null,
+			"generated": null,
+			"name": "b_time",
+			"entityType": "columns",
+			"table": "bitwarden_sessions"
 		},
 		{
 			"type": "blob",
@@ -790,6 +834,13 @@
 			"entityType": "pks"
 		},
 		{
+			"columns": ["do_id"],
+			"nameExplicit": false,
+			"name": "bitwarden_sessions_pk",
+			"table": "bitwarden_sessions",
+			"entityType": "pks"
+		},
+		{
 			"columns": ["dk_id"],
 			"nameExplicit": false,
 			"name": "datakeys_pk",
@@ -900,6 +951,34 @@
 			"name": "idx_api_keys_keyrings_kr_id",
 			"entityType": "indexes",
 			"table": "api_keys_keyrings"
+		},
+		{
+			"columns": [
+				{
+					"value": "fingerprint",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_bitwarden_sessions_fingerprint",
+			"entityType": "indexes",
+			"table": "bitwarden_sessions"
+		},
+		{
+			"columns": [
+				{
+					"value": "expires",
+					"isExpression": false
+				}
+			],
+			"isUnique": false,
+			"where": null,
+			"origin": "manual",
+			"name": "idx_bitwarden_sessions_expires",
+			"entityType": "indexes",
+			"table": "bitwarden_sessions"
 		},
 		{
 			"columns": [

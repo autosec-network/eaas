@@ -291,6 +291,93 @@ export class TenantD0 extends BaseD0 {
 		this.ctx.waitUntil(this.drizzle.delete(tenantSchema.verification_tokens).where(lte(tenantSchema.verification_tokens.expires, new Date())));
 	}
 
+	public static registerBitwardenSessionOptions = zm.object({
+		/**
+		 * The session Durable Object's own id, as `DurableObjectId.toString()` renders it.
+		 */
+		do_id: zm.hex().check(zm.trim(), zm.toLowerCase(), zm.length(64)),
+		/**
+		 * sha512 of the credentials the session authenticated with - see `bitwardenSessionFingerprint` in `helpers/bitwarden-sessions`.
+		 */
+		fingerprint: zm.hex().check(zm.trim(), zm.toLowerCase(), zm.length(128)),
+		/**
+		 * From the session's JWT `exp` claim, which is also when it wakes up to nuke itself.
+		 */
+		expires: zm.date(),
+	});
+	/**
+	 * Add a freshly authenticated Bitwarden session to this tenant's reusable pool.
+	 *
+	 * Called by the session itself the moment `auth()` succeeds, never by whoever asked for the session - the session is the only thing that knows its own id and expiry, and making it own its own registration is what keeps a borrower from having to think about the pool at all.
+	 *
+	 * Idempotent by id: a re-registration just refreshes the row, so a session that somehow registers twice can't leave a stale expiry behind.
+	 */
+	public async registerBitwardenSession(_options: zm.input<typeof TenantD0.registerBitwardenSessionOptions>) {
+		const options = await TenantD0.registerBitwardenSessionOptions.parseAsync(_options);
+
+		await this.drizzle
+			.insert(tenantSchema.bitwarden_sessions)
+			.values({
+				do_id: sql`unhex(${options.do_id})`,
+				fingerprint: sql`unhex(${options.fingerprint})`,
+				expires: options.expires,
+				b_time: new Date(),
+			})
+			.onConflictDoUpdate({
+				target: tenantSchema.bitwarden_sessions.do_id,
+				set: {
+					fingerprint: sql`unhex(${options.fingerprint})`,
+					expires: options.expires,
+					b_time: new Date(),
+				},
+			});
+	}
+
+	public static listBitwardenSessionsOptions = zm._default(
+		zm.object({
+			/**
+			 * Only sessions authenticated with these exact credentials. Omitted means every session this tenant has, which is what the admin dashboard wants and what a borrower never does - sessions on different credentials aren't interchangeable.
+			 */
+			fingerprint: zm.optional(zm.hex().check(zm.trim(), zm.toLowerCase(), zm.length(128))),
+			/**
+			 * Include rows whose session has already expired. Off by default: an expired session is unusable, and its row lingering is a symptom worth looking at rather than something to hand out.
+			 */
+			includeExpired: zm._default(zm.boolean(), false),
+		}),
+		{ includeExpired: false },
+	);
+	/**
+	 * This tenant's pooled Bitwarden sessions. Ids come back as hex strings ready for `idFromString()`.
+	 */
+	public async listBitwardenSessions(_options?: zm.input<typeof TenantD0.listBitwardenSessionsOptions>) {
+		const options = await TenantD0.listBitwardenSessionsOptions.parseAsync(_options);
+
+		return this.drizzle
+			.select()
+			.from(tenantSchema.bitwarden_sessions)
+			.where(and(...(options.fingerprint ? [eq(tenantSchema.bitwarden_sessions.fingerprint, sql`unhex(${options.fingerprint})`)] : []), ...(options.includeExpired ? [] : [gt(tenantSchema.bitwarden_sessions.expires, new Date())])))
+			.then((rows) =>
+				rows.map((row) => ({
+					do_id: row.do_id.toString('hex'),
+					fingerprint: row.fingerprint.toString('hex'),
+					expires: row.expires,
+					b_time: row.b_time,
+				})),
+			);
+	}
+
+	/**
+	 * Forget a pooled session. Sent by a session tearing itself down, and by a borrower that found a row naming a session which no longer answers.
+	 */
+	public async unregisterBitwardenSession(do_id: string) {
+		const parsed = await zm.hex().check(zm.trim(), zm.toLowerCase(), zm.length(64)).parseAsync(do_id);
+
+		await this.drizzle
+			.delete(tenantSchema.bitwarden_sessions)
+			.where(eq(tenantSchema.bitwarden_sessions.do_id, sql`unhex(${parsed})`))
+			.limit(1);
+	}
+
 	public async getProperties(_keys?: ZodPick<typeof TenantPropertiesSchema>, lazy: boolean = true): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>> {
 		return zm
 			.pipe(

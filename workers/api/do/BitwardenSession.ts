@@ -3,6 +3,7 @@ import * as rootSchema from 'db/schemas/root';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import { hexToUuid } from 'helpers';
+import { bitwardenSessionFingerprint, BitwardenSessionBusyError, MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
 import { ZodUuidHex, ZodUuidInputConverted } from 'helpers/zod/mini';
 import * as jose from 'jose';
 import { Buffer } from 'node:buffer';
@@ -39,6 +40,122 @@ interface SecretDeleteResponseEnhanced extends Omit<SecretDeleteResponse, 'id'> 
 }
 
 export class BitwardenSession extends DurableObject<EnvVars> {
+	/**
+	 * How many calls this session is running right now.
+	 *
+	 * Deliberately **in memory only**: it describes what this instance is doing at this instant, and an instance that goes away (eviction, deploy, crash) takes its in-flight calls with it - persisting the count would only preserve a number about work that no longer exists, and then refuse callers on behalf of a session that is entirely idle.
+	 */
+	private runningTasks = 0;
+
+	/**
+	 * How long an `init()`ed-but-never-`auth()`ed session gets before the orphan-safety alarm set in {@link init} nukes it. Generous enough that legitimate time between the two calls (a caller validating something else first, a slow request) is never at risk; short enough that a caller that crashes, throws, or simply forgets between the two doesn't leave a Durable Object sitting around forever holding nothing.
+	 */
+	private static readonly ORPHAN_TIMEOUT_MS = 15 * 60 * 1000;
+
+	/**
+	 * Run `task` while it counts against {@link runningTasks}, refusing outright once {@link MAX_BITWARDEN_SESSION_TASKS} are already in flight.
+	 *
+	 * A pooled session is addressed by every Worker instance that wants the same vault, and a Durable Object runs one thing at a time - so past a handful of concurrent callers, everybody is just queueing. Refusing the surplus with {@link BitwardenSessionBusyError} hands them back the choice: borrow a different session, or open one (see `acquireBitwardenSession` in `helpers/bitwarden-sessions`). Nothing about that is visible to a caller that isn't being turned away.
+	 *
+	 * Only the public entry points are wrapped. The internals they share (org key derivation, most of all) must not re-enter this, or one call would spend two slots and the cap would silently become three.
+	 */
+	private async withTaskSlot<T>(task: () => Promise<T>): Promise<T> {
+		if (this.runningTasks >= MAX_BITWARDEN_SESSION_TASKS) throw new BitwardenSessionBusyError(this.ctx.id.toString());
+
+		this.runningTasks++;
+		try {
+			return await task();
+		} finally {
+			this.runningTasks--;
+		}
+	}
+
+	/**
+	 * How busy this session is, for the admin dashboard's session list. Ungated on purpose - asking a session how loaded it is must never be the call that gets turned away for being the 7th.
+	 */
+	public activeTasks() {
+		return { active: this.runningTasks, max: MAX_BITWARDEN_SESSION_TASKS };
+	}
+
+	/**
+	 * Whether this session can take work right now: authenticated, unexpired, and under the concurrency cap. Rejecting is the answer, not an error to be logged - see `acquireBitwardenSession`, which uses this to sort a tenant's pool into "borrow this one", "skip this one", and "this row names a session that no longer exists".
+	 *
+	 * The expiry re-check is belt and braces. {@link auth} sets an alarm for the exact moment the token dies and {@link alarm} nukes on it; this catches the case where that alarm never fired (a `setAlarm` that lost its race with an eviction, say) rather than handing out a session whose every call would fail against Bitwarden.
+	 */
+	public available() {
+		return this.withTaskSlot(async () => {
+			const [jwt, decodedJwt] = await Promise.all([this.ctx.storage.get<string>('jwt', { allowConcurrency: true }), this.ctx.storage.get<ParsedJwt>('decodedJwt', { allowConcurrency: true })]);
+
+			if (!jwt || !decodedJwt?.exp) throw new Error('Session is not authenticated');
+
+			const expires = new Date(decodedJwt.exp * 1000);
+			if (expires.getTime() <= Date.now()) {
+				// Put in `waitUntil` so the caller gets its answer now rather than waiting on a teardown it doesn't care about
+				this.ctx.waitUntil(this.nuke('Access token expired'));
+				throw new Error('Session has expired');
+			}
+
+			return { expires };
+		});
+	}
+
+	/**
+	 * The tenant Durable Object this session's pool row lives in, or `null` for a session that isn't tied to a tenant at all (see {@link initOptions.t_id}) and therefore can't be pooled.
+	 */
+	private async tenantStub() {
+		const [t_do_id, t_jurisdiction] = await Promise.all([this.ctx.storage.get<ArrayBuffer | null>('t_do_id', { allowConcurrency: true }), this.ctx.storage.get<DOJurisdictions | null>('t_jurisdiction', { allowConcurrency: true })]);
+
+		if (!t_do_id) return null;
+
+		const do_id_hex = Buffer.from(t_do_id).toString('hex');
+		return this.env.TENANT_D0.get((t_jurisdiction ? this.env.TENANT_D0.jurisdiction(t_jurisdiction) : this.env.TENANT_D0).idFromString(do_id_hex));
+	}
+
+	/**
+	 * Publish this session to its tenant's pool, so the next operation that needs these exact credentials borrows it instead of paying for another OAuth round trip.
+	 *
+	 * The session registers itself rather than being registered by whoever opened it: it's the only party that knows its own id and its token's expiry, and self-registration is what lets a borrower stay unaware there's a pool at all.
+	 *
+	 * Best effort. A registration that doesn't land costs reuse, not correctness - the session still works perfectly for the caller that opened it, it just stays private to them.
+	 */
+	private async registerInPool(fingerprint: string, expires: Date) {
+		try {
+			const stub = await this.tenantStub();
+			// A session opened before any tenant exists (the live "which projects can this token see" preview) has nowhere to be pooled, and nothing to share it with
+			if (!stub) return;
+
+			await stub.registerBitwardenSession({ do_id: this.ctx.id.toString(), fingerprint, expires });
+		} catch (error) {
+			console.error('Failed to register bitwarden session in tenant pool', error);
+		}
+	}
+
+	/**
+	 * Remove this session's pool row on the way out, so nothing borrows an id that's about to stop answering. Called from {@link nuke}, which is the only way this object ever ends.
+	 *
+	 * Skipped when the tenant no longer exists in root: any RPC to a tenant Durable Object re-runs its migrations and recreates its tables, so deregistering into a purged tenant would resurrect it as an orphan nothing will ever clean up again. The purge paths tear a tenant's sessions down *before* wiping the tenant, so in practice this check only ever fires for a session that outlived its tenant some other way - and the cost of being wrong (a stale row in a database that no longer exists) is nothing.
+	 */
+	private async forgetInPool() {
+		try {
+			const [t_do_id, stub] = await Promise.all([this.ctx.storage.get<ArrayBuffer | null>('t_do_id', { allowConcurrency: true }), this.tenantStub()]);
+			if (!t_do_id || !stub) return;
+
+			const do_id_hex = Buffer.from(t_do_id).toString('hex');
+			const r_db = drizzle(this.env.DB_ROOT.withSession('first-unconstrained') as unknown as D1Database);
+			const [tenant] = await r_db
+				.select({ t_id: rootSchema.tenants.t_id })
+				.from(rootSchema.tenants)
+				.where(eq(rootSchema.tenants.do_id, sql`unhex(${do_id_hex})`))
+				.limit(1);
+
+			if (!tenant) return;
+
+			await stub.unregisterBitwardenSession(this.ctx.id.toString());
+		} catch (error) {
+			console.error('Failed to remove bitwarden session from tenant pool', error);
+		}
+	}
+
 	public static initOptions = zm.object({
 		t_jurisdiction: zm.nullable(zm.enum(DOJurisdictions)),
 		t_do_id: zm.nullable(zm.instanceof(ArrayBuffer)),
@@ -82,7 +199,7 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 				if (row) t_id_utf8 = hexToUuid(row.t_id.toString('hex'));
 			} catch (error) {
 				// Best-effort: an unresolvable tenant means this session's lifecycle just goes unlogged, not that the session fails to open
-				console.error('Failed to resolve tenant id for bitwarden session audit log', error);
+				console.warn('Failed to resolve tenant id for bitwarden session audit log', error);
 			}
 		}
 
@@ -102,8 +219,14 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 		// Make sure it completes even if other bad tasks occur
 		this.ctx.waitUntil(saveEndpoints);
 
+		/**
+		 * Orphan safety net. A caller that `init()`s and then never `auth()`s - crashes, throws before reaching it, or just has a bug - would otherwise leave this session sitting here forever, since nothing else nukes an unauthenticated one. A Durable Object only ever holds one alarm, so a successful `auth()` overwrites this with the token's real expiry (see {@link auth}) and this one simply never fires; that overwrite is what also covers a failure *inside* `auth()`, not just it never being called at all - a thrown error there never reaches the line that would replace this alarm, so this one is still the one that goes off.
+		 */
+		const orphanAlarm = this.ctx.storage.setAlarm(Date.now() + BitwardenSession.ORPHAN_TIMEOUT_MS, { allowConcurrency: true });
+		this.ctx.waitUntil(orphanAlarm);
+
 		// Make sure everything completes before method finishes
-		await Promise.all([saveEndpoints]);
+		await Promise.all([saveEndpoints, orphanAlarm]);
 	}
 
 	/**
@@ -185,14 +308,17 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 
 	/**
 	 * Authenticates with the Bitwarden API using a service account access token.
-	 * Performs OAuth2 with access token, stores the encrypted payload and JWT, and schedules an alarm for token expiration.
+	 * Performs OAuth2 with access token, stores the encrypted payload and JWT, schedules an alarm for token expiration, and publishes the session to its tenant's reusable pool.
+	 *
+	 * Called exactly once per session, by whoever opened it. A **borrowed** session is never re-`init()`ed or re-`auth()`ed: doing so would fetch a second token (defeating the point of reusing the first) and fire a second "created" audit row for a session that was only ever created once.
 	 * @param accessToken - The service account access token from Bitwarden
 	 * @throws {Error} If the identity endpoint is not set or if authentication fails
 	 */
 	public async auth(accessToken: string) {
-		const identityEndpoint = await this.ctx.storage.get<string>('identityEndpoint', { allowConcurrency: true });
+		const { apiEndpoint, identityEndpoint } = await this.ctx.storage.get<string>(['apiEndpoint', 'identityEndpoint'], { allowConcurrency: true }).then((results) => Object.fromEntries(results.entries()));
 
-		if (identityEndpoint) {
+		// Both endpoints, not just the one this call posts to: `init()` stores them together, and the pool fingerprint below is over the pair
+		if (identityEndpoint && apiEndpoint) {
 			const [, uuid, extra] = accessToken.split('.');
 			const [secret] = extra!.split(':');
 
@@ -235,8 +361,16 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 				]);
 
 				if (jwt.exp) {
-					// Delete the session DO when the token expires.
-					this.ctx.waitUntil(this.ctx.storage.setAlarm(jwt.exp * 1000, { allowConcurrency: true }));
+					const expires = new Date(jwt.exp * 1000);
+
+					/**
+					 * Delete the session DO when the token expires - **awaited**, not `waitUntil`ed. Now that sessions outlive the operation that opened them, this alarm is the only thing that ends one; a `setAlarm` that never landed would leave a pooled session holding a dead token, handing itself out until its pool row aged past `expires`. `deleteAll()` clears the alarm along with the data on this worker's compatibility date (>= `2026-02-24`), so a nuke never leaves one behind either.
+					 */
+					await this.ctx.storage.setAlarm(expires, { allowConcurrency: true });
+
+					// Endpoints come from storage rather than `init`'s arguments so the digest is over the same normalized values a borrower will hash - see `bitwardenSessionFingerprint`
+					await this.registerInPool(await bitwardenSessionFingerprint({ base: apiEndpoint, authentication: identityEndpoint }, accessToken), expires);
+
 					this.ctx.waitUntil(this.logSessionEvent(TenantLogEventType['created bitwarden session'], { session: this.ctx.id.toString() }));
 				} else {
 					// Put in waitUntil() so that it can perform the nuke even on a uncaught exception.
@@ -265,9 +399,16 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	 * Uses the access token to derive the decryption key and decrypts the payload.
 	 * @param accessToken - The service account access token containing encryption key material
 	 * @returns The decrypted organization encryption key as a string
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
 	 * @throws {Error} If the encrypted payload is not found in storage or decryption fails
 	 */
-	public async getOrgEncryptionKey(accessToken: string) {
+	public getOrgEncryptionKey(accessToken: string) {
+		return this.withTaskSlot(() => this._getOrgEncryptionKey(accessToken));
+	}
+	/**
+	 * The work behind {@link getOrgEncryptionKey}, unmetered so the encrypt/decrypt paths that need the org key can reuse it inside their own slot instead of taking a second one.
+	 */
+	private async _getOrgEncryptionKey(accessToken: string) {
 		const encryptedPayload = await this.ctx.storage.get<string>('encryptedPayload', { allowConcurrency: true });
 		if (encryptedPayload) {
 			// Step 1: Parse the string into an EncString object
@@ -292,10 +433,14 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	/**
 	 * Retrieves all projects from the Bitwarden API that the service account has read and write access to.
 	 * @returns An array of projects with read and write permissions
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
 	 * @throws {AggregateError} If API endpoint, organization ID, or access token are not found in storage
 	 * @throws {Error} If the API request fails
 	 */
-	public async getProjects() {
+	public getProjects() {
+		return this.withTaskSlot(() => this._getProjects());
+	}
+	private async _getProjects() {
 		const [orgId, { apiEndpoint, jwt }] = await Promise.all([
 			// Separate for typing reasons
 			this.ctx.storage.get<ParsedJwt>('decodedJwt', { allowConcurrency: true }).then((jwt) => jwt?.organization),
@@ -341,10 +486,14 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	/**
 	 * Retrieves all secrets and projects from the Bitwarden API that the service account has read and write access to.
 	 * @returns An object containing an array of all projects and an array of secrets with read and write permissions
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
 	 * @throws {AggregateError} If API endpoint, organization ID, or access token are not found in storage
 	 * @throws {Error} If the API request fails
 	 */
-	public async getSecretsAndProjects() {
+	public getSecretsAndProjects() {
+		return this.withTaskSlot(() => this._getSecretsAndProjects());
+	}
+	private async _getSecretsAndProjects() {
 		const [orgId, { apiEndpoint, jwt }] = await Promise.all([
 			// Separate for typing reasons
 			this.ctx.storage.get<ParsedJwt>('decodedJwt', { allowConcurrency: true }).then((jwt) => jwt?.organization),
@@ -413,10 +562,14 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	 * @warning This buffers all secrets in memory before returning. Use with caution if expecting a large number of secrets.
 	 * @param secretIds - Array of secret UUIDs to retrieve
 	 * @returns An array of secret objects with their metadata and values
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
 	 * @throws {AggregateError} If API endpoint or access token are not found in storage
 	 * @throws {Error} If the API request fails
 	 */
-	public async getSecrets(_secretIds: zm.input<typeof BitwardenSession.getSecretsOptions>) {
+	public getSecrets(_secretIds: zm.input<typeof BitwardenSession.getSecretsOptions>) {
+		return this.withTaskSlot(() => this._getSecrets(_secretIds));
+	}
+	private async _getSecrets(_secretIds: zm.input<typeof BitwardenSession.getSecretsOptions>) {
 		const secretIds = await BitwardenSession.getSecretsOptions.parseAsync(_secretIds);
 
 		const { apiEndpoint, jwt } = await this.ctx.storage.get<string>(['apiEndpoint', 'jwt'], { allowConcurrency: true }).then((results) => Object.fromEntries(results.entries()));
@@ -503,7 +656,14 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 		value: zm.string().check(zm.trim(), zm.minLength(1)),
 		note: zm._default(zm.string(), '').check(zm.trim(), zm.minLength(1)),
 	});
-	public async setSecret(_options: zm.input<typeof BitwardenSession.setSecretOptions>) {
+	/**
+	 * Creates a secret in the organization this session is authenticated against.
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls. Nothing was sent to Bitwarden when this is thrown - unlike a failure from the API itself, it's safe to run the same create against another session.
+	 */
+	public setSecret(_options: zm.input<typeof BitwardenSession.setSecretOptions>) {
+		return this.withTaskSlot(() => this._setSecret(_options));
+	}
+	private async _setSecret(_options: zm.input<typeof BitwardenSession.setSecretOptions>) {
 		const options = await BitwardenSession.setSecretOptions.parseAsync(_options);
 
 		const [orgId, { apiEndpoint, jwt }] = await Promise.all([
@@ -554,15 +714,19 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 
 	/**
 	 * @param iv - Only for debugging purposes. leave undefined otherwise
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls. Callers decrypting in bulk should fan out no wider than that against one session.
 	 */
-	public async decryptSecret(accessToken: string, cipherText: string): Promise<string>;
-	public async decryptSecret(accessToken: string, cipherText: string, iv: true): Promise<{ data: string; iv: Readonly<Buffer> }>;
-	public async decryptSecret(accessToken: string, cipherText: string, iv?: boolean) {
+	public decryptSecret(accessToken: string, cipherText: string): Promise<string>;
+	public decryptSecret(accessToken: string, cipherText: string, iv: true): Promise<{ data: string; iv: Readonly<Buffer> }>;
+	public decryptSecret(accessToken: string, cipherText: string, iv?: boolean) {
+		return this.withTaskSlot(() => this._decryptSecret(accessToken, cipherText, iv));
+	}
+	private async _decryptSecret(accessToken: string, cipherText: string, iv?: boolean) {
 		// Step 1: Parse the string into an EncString object
 		const encString = EncString.fromString(cipherText);
 
 		// Step 2: Create the SymmetricCryptoKey
-		const symmetricKey = SymmetricCryptoKey.fromBase64Key(await this.getOrgEncryptionKey(accessToken), encString.encType as 0 | 1 | 2);
+		const symmetricKey = SymmetricCryptoKey.fromBase64Key(await this._getOrgEncryptionKey(accessToken), encString.encType as 0 | 1 | 2);
 
 		if (iv) {
 			const data = encString.decryptToString(symmetricKey);
@@ -576,9 +740,15 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 		}
 	}
 
-	public async encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version: 0 | 1 | 2 = 2) {
+	/**
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
+	 */
+	public encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version: 0 | 1 | 2 = 2) {
+		return this.withTaskSlot(() => this._encryptSecret(accessToken, plainText, iv, version));
+	}
+	private async _encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version: 0 | 1 | 2 = 2) {
 		// Step 1: Create the SymmetricCryptoKey
-		const symmetricKey = SymmetricCryptoKey.fromBase64Key(await this.getOrgEncryptionKey(accessToken), version);
+		const symmetricKey = SymmetricCryptoKey.fromBase64Key(await this._getOrgEncryptionKey(accessToken), version);
 
 		// Step 2: Parse the string into an EncString object
 		const encString = EncString.encryptAes256Hmac(Buffer.from(plainText, 'utf8'), symmetricKey, iv);
@@ -594,7 +764,13 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 			),
 		)
 		.check(zm.minLength(1));
-	public async deleteSecrets(_secretIds: zm.input<typeof BitwardenSession.deleteSecretsOptions>) {
+	/**
+	 * @throws {BitwardenSessionBusyError} If this session is already running {@link MAX_BITWARDEN_SESSION_TASKS} calls
+	 */
+	public deleteSecrets(_secretIds: zm.input<typeof BitwardenSession.deleteSecretsOptions>) {
+		return this.withTaskSlot(() => this._deleteSecrets(_secretIds));
+	}
+	private async _deleteSecrets(_secretIds: zm.input<typeof BitwardenSession.deleteSecretsOptions>) {
 		const secretIds = await BitwardenSession.deleteSecretsOptions.parseAsync(_secretIds);
 
 		const { apiEndpoint, jwt } = await this.ctx.storage.get<string>(['apiEndpoint', 'jwt'], { allowConcurrency: true }).then((results) => Object.fromEntries(results.entries()));
@@ -647,24 +823,32 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 		}
 	}
 
+	/**
+	 * The token this session holds has just expired, so the session has no reason to exist anymore. This is what makes a pooled session temporary: nothing else ever ends one, since borrowers no longer close what they didn't open.
+	 */
 	override async alarm() {
 		await this.nuke('Access token expired');
 	}
 
 	/**
-	 * Wipes all persisted state, logging this session's closing itself (see {@link logSessionEvent}) before it does - the only caller of `nuke()` that could still send that log after the fact is this class, so it owns sending it, same as {@link auth} owns the "created" side.
+	 * Wipes all persisted state, logging this session's closing itself (see {@link logSessionEvent}) and removing itself from its tenant's pool (see {@link forgetInPool}) before it does - the only caller of `nuke()` that could still do either after the fact is this class, so it owns both, same as {@link auth} owns the "created" side.
+	 *
+	 * Now that sessions are pooled, this is the tenant's session too: only its own expiry alarm, or a tenant being torn down entirely, has any business calling it. A borrower that nukes a session it merely borrowed pulls it out from under every other caller mid-operation.
 	 * @param reason Optional reason for the nuke.
 	 * @param [hard=false] Optionally force exit the DO
 	 */
 	public async nuke(reason?: string, hard: boolean = false) {
 		if (reason) console.warn(reason);
 
+		// Both of these read state that `deleteAll` below is about to remove, so both are started (their storage reads issued) before it rather than after
 		const closeLog = this.logSessionEvent(TenantLogEventType['ended bitwarden session'], { session: this.ctx.id.toString(), reason });
+		const forget = this.forgetInPool();
 		if (hard) {
-			// Awaited, not `waitUntil`, and ahead of `deleteAll` below: `ctx.abort()` further down is uncatchable and would tear the DO down mid-flight, silently dropping this row if it were still in-progress when that happens
-			await closeLog;
+			// Awaited, not `waitUntil`, and ahead of `deleteAll` below: `ctx.abort()` further down is uncatchable and would tear the DO down mid-flight, silently dropping the audit row or leaving a pool row pointing at a session that no longer exists
+			await Promise.all([closeLog, forget]);
 		} else {
 			this.ctx.waitUntil(closeLog);
+			this.ctx.waitUntil(forget);
 		}
 
 		await this.ctx.storage.deleteAll({ allowConcurrency: false });

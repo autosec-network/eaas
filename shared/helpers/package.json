@@ -13,6 +13,10 @@
 			"import": "./dist/index.js",
 			"types": "./dist/index.d.ts"
 		},
+		"./bitwarden-sessions": {
+			"import": "./dist/bitwarden-sessions.js",
+			"types": "./dist/bitwarden-sessions.d.ts"
+		},
 		"./noise": {
 			"import": "./dist/noise.js",
 			"types": "./dist/noise.d.ts"

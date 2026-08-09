@@ -19,6 +19,7 @@ import { BitwardenCloudEndpoints } from 'types/bw';
 import { KeyAlgorithms } from 'types/crypto';
 import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
+import { openBitwardenSession as openPooledBitwardenSession } from '~/bitwarden-pool';
 import type { EnvVars } from '~/types';
 
 // eslint-disable-next-line zod-mini/consistent-schema-var-name
@@ -726,101 +727,53 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 			const { publicKey, privateKey } = await generateKeys(salt.base64);
 			const macInfo = generateMacInfo();
 
-			// Connect to root Bitwarden
-			const r_bw_doId = tenant.jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(tenant.jurisdiction).newUniqueId() : this.env.BITWARDEN_SESSION.newUniqueId();
-			const r_bwStub = this.env.BITWARDEN_SESSION.get(r_bw_doId);
+			/**
+			 * Connect to root Bitwarden - borrowed from the tenant's session pool when something already has one open on these credentials, opened into it when not. Nothing here closes what it gets back: a pooled session belongs to the tenant and ends itself when its token expires (see `openBitwardenSession` in `~/bitwarden-pool`).
+			 */
 			const r_accessToken = tenant.jurisdiction === DOJurisdictions['The European Union'] ? this.env.EU_BW_SM_ACCESS_TOKEN : this.env.US_BW_SM_ACCESS_TOKEN;
+			const r_bwStub = await openPooledBitwardenSession(this.env, {
+				jurisdiction: tenant.jurisdiction,
+				t_do_id_hex: tenant.do_id,
+				log_t_id_hex: parsedPayload.t_id.hex,
+				// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
+				u_id: parsedPayload.u_id,
+				ak_id: parsedPayload.ak_id,
+				endpoints: {
+					base: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
+					authentication: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
+				},
+				accessToken: r_accessToken,
+			});
 
-			try {
-				await r_bwStub.init({
-					t_jurisdiction: tenant.jurisdiction,
-					t_do_id: (() => {
-						const mainBuffer = Buffer.from(tenant.do_id, 'hex');
-						return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
-					})(),
-					t_id: parsedPayload.t_id.hex,
-					// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
-					u_id: parsedPayload.u_id,
-					ak_id: parsedPayload.ak_id,
-					endpoints: {
-						base: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
-						authentication: tenant.jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
-					},
-				});
-				await r_bwStub.auth(r_accessToken);
+			if (byo_bw) {
+				// Get connection details to customer's Bitwarden
+				const [byo_bw_connection] = await r_bwStub.getSecrets([byo_bw]);
 
-				if (byo_bw) {
-					// Get connection details to customer's Bitwarden
-					const [byo_bw_connection] = await r_bwStub.getSecrets([byo_bw]);
+				if (byo_bw_connection) {
+					// Parse & fix types
+					const { value: t_accessToken, note: _note } = byo_bw_connection;
+					const note = JSON.parse(_note) as zm.output<typeof TenantByoBwNoteSchema>;
 
-					if (byo_bw_connection) {
-						// Parse & fix types
-						const { value: t_accessToken, note: _note } = byo_bw_connection;
-						const note = JSON.parse(_note) as zm.output<typeof TenantByoBwNoteSchema>;
+					// Connect to customer's Bitwarden - pooled the same way the root session above is, under the same tenant but its own fingerprint, since the two vaults' sessions are never interchangeable
+					const t_bwStub = await openPooledBitwardenSession(this.env, {
+						jurisdiction: tenant.jurisdiction,
+						t_do_id_hex: tenant.do_id,
+						log_t_id_hex: parsedPayload.t_id.hex,
+						// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
+						u_id: parsedPayload.u_id,
+						ak_id: parsedPayload.ak_id,
+						endpoints: {
+							base: note.endpoints.base,
+							authentication: note.endpoints.authentication,
+						},
+						accessToken: t_accessToken,
+					});
 
-						// Connect to customer's Bitwarden
-						const t_bw_doId = tenant.jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(tenant.jurisdiction).newUniqueId() : this.env.BITWARDEN_SESSION.newUniqueId();
-						const t_bwStub = this.env.BITWARDEN_SESSION.get(t_bw_doId);
-
-						try {
-							await t_bwStub.init({
-								t_jurisdiction: tenant.jurisdiction,
-								t_do_id: (() => {
-									const mainBuffer = Buffer.from(tenant.do_id, 'hex');
-									return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
-								})(),
-								t_id: parsedPayload.t_id.hex,
-								// Passed through from whoever triggered this rotation - see `workflowParams.u_id`'s doc comment
-								u_id: parsedPayload.u_id,
-								ak_id: parsedPayload.ak_id,
-								endpoints: {
-									base: note.endpoints.base,
-									authentication: note.endpoints.authentication,
-								},
-							});
-							await t_bwStub.auth(t_accessToken);
-
-							// Save it there
-							const secretKey = await t_bwStub.encryptSecret(t_accessToken, [parsedPayload.t_id.base64url, parsedPayload.kr_id.base64url, dk_id.base64url].join('/'));
-							const secretValue = await t_bwStub.encryptSecret(t_accessToken, JSON.stringify(privateKey));
-							const secretNote = await t_bwStub.encryptSecret(
-								t_accessToken,
-								JSON.stringify({
-									public: publicKey,
-									salt: salt.base64url,
-									macInfo: macInfo.base64url,
-								}),
-							);
-
-							const { id } = await t_bwStub.setSecret({
-								projectId: note.project,
-								key: secretKey,
-								value: secretValue,
-								note: secretNote,
-							});
-
-							const bw_id_hex = id.replaceAll('-', '');
-							const bw_id_buffer = Buffer.from(bw_id_hex, 'hex');
-							return {
-								utf8: id,
-								hex: bw_id_hex,
-								base64: bw_id_buffer.toString('base64'),
-								base64url: bw_id_buffer.toString('base64url'),
-							};
-						} finally {
-							this.ctx.waitUntil(t_bwStub.nuke());
-						}
-					} else {
-						// Empty pointer in tenant properties, we should clean it up to avoid confusion in the future
-						this.ctx.waitUntil(t_do_stub.updateProperties({ byo_bw: null }));
-						throw new NonRetryableError('BYO Bitwarden connection not found');
-					}
-				} else {
-					// We saving here
-					const secretKey = await r_bwStub.encryptSecret(r_accessToken, [parsedPayload.t_id.base64url, parsedPayload.kr_id.base64url, dk_id.base64url].join('/'));
-					const secretValue = await r_bwStub.encryptSecret(r_accessToken, JSON.stringify(privateKey));
-					const secretNote = await r_bwStub.encryptSecret(
-						r_accessToken,
+					// Save it there
+					const secretKey = await t_bwStub.encryptSecret(t_accessToken, [parsedPayload.t_id.base64url, parsedPayload.kr_id.base64url, dk_id.base64url].join('/'));
+					const secretValue = await t_bwStub.encryptSecret(t_accessToken, JSON.stringify(privateKey));
+					const secretNote = await t_bwStub.encryptSecret(
+						t_accessToken,
 						JSON.stringify({
 							public: publicKey,
 							salt: salt.base64url,
@@ -828,8 +781,8 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 						}),
 					);
 
-					const { id } = await r_bwStub.setSecret({
-						projectId: tenant.jurisdiction === DOJurisdictions['The European Union'] ? this.env.EU_BW_SM_PROJECT_ID : this.env.US_BW_SM_PROJECT_ID,
+					const { id } = await t_bwStub.setSecret({
+						projectId: note.project,
 						key: secretKey,
 						value: secretValue,
 						note: secretNote,
@@ -843,9 +796,39 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 						base64: bw_id_buffer.toString('base64'),
 						base64url: bw_id_buffer.toString('base64url'),
 					};
+				} else {
+					// Empty pointer in tenant properties, we should clean it up to avoid confusion in the future
+					this.ctx.waitUntil(t_do_stub.updateProperties({ byo_bw: null }));
+					throw new NonRetryableError('BYO Bitwarden connection not found');
 				}
-			} finally {
-				this.ctx.waitUntil(r_bwStub.nuke());
+			} else {
+				// We saving here
+				const secretKey = await r_bwStub.encryptSecret(r_accessToken, [parsedPayload.t_id.base64url, parsedPayload.kr_id.base64url, dk_id.base64url].join('/'));
+				const secretValue = await r_bwStub.encryptSecret(r_accessToken, JSON.stringify(privateKey));
+				const secretNote = await r_bwStub.encryptSecret(
+					r_accessToken,
+					JSON.stringify({
+						public: publicKey,
+						salt: salt.base64url,
+						macInfo: macInfo.base64url,
+					}),
+				);
+
+				const { id } = await r_bwStub.setSecret({
+					projectId: tenant.jurisdiction === DOJurisdictions['The European Union'] ? this.env.EU_BW_SM_PROJECT_ID : this.env.US_BW_SM_PROJECT_ID,
+					key: secretKey,
+					value: secretValue,
+					note: secretNote,
+				});
+
+				const bw_id_hex = id.replaceAll('-', '');
+				const bw_id_buffer = Buffer.from(bw_id_hex, 'hex');
+				return {
+					utf8: id,
+					hex: bw_id_hex,
+					base64: bw_id_buffer.toString('base64'),
+					base64url: bw_id_buffer.toString('base64url'),
+				};
 			}
 		});
 
