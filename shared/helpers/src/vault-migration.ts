@@ -1,7 +1,7 @@
 import { Buffer } from 'node:buffer';
 import { TenantVerificationAction } from 'types/tenants/verification';
 import * as zm from 'zod/mini';
-import { ZodUuidInputConverted } from './zod-mini/index.js';
+import { ZodUuidHex, ZodUuidInputConverted } from './zod-mini/index.js';
 
 /**
  * `type` of the event the dashboard sends to release a waiting migration workflow. Must satisfy Cloudflare's `^[a-zA-Z0-9_][a-zA-Z0-9-_]*$`.
@@ -68,6 +68,10 @@ export const VaultMigrationParamsSchema = zm.object({
 	 * The tenant being migrated *away from*. The workflow builds its replacement.
 	 */
 	t_id: ZodUuidInputConverted(7),
+	/**
+	 * Whoever requested this migration from the dashboard - never `null`, unlike the equivalent field on other Workflows. A vault migration only ever starts from a tenant admin's own settings page action; there's no API-key or system-triggered path that creates one, so the actor is always a person and required here rather than optional.
+	 */
+	u_id: ZodUuidHex(7),
 	action: zm.enum(TenantVerificationAction),
 	/**
 	 * The destination vault, sealed with {@link sealVaultConfig}. Cloudflare stores workflow parameters in plaintext, so this is the only form the tenant's Bitwarden credentials may take here.
