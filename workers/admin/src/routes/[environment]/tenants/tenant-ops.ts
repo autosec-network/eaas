@@ -156,16 +156,20 @@ export async function tenantHasDatakeys(doStub: TenantDoStub): Promise<boolean> 
  *
  * Before deleting, confirms the secret actually lives in the project this admin environment (dev/prod) + jurisdiction expects — `byo_bw` is just an id pointer, so this catches it having drifted onto the wrong project (e.g. a dev root row pointing at a prod secret) instead of silently deleting someone else's connection.
  */
-async function deleteByoBwSecret(options: { bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null; accessToken: string; projectId: string; secretId: string }) {
-	const { bitwardenNamespace, jurisdiction, accessToken, projectId, secretId } = options;
+async function deleteByoBwSecret(options: { bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null; t_id_hex: string; accessToken: string; projectId: string; secretId: string }) {
+	const { bitwardenNamespace, jurisdiction, t_id_hex, accessToken, projectId, secretId } = options;
 
 	const doId = jurisdiction ? bitwardenNamespace.jurisdiction(jurisdiction).newUniqueId() : bitwardenNamespace.newUniqueId();
 	const stub = bitwardenNamespace.get(doId);
 
 	try {
+		// This tenant is about to be deleted for good (see `purgeTenant`), and its logs DO gets nuked concurrently with this session's cleanup a few lines below - so a session-lifecycle row here could in principle be processed after that nuke and resurrect the logs DO as an orphan. That race is the queue consumer's problem to filter out (see `workers/api/src/queue.ts`), not this session's to dodge by going unlogged.
 		await stub.init({
-			t_jurisdiction: null,
+			t_jurisdiction: jurisdiction,
 			t_do_id: null,
+			t_id: t_id_hex,
+			u_id: null,
+			ak_id: null,
 			endpoints: {
 				base: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
 				authentication: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
@@ -236,6 +240,7 @@ export async function purgeTenant(options: {
 					deleteByoBwSecret({
 						bitwardenNamespace,
 						jurisdiction,
+						t_id_hex,
 						accessToken: isEu ? bitwardenAccessTokens.eu : bitwardenAccessTokens.us,
 						projectId: isEu ? (isProd ? bitwardenProjectIds.eu.prod : bitwardenProjectIds.eu.dev) : isProd ? bitwardenProjectIds.us.prod : bitwardenProjectIds.us.dev,
 						secretId: byo_bw,
