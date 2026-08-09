@@ -152,7 +152,35 @@ export async function tenantHasDatakeys(doStub: TenantDoStub): Promise<boolean> 
 }
 
 /**
+ * Ends every Bitwarden session pooled for a tenant, expired ones included.
+ *
+ * Runs **before** the tenant's own Durable Object is wiped: each session removes its own pool row as it goes (see `BitwardenSession.nuke`), and any RPC to an already-purged tenant would rebuild it as an orphan. Leaving them behind instead would leave Durable Objects holding live vault credentials with nothing left to account for them — they'd expire on their own eventually, but "eventually" isn't what a delete means.
+ *
+ * Best effort throughout: a session that can't be reached is worth a log line, never a reason to abandon a delete the admin asked for.
+ */
+async function nukePooledBitwardenSessions(options: { tenantDoStub: TenantDoStub; bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null }) {
+	const { tenantDoStub, bitwardenNamespace, jurisdiction } = options;
+
+	const sessions = await tenantDoStub.listBitwardenSessions({ includeExpired: true }).catch((error: unknown) => {
+		console.error('Failed to list pooled bitwarden sessions for tenant delete', error);
+		return [];
+	});
+
+	if (sessions.length === 0) return;
+
+	const namespace = jurisdiction ? bitwardenNamespace.jurisdiction(jurisdiction) : bitwardenNamespace;
+	await Promise.allSettled(sessions.map(({ do_id }) => bitwardenNamespace.get(namespace.idFromString(do_id)).nuke('Tenant deleted by admin'))).then((settled) =>
+		settled.forEach((result) => {
+			// A session `nuke()` resolves normally (it doesn't `abort()`), so unlike the tenant/logs wipes below there's no expected rejection to filter here
+			if (result.status === 'rejected') console.error('Failed to nuke pooled bitwarden session', result.reason);
+		}),
+	);
+}
+
+/**
  * Deletes a tenant's BYO connection secret (key `<t_id base64url>/bw`) from Autosec's root Bitwarden org. That secret only points at the customer's own vault — it holds their access token and project, not a copy of their data — so removing it just forgets the connection.
+ *
+ * Deliberately opens a session of its own rather than borrowing one from the tenant's pool, and nukes it when done: the tenant it belongs to is being deleted in the very next breath, so a pooled session would only have to be torn down again a moment later. `t_do_id: null` is what keeps it out of the pool.
  *
  * Before deleting, confirms the secret actually lives in the project this admin environment (dev/prod) + jurisdiction expects — `byo_bw` is just an id pointer, so this catches it having drifted onto the wrong project (e.g. a dev root row pointing at a prod secret) instead of silently deleting someone else's connection.
  */
@@ -231,6 +259,9 @@ export async function purgeTenant(options: {
 	const { byo_bw } = await tenantDoStub.getProperties({ byo_bw: true }, true).catch(() => ({}) as Record<string, never>);
 
 	const isEu = jurisdiction === DOJurisdictions['The European Union'];
+
+	// Sequenced ahead of the wipes below, not alongside them: a session deregisters itself from the tenant's database on its way out, which only works while that database is still there
+	await nukePooledBitwardenSessions({ tenantDoStub, bitwardenNamespace, jurisdiction });
 
 	await Promise.allSettled([
 		tenantDoStub.nuke('Tenant deleted by admin'),

@@ -127,7 +127,11 @@ const useOnboardTenant = routeAction$(
 			});
 
 			if (data.vaultMode === 'bitwarden') {
-				// Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
+				/**
+				 * Deliberately **not** taken from (or added to) the tenant's session pool, unlike every other Bitwarden call on the dashboard: everything in this action is still rollback-able, and a pooled session would outlive a rollback that nuked the tenant it was pooled under. Passing `t_do_id: null` is what keeps it out of the pool - the same reasoning that has this action buffer its audit logs instead of sending them as they happen.
+				 *
+				 * Store access token in our bitwarden securely. An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
+				 */
 				const bwUseProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
 				const bw_id = bwUseProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(data.jurisdiction ?? undefined) : (data.jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(data.jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
 				const bw_doStub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: data.jurisdiction ?? undefined });

@@ -38,6 +38,13 @@ CREATE TABLE `api_keys_keyrings` (
 	CONSTRAINT `fk_api_keys_keyrings_kr_id_keyrings_kr_id_fk` FOREIGN KEY (`kr_id`) REFERENCES `keyrings`(`kr_id`) ON UPDATE CASCADE ON DELETE CASCADE
 ) WITHOUT ROWID, STRICT;
 --> statement-breakpoint
+CREATE TABLE `bitwarden_sessions` (
+	`do_id` blob PRIMARY KEY,
+	`fingerprint` blob NOT NULL,
+	`expires` integer NOT NULL,
+	`b_time` integer NOT NULL
+) WITHOUT ROWID, STRICT;
+--> statement-breakpoint
 CREATE TABLE `datakeys` (
 	`dk_id` blob PRIMARY KEY,
 	`kr_id` blob NOT NULL,
@@ -102,6 +109,8 @@ CREATE UNIQUE INDEX `case_insensitive_apikey_name` ON `api_keys` (lower("name"))
 CREATE INDEX `idx_api_keys_b_time` ON `api_keys` (`b_time`);--> statement-breakpoint
 CREATE INDEX `idx_api_keys_keyrings_ak_id` ON `api_keys_keyrings` (`ak_id`);--> statement-breakpoint
 CREATE INDEX `idx_api_keys_keyrings_kr_id` ON `api_keys_keyrings` (`kr_id`);--> statement-breakpoint
+CREATE INDEX `idx_bitwarden_sessions_fingerprint` ON `bitwarden_sessions` (`fingerprint`);--> statement-breakpoint
+CREATE INDEX `idx_bitwarden_sessions_expires` ON `bitwarden_sessions` (`expires`);--> statement-breakpoint
 CREATE INDEX `idx_datakeys_kr_id` ON `datakeys` (`kr_id`);--> statement-breakpoint
 CREATE UNIQUE INDEX `case_insensitive_keyring_name` ON `keyrings` (lower("name"));--> statement-breakpoint
 CREATE INDEX `idx_keyrings_name` ON `keyrings` (`name`);--> statement-breakpoint

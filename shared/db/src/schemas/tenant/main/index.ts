@@ -140,6 +140,39 @@ export const api_keys_keyrings = snakeCase.table(
 	],
 );
 
+/**
+ * The tenant's pool of live Bitwarden Secrets Manager sessions (`BitwardenSession` Durable Objects), so a second operation can borrow a session the first one already authenticated instead of paying for another OAuth round trip.
+ *
+ * Rows are written and removed by the sessions themselves - one registers on a successful `auth()`, and removes itself when it self-nukes at token expiry - so this table is a cache of what exists, never the thing that decides it. A row can therefore outlive its session (the deregistration is best effort); readers filter on {@link expires} and drop rows that no longer answer, which is also what makes a lingering row worth surfacing in the admin dashboard rather than sweeping away on a timer.
+ */
+// `WITHOUT ROWID`
+export const bitwarden_sessions = snakeCase.table(
+	'bitwarden_sessions',
+	(bs) => ({
+		/**
+		 * The session's own Durable Object id, exactly as `DurableObjectId.toString()` gives it - the only way to address it again, since sessions are minted with `newUniqueId()` and have no derivable name.
+		 */
+		do_id: bs.blob({ mode: 'buffer' }).primaryKey().notNull(),
+		/**
+		 * sha512 of the endpoints + access token this session authenticated with (see `bitwardenSessionFingerprint` in `helpers/bitwarden-sessions`). Sessions are only interchangeable within one fingerprint: a session on our managed organization cannot serve a call meant for the tenant's own vault.
+		 */
+		fingerprint: bs.blob({ mode: 'buffer' }).notNull(),
+		/**
+		 * When the session's Bitwarden JWT expires, straight off the token's `exp` claim. The session sets its own alarm for this moment and nukes itself; borrowers treat it as the hard cutoff for reuse.
+		 */
+		expires: bs.integer({ mode: 'timestamp_ms' }).notNull(),
+		/**
+		 * session was opened time
+		 */
+		b_time: bs.integer({ mode: 'timestamp_ms' }).notNull(),
+	}),
+	(bs) => [
+		// To search - every acquire asks for "unexpired sessions with this fingerprint"
+		index('idx_bitwarden_sessions_fingerprint').on(bs.fingerprint),
+		index('idx_bitwarden_sessions_expires').on(bs.expires),
+	],
+);
+
 // `WITHOUT ROWID`
 export const datakeys = snakeCase.table(
 	'datakeys',
