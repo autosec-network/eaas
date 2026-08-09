@@ -10,7 +10,9 @@ import { DefaultLogger } from 'drizzle-orm/logger';
 import { asc, eq, gt, sql } from 'drizzle-orm/sql';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { hexToUuid } from 'helpers';
+import { MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
 import { unsealVaultConfig, VAULT_MIGRATION_APPROVAL_EVENT, VaultMigrationParamsSchema } from 'helpers/vault-migration';
+import { nukeTenantBitwardenSessions, openBitwardenSession as openPooledBitwardenSession } from '~/bitwarden-pool';
 import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
@@ -40,9 +42,11 @@ interface OwnedSecret {
 }
 
 /**
- * How many `decryptSecret` round trips to the session Durable Object to keep in flight at once. Identical reasoning to the dashboard's vault rescan: in our managed organization the secret listing spans every tenant, so an unbounded fan-out would be thousands of concurrent RPCs.
+ * How many round trips to a single session Durable Object to keep in flight at once. Identical reasoning to the dashboard's vault rescan: in our managed organization the secret listing spans every tenant, so an unbounded fan-out would be thousands of concurrent RPCs.
+ *
+ * Pinned to the session's own concurrency cap, not a number of its own: a session refuses work past {@link MAX_BITWARDEN_SESSION_TASKS} in flight, so a wider fan-out here wouldn't go faster - it would just start rejecting itself.
  */
-const DECRYPT_CONCURRENCY = 25;
+const DECRYPT_CONCURRENCY = MAX_BITWARDEN_SESSION_TASKS;
 
 /**
  * How many single-row statements to put in one `batch()`. Durable Object SQLite caps bound parameters **per statement**, but a transaction with thousands of statements is its own CPU cliff, so the clone walks the tables in chunks.
@@ -169,37 +173,25 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 	}
 
 	/**
-	 * Open an authenticated, single-use Bitwarden Secrets Manager session. The caller owns closing it with {@link closeBitwardenSession}.
+	 * An authenticated Bitwarden Secrets Manager session, borrowed from the tenant's pool when one is already open on these credentials and opened (into that pool) when not.
 	 *
-	 * `log_t_id_hex` is whichever tenant this session's activity should be attributed to in the audit row the session logs on open/close - not necessarily the tenant whose vault it's talking to, though it usually is. The session logs itself (see `BitwardenSession.logSessionEvent`) straight onto the `eaas-logs-*` queue; a message for a tenant that no longer exists by the time it's processed - e.g. 'Delete old tenant' having already nuked the old tenant's logs DO - is the queue consumer's problem to filter out, not this workflow's to avoid by misattributing rows (see `workers/api/src/queue.ts`).
+	 * Nothing here closes what it gets back. A migration re-enters these steps on every retry and opens sessions in most of them, which is exactly the traffic pooling exists for; a session lives until its token expires, and the only teardown this workflow performs is of the *old* tenant's sessions, once, as part of deleting it.
+	 *
+	 * `log_t_id_hex` is whichever tenant a newly opened session should attribute its lifecycle audit rows to - not necessarily the tenant whose vault it's talking to, though it usually is. The session logs itself (see `BitwardenSession.logSessionEvent`) straight onto the `eaas-logs-*` queue; a message for a tenant that no longer exists by the time it's processed - e.g. 'Delete old tenant' having already nuked the old tenant's logs DO - is the queue consumer's problem to filter out, not this workflow's to avoid by misattributing rows (see `workers/api/src/queue.ts`). A *borrowed* session logs nothing, having already been created and logged once.
 	 *
 	 * `u_id_hex` is always the tenant admin who requested this migration - `workflowParams.u_id`, threaded through every call site rather than read from `this` because nothing else in this class keeps state that way. Unlike other Workflows here, a vault migration never runs unattended, so every session it opens carries a real actor, never `system`.
 	 */
-	private async openBitwardenSession(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, u_id_hex: string) {
-		const stub = this.env.BITWARDEN_SESSION.get((jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : this.env.BITWARDEN_SESSION).newUniqueId());
-
-		await stub.init({
-			t_jurisdiction: jurisdiction,
-			t_do_id: (() => {
-				const mainBuffer = Buffer.from(t_do_id_hex, 'hex');
-				return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
-			})(),
-			t_id: log_t_id_hex,
+	private openBitwardenSession(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, u_id_hex: string) {
+		return openPooledBitwardenSession(this.env, {
+			jurisdiction,
+			t_do_id_hex,
+			log_t_id_hex,
 			u_id: u_id_hex,
 			// A vault migration is always requested by a tenant admin from the dashboard - never an API key
 			ak_id: null,
 			endpoints,
+			accessToken,
 		});
-		await stub.auth(accessToken);
-
-		return stub;
-	}
-
-	/**
-	 * Close a session opened by {@link openBitwardenSession}. The session logs its own close audit row internally (see `BitwardenSession.nuke`), so this just schedules the wipe - `ctx.waitUntil`'d since nothing here depends on it finishing first.
-	 */
-	private closeBitwardenSession(stub: BitwardenStub, reason: string) {
-		this.ctx.waitUntil(stub.nuke(reason));
 	}
 
 	private rootEndpoints(jurisdiction: DOJurisdictions | null) {
@@ -220,27 +212,25 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 	/**
 	 * Resolve where a tenant's key material actually lives - our organization, or theirs - and hand back an authenticated session on it plus the token that decrypts its contents.
 	 *
-	 * `byo_bw` is the id of a secret in *our* organization whose value is the tenant's own access token, so reaching a BYO vault always costs two sessions. Both are returned so the caller can nuke them.
+	 * `byo_bw` is the id of a secret in *our* organization whose value is the tenant's own access token, so reaching a BYO vault always costs two sessions. `rootStub` is handed back alongside because a couple of steps need our organization specifically even while working on a tenant's own vault - it is the same object as `stub` for a managed tenant, never a second session for one.
 	 */
 	private async openTenantVault(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, byo_bw: string | null | undefined, u_id_hex: string) {
 		const rootToken = this.rootAccessToken(jurisdiction);
 		const rootStub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, this.rootEndpoints(jurisdiction), rootToken, u_id_hex);
 
 		if (!byo_bw) {
-			return { stub: rootStub, token: rootToken, projectId: this.rootProjectId(jurisdiction), sessions: [rootStub], byo: false as const };
+			return { stub: rootStub, token: rootToken, projectId: this.rootProjectId(jurisdiction), rootStub, byo: false as const };
 		}
 
 		const [connection] = await rootStub.getSecrets([byo_bw]);
-		if (!connection) {
-			this.ctx.waitUntil(rootStub.nuke('Vault migration: BYO connection missing'));
-			throw new NonRetryableError('BYO Bitwarden connection secret not found');
-		}
+		// The session stays open and pooled: it is the tenant's, not this step's, and the next attempt (or whatever else needs our organization) will borrow it rather than pay for another
+		if (!connection) throw new NonRetryableError('BYO Bitwarden connection secret not found');
 
 		const note = JSON.parse(await decryptOne(rootStub, rootToken, connection.note)) as zm.output<typeof TenantByoBwNoteSchema>;
 		const token = await decryptOne(rootStub, rootToken, connection.value);
 		const stub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, note.endpoints, token, u_id_hex);
 
-		return { stub, token, projectId: note.project, sessions: [rootStub, stub], byo: true as const };
+		return { stub, token, projectId: note.project, rootStub, byo: true as const };
 	}
 
 	/**
@@ -502,61 +492,59 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 				// The destination is whatever the sealed config describes: back onto our organization, or onto the tenant's own
 				const destination = config.mode === 'managed' ? { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, this.rootEndpoints(oldTenant.jurisdiction), this.rootAccessToken(oldTenant.jurisdiction), parsedPayload.u_id), token: this.rootAccessToken(oldTenant.jurisdiction), projectId: this.rootProjectId(oldTenant.jurisdiction) } : { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, config.endpoints, config.accessToken, parsedPayload.u_id), token: config.accessToken, projectId: config.project };
 
-				try {
-					const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
-					if (owned.length === 0) return [];
+				const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
+				if (owned.length === 0) return [];
 
-					/**
-					 * A retry re-enters this closure from the top, so anything a previous attempt already wrote has to be recognised rather than written again. Bitwarden happily accepts a duplicate key, and duplicates here would be orphans forever: 'Relink datakeys' can only point a row at one of them, and the loser is a copy of live key material nothing references.
-					 *
-					 * The destination is listed by the *new* tenant's prefix, which nothing but this step ever writes - so a hit is always our own earlier attempt.
-					 */
-					const existing = new Map((await this.ownedSecrets(destination.stub, destination.token, newTenant.base64url)).map((secret) => [`${secret.kr_id_base64url}/${secret.dk_id_base64url}`, secret.bw_id]));
+				/**
+				 * A retry re-enters this closure from the top, so anything a previous attempt already wrote has to be recognised rather than written again. Bitwarden happily accepts a duplicate key, and duplicates here would be orphans forever: 'Relink datakeys' can only point a row at one of them, and the loser is a copy of live key material nothing references.
+				 *
+				 * The destination is listed by the *new* tenant's prefix, which nothing but this step ever writes - so a hit is always our own earlier attempt.
+				 */
+				const existing = new Map((await this.ownedSecrets(destination.stub, destination.token, newTenant.base64url)).map((secret) => [`${secret.kr_id_base64url}/${secret.dk_id_base64url}`, secret.bw_id]));
 
-					const alreadyCopied = owned.flatMap((secret) => {
-						const bw_id = existing.get(`${secret.kr_id_base64url}/${secret.dk_id_base64url}`);
-						return bw_id ? [{ dk_id_hex: Buffer.from(secret.dk_id_base64url, 'base64url').toString('hex'), bw_id_hex: bw_id.replaceAll('-', '') }] : [];
-					});
-					const remaining = owned.filter((secret) => !existing.has(`${secret.kr_id_base64url}/${secret.dk_id_base64url}`));
+				const alreadyCopied = owned.flatMap((secret) => {
+					const bw_id = existing.get(`${secret.kr_id_base64url}/${secret.dk_id_base64url}`);
+					return bw_id ? [{ dk_id_hex: Buffer.from(secret.dk_id_base64url, 'base64url').toString('hex'), bw_id_hex: bw_id.replaceAll('-', '') }] : [];
+				});
+				const remaining = owned.filter((secret) => !existing.has(`${secret.kr_id_base64url}/${secret.dk_id_base64url}`));
 
-					if (remaining.length === 0) return alreadyCopied;
+				if (remaining.length === 0) return alreadyCopied;
 
-					// Safe now: every id below was proven to be this tenant's above
-					const details = await source.stub.getSecrets(remaining.map(({ bw_id }) => bw_id));
-					const byId = new Map(remaining.map((secret) => [secret.bw_id, secret]));
+				// Safe now: every id below was proven to be this tenant's above
+				const details = await source.stub.getSecrets(remaining.map(({ bw_id }) => bw_id));
+				const byId = new Map(remaining.map((secret) => [secret.bw_id, secret]));
 
-					// One secret at a time through the destination, sequentially per chunk, so a big tenant doesn't stampede either organization's rate limit
-					return chunked(details, DECRYPT_CONCURRENCY).reduce<Promise<{ dk_id_hex: string; bw_id_hex: string }[]>>(
-						async (acc, chunk) => [
-							...(await acc),
-							...(await Promise.all(
-								chunk.map(async (secret) => {
-									const owner = byId.get(secret.id)!;
-									// Plaintext key material exists only inside this closure. It is re-sealed under the destination's own organization key before anything is returned, and the return value is ids only.
-									const [value, note] = await Promise.all([decryptOne(source.stub, source.token, secret.value), decryptOne(source.stub, source.token, secret.note)]);
+				// One secret at a time through the destination, sequentially per chunk, so a big tenant doesn't stampede either organization's rate limit
+				return chunked(details, DECRYPT_CONCURRENCY).reduce<Promise<{ dk_id_hex: string; bw_id_hex: string }[]>>(
+					async (acc, chunk) => [
+						...(await acc),
+						...(await Promise.all(
+							chunk.map(async (secret) => {
+								const owner = byId.get(secret.id)!;
+								/**
+								 * Sequential within one secret, parallel across the chunk. Every one of these is a call against a session that runs at most {@link MAX_BITWARDEN_SESSION_TASKS} at a time, so fanning out *inside* an item on top of fanning out across the chunk would multiply into several times the cap and start turning itself away.
+								 *
+								 * Plaintext key material exists only inside this closure. It is re-sealed under the destination's own organization key before anything is returned, and the return value is ids only.
+								 */
+								const value = await decryptOne(source.stub, source.token, secret.value);
+								const note = await decryptOne(source.stub, source.token, secret.note);
 
-									const [key, encryptedValue, encryptedNote] = await Promise.all([
-										// The key path carries the tenant id, so a migrated secret has to be re-keyed against the *new* tenant
-										encryptOne(destination.stub, destination.token, [newTenant.base64url, owner.kr_id_base64url, owner.dk_id_base64url].join('/')),
-										encryptOne(destination.stub, destination.token, value),
-										encryptOne(destination.stub, destination.token, note),
-									]);
+								// The key path carries the tenant id, so a migrated secret has to be re-keyed against the *new* tenant
+								const key = await encryptOne(destination.stub, destination.token, [newTenant.base64url, owner.kr_id_base64url, owner.dk_id_base64url].join('/'));
+								const encryptedValue = await encryptOne(destination.stub, destination.token, value);
+								const encryptedNote = await encryptOne(destination.stub, destination.token, note);
 
-									const { id } = await destination.stub.setSecret({ projectId: destination.projectId, key, value: encryptedValue, note: encryptedNote });
+								const { id } = await destination.stub.setSecret({ projectId: destination.projectId, key, value: encryptedValue, note: encryptedNote });
 
-									return {
-										dk_id_hex: Buffer.from(owner.dk_id_base64url, 'base64url').toString('hex'),
-										bw_id_hex: id.replaceAll('-', ''),
-									};
-								}),
-							)),
-						],
-						Promise.resolve(alreadyCopied),
-					);
-				} finally {
-					source.sessions.forEach((session) => this.closeBitwardenSession(session, 'Vault migration: clone finished'));
-					this.closeBitwardenSession(destination.stub, 'Vault migration: clone finished');
-				}
+								return {
+									dk_id_hex: Buffer.from(owner.dk_id_base64url, 'base64url').toString('hex'),
+									bw_id_hex: id.replaceAll('-', ''),
+								};
+							}),
+						)),
+					],
+					Promise.resolve(alreadyCopied),
+				);
 			}),
 		]);
 
@@ -603,8 +591,6 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 			} catch (error) {
 				if (createdSecretId) await rootStub.deleteSecrets([createdSecretId]).catch((cleanupError: unknown) => console.error('Failed to roll back orphaned vault connection secret', cleanupError));
 				throw error;
-			} finally {
-				this.closeBitwardenSession(rootStub, 'Vault migration: connection stored');
 			}
 		});
 
@@ -633,21 +619,22 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 		await step.do('Purge old vault secrets', VaultMigration.bitwardenCallRetry, async () => {
 			const source = await this.openTenantVault(parsedPayload.t_id.hex, oldTenant.jurisdiction, oldTenant.do_id, oldProperties.byo_bw, parsedPayload.u_id);
 
-			try {
-				const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
-				if (owned.length > 0) await source.stub.deleteSecrets(owned.map(({ bw_id }) => bw_id));
+			const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
+			if (owned.length > 0) await source.stub.deleteSecrets(owned.map(({ bw_id }) => bw_id));
 
-				// Lives in our organization regardless of where the tenant's key material was, so it's deleted through the root session rather than the tenant's
-				if (oldProperties.byo_bw) await source.sessions[0]!.deleteSecrets([oldProperties.byo_bw]);
+			// Lives in our organization regardless of where the tenant's key material was, so it's deleted through the root session rather than the tenant's
+			if (oldProperties.byo_bw) await source.rootStub.deleteSecrets([oldProperties.byo_bw]);
 
-				return { deleted: owned.length, connection: Boolean(oldProperties.byo_bw) };
-			} finally {
-				source.sessions.forEach((session) => this.closeBitwardenSession(session, 'Vault migration: purge finished'));
-			}
+			return { deleted: owned.length, connection: Boolean(oldProperties.byo_bw) };
 		});
 
 		// Step 10 - nothing points at the old tenant anymore
 		await step.do('Delete old tenant', VaultMigration.cfApiCallRetry, async () => {
+			/**
+			 * The old tenant's pooled Bitwarden sessions go first, and only here - this is the one moment in the migration where ending them is right, since the tenant they were opened for is about to stop existing. Before the tenant Durable Object is wiped, too: each session removes its own pool row on the way out, and an RPC to an already-purged tenant would rebuild it as an orphan.
+			 */
+			await nukeTenantBitwardenSessions(this.env, oldTenant.jurisdiction, oldTenant.do_id, 'Superseded by vault migration');
+
 			// Wiping a Durable Object's storage is what makes it stop existing. The audit log lives in its own object, whose copy is already sitting under the new tenant; leaving the original behind would strand a store of request metadata nothing can reach anymore.
 			await Promise.all([oldStub.nuke('Superseded by vault migration', false), this.logsStubFromName(oldTenant.jurisdiction, parsedPayload.t_id.utf8).nuke('Superseded by vault migration', false)]);
 

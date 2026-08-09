@@ -12,6 +12,7 @@ import { DefaultLogger } from 'drizzle-orm/logger';
 import { and, count, eq, gt, gte, inArray, sql } from 'drizzle-orm/sql';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { hexToUuid, isTenantWorkflowInstanceId, uuidv7ToDate, workflowInstanceId } from 'helpers';
+import { MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
 import type { VaultMigrationApprovalSchema } from 'helpers/vault-migration';
 import { decodeEnvelope, encodeEnvelope, sealApproval, sealVaultConfig, unsealApproval, VAULT_MIGRATION_APPROVAL_EVENT, vaultMigrationTokenDigest } from 'helpers/vault-migration';
 import { ZodUuidBase64url } from 'helpers/zod/mini';
@@ -24,7 +25,7 @@ import { TenantVerificationAction } from 'types/tenants/verification';
 import { v7 as uuidv7 } from 'uuid';
 import type * as zm from 'zod/mini';
 import { VaultConnectionFields } from '~/components/team/vault-connection/vault-connection';
-import { isLocal, resolveDoStub } from '~/helpers/do-proxy';
+import { openBitwardenSession as openPooledBitwardenSession } from '~/helpers/bitwarden-pool';
 import { JwkMetadata, type Jwk, type KeyringMetadata } from '~/helpers/jwk-metadata';
 import { usePermissions } from '~/routes/(team)/[tenantId]/layout';
 import { useTimezone } from '~/routes/layout';
@@ -39,8 +40,10 @@ type BitwardenStub = ReturnType<EnvVars['BITWARDEN_SESSION']['get']>;
 
 /**
  * How many `decryptSecret` calls to keep in flight at once. Every one is a round trip to the session Durable Object, so a managed-vault scan (whose secret list spans the whole root organization) would otherwise fan out into thousands of unbounded concurrent calls.
+ *
+ * Pinned to the session's own concurrency cap rather than a number of its own: a session turns away work past {@link MAX_BITWARDEN_SESSION_TASKS} in flight, so fanning out wider wouldn't scan faster - it would just start rejecting itself.
  */
-const DECRYPT_CONCURRENCY = 25;
+const DECRYPT_CONCURRENCY = MAX_BITWARDEN_SESSION_TASKS;
 
 const chunked = <T,>(items: T[], size: number): T[][] =>
 	items.reduce<T[][]>((acc, item, index) => {
@@ -67,29 +70,19 @@ const decryptAll = (stub: BitwardenStub, accessToken: string, cipherTexts: strin
 	);
 
 /**
- * Open an authenticated, single-use Bitwarden Secrets Manager session Durable Object. The caller owns nuking it once done.
+ * An authenticated Bitwarden Secrets Manager session, borrowed from this tenant's pool when one is already open on these exact credentials and opened into it when not.
+ *
+ * **Nothing on this page closes one.** A pooled session is shared with every other request and Workflow working on this tenant and ends itself when its token expires, so the `finally { nuke() }` these call sites used to carry would now be yanking a session out from under someone else. See `openBitwardenSession` in `~/helpers/bitwarden-pool`.
  */
-const openBitwardenSession = async (platform: QwikCityPlatform, t_id_hex: string, u_id: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string): Promise<BitwardenStub> => {
-	// An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
-	const useProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
-	const bw_id = useProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(jurisdiction ?? undefined) : (jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
-	const stub = resolveDoStub(platform, platform.env.BITWARDEN_SESSION, platform.env.BITWARDEN_SESSION_PROXY, { id: bw_id, jurisdiction: jurisdiction ?? undefined });
-
-	await stub.init({
-		t_jurisdiction: jurisdiction,
-		t_do_id: (() => {
-			const mainBuffer = Buffer.from(t_do_id_hex, 'hex');
-			return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
-		})(),
-		t_id: t_id_hex,
+const openBitwardenSession = (platform: QwikCityPlatform, t_id_hex: string, u_id: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string): Promise<BitwardenStub> =>
+	openPooledBitwardenSession(platform, {
+		jurisdiction,
+		t_do_id_hex,
+		log_t_id_hex: t_id_hex,
 		u_id,
-		ak_id: null,
 		endpoints,
+		accessToken,
 	});
-	await stub.auth(accessToken);
-
-	return stub;
-};
 
 const uuidBase64urlSchema = ZodUuidBase64url(7);
 
@@ -115,17 +108,13 @@ const rootEndpoints = (jurisdiction: DOJurisdictions | null) => ({
  * Never allowed to fail the page: if the customer's Bitwarden is unreachable, the access token has since been revoked, or the project was renamed/deleted on their end, this falls back to the bare id - the settings form stays fully usable either way, just less readable.
  */
 const resolveProjectName = async (platform: QwikCityPlatform, t_id_hex: string, u_id: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, projectId: string) => {
-	let stub: BitwardenStub | undefined;
-
 	try {
-		stub = await openBitwardenSession(platform, t_id_hex, u_id, jurisdiction, t_do_id_hex, endpoints, accessToken);
+		const stub = await openBitwardenSession(platform, t_id_hex, u_id, jurisdiction, t_do_id_hex, endpoints, accessToken);
 		const project = (await stub.getProjects()).find(({ id }) => id === projectId);
 		return project ? await stub.decryptSecret(accessToken, project.name) : projectId;
 	} catch (error) {
 		console.error('Error resolving vault project name', error);
 		return projectId;
-	} finally {
-		if (stub) platform.ctx.waitUntil(stub.nuke('Project name resolved'));
 	}
 };
 
@@ -145,22 +134,18 @@ const readVaultConnection = async (platform: QwikCityPlatform, u_id: string, r_d
 	const accessToken = tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
 	const stub = await openBitwardenSession(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), accessToken);
 
-	try {
-		const [connection] = await stub.getSecrets([byo_bw]);
-		if (!connection) return { mode: 'managed' as const, tenant, byo_bw: null, project: null, projectName: null, endpoints: null };
+	const [connection] = await stub.getSecrets([byo_bw]);
+	if (!connection) return { mode: 'managed' as const, tenant, byo_bw: null, project: null, projectName: null, endpoints: null };
 
-		const [note, customerAccessToken] = await Promise.all([
-			stub.decryptSecret(accessToken, connection.note).then((raw) => JSON.parse(raw) as zm.output<typeof TenantByoBwNoteSchema>),
-			// Only decrypted when actually needed for the lookup below - nothing holds onto it past this function
-			withProjectName ? stub.decryptSecret(accessToken, connection.value) : Promise.resolve(undefined),
-		]);
+	const [note, customerAccessToken] = await Promise.all([
+		stub.decryptSecret(accessToken, connection.note).then((raw) => JSON.parse(raw) as zm.output<typeof TenantByoBwNoteSchema>),
+		// Only decrypted when actually needed for the lookup below - nothing holds onto it past this function
+		withProjectName ? stub.decryptSecret(accessToken, connection.value) : Promise.resolve(undefined),
+	]);
 
-		const projectName = withProjectName && customerAccessToken !== undefined ? await resolveProjectName(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, note.endpoints, customerAccessToken, note.project) : null;
+	const projectName = withProjectName && customerAccessToken !== undefined ? await resolveProjectName(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, note.endpoints, customerAccessToken, note.project) : null;
 
-		return { mode: 'bitwarden' as const, tenant, byo_bw: byo_bw as UUID, project: note.project, projectName, endpoints: note.endpoints };
-	} finally {
-		platform.ctx.waitUntil(stub.nuke('Vault connection read'));
-	}
+	return { mode: 'bitwarden' as const, tenant, byo_bw: byo_bw as UUID, project: note.project, projectName, endpoints: note.endpoints };
 };
 
 /**
@@ -173,25 +158,21 @@ const replaceVaultConnection = async (platform: QwikCityPlatform, u_id: string, 
 	const rootAccessToken = tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
 	const stub = await openBitwardenSession(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), rootAccessToken);
 
-	try {
-		const [key, value, note] = await Promise.all([stub.encryptSecret(rootAccessToken, [t_id_base64url, 'bw'].join('/')), stub.encryptSecret(rootAccessToken, connection.accessToken), stub.encryptSecret(rootAccessToken, JSON.stringify({ project: connection.project, endpoints: connection.endpoints } satisfies zm.input<typeof TenantByoBwNoteSchema>))]);
+	const [key, value, note] = await Promise.all([stub.encryptSecret(rootAccessToken, [t_id_base64url, 'bw'].join('/')), stub.encryptSecret(rootAccessToken, connection.accessToken), stub.encryptSecret(rootAccessToken, JSON.stringify({ project: connection.project, endpoints: connection.endpoints } satisfies zm.input<typeof TenantByoBwNoteSchema>))]);
 
-		const secret = await stub.setSecret({
-			projectId: tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_PROJECT_ID : platform.env.US_BW_SM_PROJECT_ID,
-			key,
-			value,
-			note,
-		});
+	const secret = await stub.setSecret({
+		projectId: tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_PROJECT_ID : platform.env.US_BW_SM_PROJECT_ID,
+		key,
+		value,
+		note,
+	});
 
-		await t_do.updateProperties({ byo_bw: secret.id }, false, true);
+	await t_do.updateProperties({ byo_bw: secret.id }, false, true);
 
-		// Only once nothing points at it anymore. A failure here leaks one orphaned secret rather than stranding the tenant.
-		if (previous) platform.ctx.waitUntil(stub.deleteSecrets([previous]).catch((error: unknown) => console.error('Failed to delete superseded vault connection secret', error)));
+	// Only once nothing points at it anymore. A failure here leaks one orphaned secret rather than stranding the tenant.
+	if (previous) platform.ctx.waitUntil(stub.deleteSecrets([previous]).catch((error: unknown) => console.error('Failed to delete superseded vault connection secret', error)));
 
-		return secret.id;
-	} finally {
-		platform.ctx.waitUntil(stub.nuke('Vault connection replaced'));
-	}
+	return secret.id;
 };
 
 /**
@@ -340,9 +321,6 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 		},
 		rootAccessToken,
 	);
-	// Only set when the tenant brought their own vault, so the `finally` knows whether there's a second session to tear down
-	let t_bwStub: BitwardenStub | undefined;
-
 	try {
 		// Whichever vault actually holds this tenant's key material, plus the token that decrypts its contents
 		let scanStub = r_bwStub;
@@ -357,8 +335,7 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 
 			const note = JSON.parse(await r_bwStub.decryptSecret(rootAccessToken, connection.note)) as zm.output<typeof TenantByoBwNoteSchema>;
 			scanToken = await r_bwStub.decryptSecret(rootAccessToken, connection.value);
-			t_bwStub = await openBitwardenSession(platform, t_id_hex, session.user!.u_id.hex, tenant.jurisdiction, tenant.do_id, note.endpoints, scanToken);
-			scanStub = t_bwStub;
+			scanStub = await openBitwardenSession(platform, t_id_hex, session.user!.u_id.hex, tenant.jurisdiction, tenant.do_id, note.endpoints, scanToken);
 		}
 
 		const { secrets } = await scanStub.getSecretsAndProjects();
@@ -598,10 +575,8 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 		// Safe to log and surface: what reaches here is a Bitwarden API response or a DB failure. The bulk decrypt paths swallow their own rejections (which carry ciphertext) rather than letting them through, and the remaining decrypt errors are bare `EncString` parse/MAC messages with no payload attached.
 		console.error('Error rescanning vault', error);
 		return fail(500, { message: error instanceof Error ? error.message : 'Vault rescan failed' });
-	} finally {
-		platform.ctx.waitUntil(r_bwStub.nuke('Vault rescan ended'));
-		if (t_bwStub) platform.ctx.waitUntil(t_bwStub.nuke('Vault rescan ended'));
 	}
+	// Both sessions are left open on purpose: they belong to the tenant's pool, not to this rescan, and they end themselves when their tokens expire
 });
 
 /**

@@ -51,6 +51,14 @@ export class BitwardenSessionProxy extends WorkerEntrypoint<EnvVars> {
 		return getWireStub(this.env.BITWARDEN_SESSION, locator).deleteSecrets(...args);
 	}
 
+	available(locator: DOLocator) {
+		return getWireStub(this.env.BITWARDEN_SESSION, locator).available();
+	}
+
+	activeTasks(locator: DOLocator) {
+		return getWireStub(this.env.BITWARDEN_SESSION, locator).activeTasks();
+	}
+
 	nuke(locator: DOLocator, ...args: Parameters<BitwardenSession['nuke']>) {
 		return getWireStub(this.env.BITWARDEN_SESSION, locator).nuke(...args);
 	}
