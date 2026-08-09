@@ -50,7 +50,8 @@ export declare class BitwardenSession extends DurableObject {
 	 */
 	available(): Promise<{ expires: Date }>;
 	activeTasks(): { active: number; max: number };
-	nuke(reason?: string, hard?: boolean): Promise<void>;
+	/** `tenantGone` is for a tenant tearing itself down (`TenantD0.purge`) — it skips the closing audit row and the pool deregistration, both of which would otherwise be addressed to a tenant that no longer exists */
+	nuke(reason?: string, hard?: boolean, tenantGone?: boolean): Promise<void>;
 }
 
 /**
@@ -88,6 +89,7 @@ interface ScheduleCriteria {
 }
 
 export declare class TenantD0 extends BaseD0 {
+	purge(_options: { t_id: string; jurisdiction: DOJurisdictions | null; rootBitwardenProjectId: string | null; reason?: string }): Promise<{ sessions: number; totalSessions: number; secrets: number }>;
 	registerBitwardenSession(_options: { do_id: string; fingerprint: string; expires: Date }): Promise<void>;
 	listBitwardenSessions(_options?: { fingerprint?: string; includeExpired?: boolean }): Promise<PooledBitwardenSession[]>;
 	unregisterBitwardenSession(do_id: string): Promise<void>;

@@ -12,7 +12,7 @@ import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { hexToUuid } from 'helpers';
 import { MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
 import { unsealVaultConfig, VAULT_MIGRATION_APPROVAL_EVENT, VaultMigrationParamsSchema } from 'helpers/vault-migration';
-import { nukeTenantBitwardenSessions, openBitwardenSession as openPooledBitwardenSession } from '~/bitwarden-pool';
+import { openBitwardenSession as openPooledBitwardenSession } from '~/bitwarden-pool';
 import { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
 import { DOJurisdictions } from 'types';
@@ -631,12 +631,16 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 		// Step 10 - nothing points at the old tenant anymore
 		await step.do('Delete old tenant', VaultMigration.cfApiCallRetry, async () => {
 			/**
-			 * The old tenant's pooled Bitwarden sessions go first, and only here - this is the one moment in the migration where ending them is right, since the tenant they were opened for is about to stop existing. Before the tenant Durable Object is wiped, too: each session removes its own pool row on the way out, and an RPC to an already-purged tenant would rebuild it as an orphan.
+			 * The old tenant tears itself down: its pooled Bitwarden sessions (this is the one moment in the migration where ending them is right, since the tenant they were opened for is about to stop existing), then its logs Durable Object - whose copy is already sitting under the new tenant, so leaving the original would strand a store of request metadata nothing can reach anymore - then its own storage, which is what makes a Durable Object stop existing. Sequencing it from inside the tenant is what keeps a session or a queued audit row from landing after the wipe and rebuilding what it touched (see `TenantD0.purge`).
+			 *
+			 * `rootBitwardenProjectId: null` because this tenant's secrets are already gone - 'Purge old vault secrets' above deleted them, connection secret included, and asking for them again would only fail on secrets that no longer exist.
 			 */
-			await nukeTenantBitwardenSessions(this.env, oldTenant.jurisdiction, oldTenant.do_id, 'Superseded by vault migration');
-
-			// Wiping a Durable Object's storage is what makes it stop existing. The audit log lives in its own object, whose copy is already sitting under the new tenant; leaving the original behind would strand a store of request metadata nothing can reach anymore.
-			await Promise.all([oldStub.nuke('Superseded by vault migration', false), this.logsStubFromName(oldTenant.jurisdiction, parsedPayload.t_id.utf8).nuke('Superseded by vault migration', false)]);
+			await oldStub.purge({
+				t_id: parsedPayload.t_id.hex,
+				jurisdiction: oldTenant.jurisdiction,
+				rootBitwardenProjectId: null,
+				reason: 'Superseded by vault migration',
+			});
 
 			// `users_tenants.t_id` cascades on delete, so the tenant row is enough to clean up what's left of it in root
 			await this.r_db()
