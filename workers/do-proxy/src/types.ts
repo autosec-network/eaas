@@ -45,7 +45,22 @@ export declare class BitwardenSession extends DurableObject {
 	decryptSecret(accessToken: string, cipherText: string, iv?: boolean): Promise<string | { data: string; iv: Buffer }>;
 	encryptSecret(accessToken: string, plainText: string, iv?: Buffer, version?: 0 | 1 | 2): Promise<string>;
 	deleteSecrets(_secretIds: string[]): Promise<UUID[]>;
+	/**
+	 * Rejects when this session can't take work - already at its concurrency cap, or no longer authenticated. See `acquireBitwardenSession` in `helpers/bitwarden-sessions`.
+	 */
+	available(): Promise<{ expires: Date }>;
+	activeTasks(): { active: number; max: number };
 	nuke(reason?: string, hard?: boolean): Promise<void>;
+}
+
+/**
+ * One row of a tenant's Bitwarden session pool, as `TenantD0.listBitwardenSessions` hands it back.
+ */
+export interface PooledBitwardenSession {
+	do_id: string;
+	fingerprint: string;
+	expires: Date;
+	b_time: Date;
 }
 
 export declare class BaseD0 extends DurableObject {
@@ -73,6 +88,9 @@ interface ScheduleCriteria {
 }
 
 export declare class TenantD0 extends BaseD0 {
+	registerBitwardenSession(_options: { do_id: string; fingerprint: string; expires: Date }): Promise<void>;
+	listBitwardenSessions(_options?: { fingerprint?: string; includeExpired?: boolean }): Promise<PooledBitwardenSession[]>;
+	unregisterBitwardenSession(do_id: string): Promise<void>;
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	schedule(when: Date | number | string[], callee: string, payload?: any[], id?: UUID): Promise<ScheduleResult>;
 	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
