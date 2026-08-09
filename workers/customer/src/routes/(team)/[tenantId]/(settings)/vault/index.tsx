@@ -67,9 +67,9 @@ const decryptAll = (stub: BitwardenStub, accessToken: string, cipherTexts: strin
 	);
 
 /**
- * Open an authenticated, single-use Bitwarden Secrets Manager session Durable Object. The caller owns nuking it.
+ * Open an authenticated, single-use Bitwarden Secrets Manager session Durable Object. The caller owns nuking it once done.
  */
-const openBitwardenSession = async (platform: QwikCityPlatform, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string): Promise<BitwardenStub> => {
+const openBitwardenSession = async (platform: QwikCityPlatform, t_id_hex: string, u_id: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string): Promise<BitwardenStub> => {
 	// An id minted by the local `workerd` namespace isn't valid for the deployed one the proxy resolves against, so when proxying, mint it on the proxy (which can also apply the jurisdiction workerd doesn't support).
 	const useProxy = isLocal(platform) && !!platform.env.BITWARDEN_SESSION_PROXY;
 	const bw_id = useProxy ? await platform.env.BITWARDEN_SESSION_PROXY!.newUniqueId(jurisdiction ?? undefined) : (jurisdiction ? platform.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : platform.env.BITWARDEN_SESSION).newUniqueId().toString();
@@ -81,6 +81,9 @@ const openBitwardenSession = async (platform: QwikCityPlatform, jurisdiction: DO
 			const mainBuffer = Buffer.from(t_do_id_hex, 'hex');
 			return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
 		})(),
+		t_id: t_id_hex,
+		u_id,
+		ak_id: null,
 		endpoints,
 	});
 	await stub.auth(accessToken);
@@ -111,11 +114,11 @@ const rootEndpoints = (jurisdiction: DOJurisdictions | null) => ({
  *
  * Never allowed to fail the page: if the customer's Bitwarden is unreachable, the access token has since been revoked, or the project was renamed/deleted on their end, this falls back to the bare id - the settings form stays fully usable either way, just less readable.
  */
-const resolveProjectName = async (platform: QwikCityPlatform, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, projectId: string) => {
+const resolveProjectName = async (platform: QwikCityPlatform, t_id_hex: string, u_id: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, projectId: string) => {
 	let stub: BitwardenStub | undefined;
 
 	try {
-		stub = await openBitwardenSession(platform, jurisdiction, t_do_id_hex, endpoints, accessToken);
+		stub = await openBitwardenSession(platform, t_id_hex, u_id, jurisdiction, t_do_id_hex, endpoints, accessToken);
 		const project = (await stub.getProjects()).find(({ id }) => id === projectId);
 		return project ? await stub.decryptSecret(accessToken, project.name) : projectId;
 	} catch (error) {
@@ -133,14 +136,14 @@ const resolveProjectName = async (platform: QwikCityPlatform, jurisdiction: DOJu
  *
  * `withProjectName` opts into an extra round trip to the tenant's own Bitwarden to resolve `project` to a display name - worth paying for a page render, not for every diff check `useSaveVaultConnection` runs on submit.
  */
-const readVaultConnection = async (platform: QwikCityPlatform, r_db: DrizzleD1Database, t_do: ReturnType<EnvVars['TENANT_D0']['get']>, t_id_hex: string, { withProjectName = false }: { withProjectName?: boolean } = {}) => {
+const readVaultConnection = async (platform: QwikCityPlatform, u_id: string, r_db: DrizzleD1Database, t_do: ReturnType<EnvVars['TENANT_D0']['get']>, t_id_hex: string, { withProjectName = false }: { withProjectName?: boolean } = {}) => {
 	const [tenant, { byo_bw }] = await Promise.all([readTenantRow(r_db, t_id_hex), t_do.getProperties({ byo_bw: true })]);
 
 	if (!tenant) return null;
 	if (!byo_bw) return { mode: 'managed' as const, tenant, byo_bw: null, project: null, projectName: null, endpoints: null };
 
 	const accessToken = tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
-	const stub = await openBitwardenSession(platform, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), accessToken);
+	const stub = await openBitwardenSession(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), accessToken);
 
 	try {
 		const [connection] = await stub.getSecrets([byo_bw]);
@@ -152,7 +155,7 @@ const readVaultConnection = async (platform: QwikCityPlatform, r_db: DrizzleD1Da
 			withProjectName ? stub.decryptSecret(accessToken, connection.value) : Promise.resolve(undefined),
 		]);
 
-		const projectName = withProjectName && customerAccessToken !== undefined ? await resolveProjectName(platform, tenant.jurisdiction, tenant.do_id, note.endpoints, customerAccessToken, note.project) : null;
+		const projectName = withProjectName && customerAccessToken !== undefined ? await resolveProjectName(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, note.endpoints, customerAccessToken, note.project) : null;
 
 		return { mode: 'bitwarden' as const, tenant, byo_bw: byo_bw as UUID, project: note.project, projectName, endpoints: note.endpoints };
 	} finally {
@@ -165,9 +168,10 @@ const readVaultConnection = async (platform: QwikCityPlatform, r_db: DrizzleD1Da
  *
  * Bitwarden's Secrets Manager API here is create-only, so "updating" a connection is write-new, repoint, delete-old - in that order, so a failure anywhere leaves `byo_bw` aimed at a secret that still exists.
  */
-const replaceVaultConnection = async (platform: QwikCityPlatform, tenant: { jurisdiction: DOJurisdictions | null; do_id: string }, t_do: ReturnType<EnvVars['TENANT_D0']['get']>, t_id_base64url: string, previous: UUID | null, connection: { accessToken: string; project: string; endpoints: { base: string; authentication: string } }) => {
+const replaceVaultConnection = async (platform: QwikCityPlatform, u_id: string, tenant: { jurisdiction: DOJurisdictions | null; do_id: string }, t_do: ReturnType<EnvVars['TENANT_D0']['get']>, t_id_base64url: string, previous: UUID | null, connection: { accessToken: string; project: string; endpoints: { base: string; authentication: string } }) => {
+	const t_id_hex = Buffer.from(t_id_base64url, 'base64url').toString('hex');
 	const rootAccessToken = tenant.jurisdiction === DOJurisdictions['The European Union'] ? platform.env.EU_BW_SM_ACCESS_TOKEN : platform.env.US_BW_SM_ACCESS_TOKEN;
-	const stub = await openBitwardenSession(platform, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), rootAccessToken);
+	const stub = await openBitwardenSession(platform, t_id_hex, u_id, tenant.jurisdiction, tenant.do_id, rootEndpoints(tenant.jurisdiction), rootAccessToken);
 
 	try {
 		const [key, value, note] = await Promise.all([stub.encryptSecret(rootAccessToken, [t_id_base64url, 'bw'].join('/')), stub.encryptSecret(rootAccessToken, connection.accessToken), stub.encryptSecret(rootAccessToken, JSON.stringify({ project: connection.project, endpoints: connection.endpoints } satisfies zm.input<typeof TenantByoBwNoteSchema>))]);
@@ -326,6 +330,8 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 
 	const r_bwStub = await openBitwardenSession(
 		platform,
+		t_id_hex,
+		session.user!.u_id.hex,
 		tenant.jurisdiction,
 		tenant.do_id,
 		{
@@ -351,7 +357,7 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 
 			const note = JSON.parse(await r_bwStub.decryptSecret(rootAccessToken, connection.note)) as zm.output<typeof TenantByoBwNoteSchema>;
 			scanToken = await r_bwStub.decryptSecret(rootAccessToken, connection.value);
-			t_bwStub = await openBitwardenSession(platform, tenant.jurisdiction, tenant.do_id, note.endpoints, scanToken);
+			t_bwStub = await openBitwardenSession(platform, t_id_hex, session.user!.u_id.hex, tenant.jurisdiction, tenant.do_id, note.endpoints, scanToken);
 			scanStub = t_bwStub;
 		}
 
@@ -654,7 +660,8 @@ const useVaultConnection = routeLoader$(({ sharedMap, platform, resolveValue }) 
 	// Which vault a tenant uses is a tenant-settings question, not a keyring one
 	if (!perms || perms.r_tenant < Permissions.Read) return null;
 
-	const connection = await readVaultConnection(platform, sharedMap.get('r_db') as DrizzleD1Database, sharedMap.get('t_do') as ReturnType<EnvVars['TENANT_D0']['get']>, sharedMap.get('t_id_hex') as string, { withProjectName: true });
+	const session = sharedMap.get('session') as Session;
+	const connection = await readVaultConnection(platform, session.user!.u_id.hex, sharedMap.get('r_db') as DrizzleD1Database, sharedMap.get('t_do') as ReturnType<EnvVars['TENANT_D0']['get']>, sharedMap.get('t_id_hex') as string, { withProjectName: true });
 
 	if (!connection) return null;
 
@@ -736,7 +743,7 @@ const useSaveVaultConnection = routeAction$(
 			return fail(403, { message: 'Insufficient permissions' });
 		}
 
-		const current = await readVaultConnection(platform, r_db, t_do, t_id_hex);
+		const current = await readVaultConnection(platform, session.user!.u_id.hex, r_db, t_do, t_id_hex);
 		if (!current) return fail(404, { message: 'Tenant not found' });
 
 		if (data.vaultMode === 'bitwarden' && (!data.accessToken || !data.project || !data.baseCloudEndpoint || !data.authCloudEndpoint)) {
@@ -753,7 +760,7 @@ const useSaveVaultConnection = routeAction$(
 			if (!modeChanged && !connectionChanged) {
 				if (target.mode !== 'bitwarden') return fail(400, { message: 'Nothing to change' });
 
-				await replaceVaultConnection(platform, current.tenant, t_do, t_id_base64url, current.byo_bw, target);
+				await replaceVaultConnection(platform, session.user!.u_id.hex, current.tenant, t_do, t_id_base64url, current.byo_bw, target);
 				await logTenantEvent(platform, request, { t_id_hex, jurisdiction: current.tenant.jurisdiction }, session, TenantLogEventType['changed byo vault token'], { project: target.project, endpoints: target.endpoints });
 
 				return { applied: 'token' as const };
@@ -761,7 +768,7 @@ const useSaveVaultConnection = routeAction$(
 
 			// The endpoints or project moved, and the customer says they already carried their key material across by hand. There is nothing for us to move, only a pointer to correct.
 			if (!modeChanged && target.mode === 'bitwarden' && data.strategy === 'manual') {
-				await replaceVaultConnection(platform, current.tenant, t_do, t_id_base64url, current.byo_bw, target);
+				await replaceVaultConnection(platform, session.user!.u_id.hex, current.tenant, t_do, t_id_base64url, current.byo_bw, target);
 				await logTenantEvent(platform, request, { t_id_hex, jurisdiction: current.tenant.jurisdiction }, session, TenantLogEventType['changed byo vault token'], { project: target.project, endpoints: target.endpoints, manual: true });
 
 				return { applied: 'manual' as const };
