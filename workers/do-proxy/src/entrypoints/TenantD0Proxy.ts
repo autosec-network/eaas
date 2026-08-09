@@ -30,6 +30,10 @@ export class TenantD0Proxy extends WorkerEntrypoint<EnvVars> {
 		return getWireStub(this.env.TENANT_D0, locator).nuke(...args);
 	}
 
+	purge(locator: DOLocator, ...args: Parameters<TenantD0['purge']>) {
+		return getWireStub(this.env.TENANT_D0, locator).purge(...args);
+	}
+
 	registerBitwardenSession(locator: DOLocator, ...args: Parameters<TenantD0['registerBitwardenSession']>) {
 		return getWireStub(this.env.TENANT_D0, locator).registerBitwardenSession(...args);
 	}
