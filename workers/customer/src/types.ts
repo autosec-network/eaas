@@ -398,7 +398,8 @@ declare class BitwardenSession extends DurableObject {
 	public available(): Promise<{ expires: Date }>;
 	public activeTasks(): { active: number; max: number };
 
-	public nuke(reason?: string, hard?: boolean): Promise<void>;
+	/** `tenantGone` is for a tenant tearing itself down (`TenantD0.purge`) — it skips the closing audit row and the pool deregistration, both of which would otherwise be addressed to a tenant that no longer exists */
+	public nuke(reason?: string, hard?: boolean, tenantGone?: boolean): Promise<void>;
 }
 
 /**

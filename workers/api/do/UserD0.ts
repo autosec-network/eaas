@@ -70,6 +70,11 @@ export class UserD0 extends BaseD0 {
 		if (alarm) await this.ctx.storage.setAlarm(alarm.next_time, { allowConcurrency: true });
 	}
 
+	/**
+	 * Records a schedule row and arms the Durable Object alarm for whichever row is due next.
+	 *
+	 * Arming is **awaited** rather than handed to `waitUntil`: {@link _setupSystemAlarms} calls this from the constructor's `blockConcurrencyWhile`, and a deferred `setAlarm()` outlives that block — it lands after whatever RPC ran next, so a {@link nuke} re-arms the object it just wiped, which then wakes on its own cron forever as an orphan nothing accounts for.
+	 */
 	public async schedule<
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		T extends any[] = any[],
@@ -85,7 +90,7 @@ export class UserD0 extends BaseD0 {
 				next_time: when,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,
@@ -105,7 +110,7 @@ export class UserD0 extends BaseD0 {
 				next_time,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,
@@ -133,7 +138,7 @@ export class UserD0 extends BaseD0 {
 				next_time: nextExecutionTimeWithJitter,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,

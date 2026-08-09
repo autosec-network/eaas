@@ -3,7 +3,7 @@ import * as rootSchema from 'db/schemas/root';
 import { drizzle } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import { hexToUuid } from 'helpers';
-import { bitwardenSessionFingerprint, BitwardenSessionBusyError, MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
+import { BitwardenSessionBusyError, bitwardenSessionFingerprint, MAX_BITWARDEN_SESSION_TASKS } from 'helpers/bitwarden-sessions';
 import { ZodUuidHex, ZodUuidInputConverted } from 'helpers/zod/mini';
 import * as jose from 'jose';
 import { Buffer } from 'node:buffer';
@@ -824,10 +824,11 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	}
 
 	/**
-	 * The token this session holds has just expired, so the session has no reason to exist anymore. This is what makes a pooled session temporary: nothing else ever ends one, since borrowers no longer close what they didn't open.
+	 * Fires for one of two reasons, both ending the same way: either the token this session holds has genuinely expired (the common case - {@link auth} sets this alarm to the JWT's own `exp` the moment it succeeds), or `init()`'s orphan-safety alarm was never overwritten because `auth()` either never ran or failed before reaching that line. Either way the session has no reason to exist anymore. This is also what makes a pooled session temporary: nothing else ever ends one, since borrowers no longer close what they didn't open.
 	 */
 	override async alarm() {
-		await this.nuke('Access token expired');
+		const jwt = await this.ctx.storage.get<string>('jwt', { allowConcurrency: true });
+		await this.nuke(jwt ? 'Access token expired' : 'Session was never authenticated within the orphan timeout');
 	}
 
 	/**
@@ -836,19 +837,20 @@ export class BitwardenSession extends DurableObject<EnvVars> {
 	 * Now that sessions are pooled, this is the tenant's session too: only its own expiry alarm, or a tenant being torn down entirely, has any business calling it. A borrower that nukes a session it merely borrowed pulls it out from under every other caller mid-operation.
 	 * @param reason Optional reason for the nuke.
 	 * @param [hard=false] Optionally force exit the DO
+	 * @param [tenantGone=false] Set by a tenant tearing itself down (see `TenantD0.purge`), which is the one caller for which both of the courtesies below are actively harmful. The closing audit row is addressed to that tenant's logs Durable Object (by way of the queue) and the deregistration is an RPC to the tenant itself — either one arriving after the wipe recreates what it touches as an orphan that nothing can account for and that then keeps itself alive on its own cron alarms. The RPC would also deadlock: the tenant can't answer while its own `purge()` is occupying it. Nothing is lost by skipping them — the pool row is wiped along with the tenant's database, and the log they'd be written to is being deleted in the same breath.
 	 */
-	public async nuke(reason?: string, hard: boolean = false) {
+	public async nuke(reason?: string, hard: boolean = false, tenantGone: boolean = false) {
 		if (reason) console.warn(reason);
 
 		// Both of these read state that `deleteAll` below is about to remove, so both are started (their storage reads issued) before it rather than after
-		const closeLog = this.logSessionEvent(TenantLogEventType['ended bitwarden session'], { session: this.ctx.id.toString(), reason });
-		const forget = this.forgetInPool();
+		const closeLog = tenantGone ? null : this.logSessionEvent(TenantLogEventType['ended bitwarden session'], { session: this.ctx.id.toString(), reason });
+		const forget = tenantGone ? null : this.forgetInPool();
 		if (hard) {
 			// Awaited, not `waitUntil`, and ahead of `deleteAll` below: `ctx.abort()` further down is uncatchable and would tear the DO down mid-flight, silently dropping the audit row or leaving a pool row pointing at a session that no longer exists
 			await Promise.all([closeLog, forget]);
 		} else {
-			this.ctx.waitUntil(closeLog);
-			this.ctx.waitUntil(forget);
+			if (closeLog) this.ctx.waitUntil(closeLog);
+			if (forget) this.ctx.waitUntil(forget);
 		}
 
 		await this.ctx.storage.deleteAll({ allowConcurrency: false });

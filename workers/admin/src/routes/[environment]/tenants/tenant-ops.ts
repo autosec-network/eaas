@@ -7,7 +7,6 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { eq, sql } from 'drizzle-orm/sql';
 import { Buffer } from 'node:buffer';
 import { DOJurisdictions } from 'types';
-import { BitwardenCloudEndpoints } from 'types/bw';
 import * as zm from 'zod/mini';
 import { hexToUuid } from '~/routes/[environment]/users/db-helpers';
 import type { EnvVars } from '~/types';
@@ -152,74 +151,6 @@ export async function tenantHasDatakeys(doStub: TenantDoStub): Promise<boolean> 
 }
 
 /**
- * Ends every Bitwarden session pooled for a tenant, expired ones included.
- *
- * Runs **before** the tenant's own Durable Object is wiped: each session removes its own pool row as it goes (see `BitwardenSession.nuke`), and any RPC to an already-purged tenant would rebuild it as an orphan. Leaving them behind instead would leave Durable Objects holding live vault credentials with nothing left to account for them — they'd expire on their own eventually, but "eventually" isn't what a delete means.
- *
- * Best effort throughout: a session that can't be reached is worth a log line, never a reason to abandon a delete the admin asked for.
- */
-async function nukePooledBitwardenSessions(options: { tenantDoStub: TenantDoStub; bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null }) {
-	const { tenantDoStub, bitwardenNamespace, jurisdiction } = options;
-
-	const sessions = await tenantDoStub.listBitwardenSessions({ includeExpired: true }).catch((error: unknown) => {
-		console.error('Failed to list pooled bitwarden sessions for tenant delete', error);
-		return [];
-	});
-
-	if (sessions.length === 0) return;
-
-	const namespace = jurisdiction ? bitwardenNamespace.jurisdiction(jurisdiction) : bitwardenNamespace;
-	await Promise.allSettled(sessions.map(({ do_id }) => bitwardenNamespace.get(namespace.idFromString(do_id)).nuke('Tenant deleted by admin'))).then((settled) =>
-		settled.forEach((result) => {
-			// A session `nuke()` resolves normally (it doesn't `abort()`), so unlike the tenant/logs wipes below there's no expected rejection to filter here
-			if (result.status === 'rejected') console.error('Failed to nuke pooled bitwarden session', result.reason);
-		}),
-	);
-}
-
-/**
- * Deletes a tenant's BYO connection secret (key `<t_id base64url>/bw`) from Autosec's root Bitwarden org. That secret only points at the customer's own vault — it holds their access token and project, not a copy of their data — so removing it just forgets the connection.
- *
- * Deliberately opens a session of its own rather than borrowing one from the tenant's pool, and nukes it when done: the tenant it belongs to is being deleted in the very next breath, so a pooled session would only have to be torn down again a moment later. `t_do_id: null` is what keeps it out of the pool.
- *
- * Before deleting, confirms the secret actually lives in the project this admin environment (dev/prod) + jurisdiction expects — `byo_bw` is just an id pointer, so this catches it having drifted onto the wrong project (e.g. a dev root row pointing at a prod secret) instead of silently deleting someone else's connection.
- */
-async function deleteByoBwSecret(options: { bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD']; jurisdiction: DOJurisdictions | null; t_id_hex: string; accessToken: string; projectId: string; secretId: string }) {
-	const { bitwardenNamespace, jurisdiction, t_id_hex, accessToken, projectId, secretId } = options;
-
-	const doId = jurisdiction ? bitwardenNamespace.jurisdiction(jurisdiction).newUniqueId() : bitwardenNamespace.newUniqueId();
-	const stub = bitwardenNamespace.get(doId);
-
-	try {
-		// This tenant is about to be deleted for good (see `purgeTenant`), and its logs DO gets nuked concurrently with this session's cleanup a few lines below - so a session-lifecycle row here could in principle be processed after that nuke and resurrect the logs DO as an orphan. That race is the queue consumer's problem to filter out (see `workers/api/src/queue.ts`), not this session's to dodge by going unlogged.
-		await stub.init({
-			t_jurisdiction: jurisdiction,
-			t_do_id: null,
-			t_id: t_id_hex,
-			u_id: null,
-			ak_id: null,
-			endpoints: {
-				base: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
-				authentication: jurisdiction === DOJurisdictions['The European Union'] ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
-			},
-		});
-		await stub.auth(accessToken);
-
-		const [secret] = await stub.getSecrets([secretId]);
-		if (!secret?.projects.some((project) => project.id === projectId)) {
-			throw new Error(`BYO Bitwarden secret ${secretId} does not belong to the expected project ${projectId} — refusing to delete`);
-		}
-
-		await stub.deleteSecrets([secretId]);
-	} finally {
-		// A `finally` block that throws replaces whatever the `try` block returned or threw, so the expected nuke rejection must be swallowed here — otherwise it would mask a real error above (or a clean success) with `nuked: Session ended`.
-		await stub.nuke('Session ended').catch((error: unknown) => {
-			if (!isNukedError(error)) throw error;
-		});
-	}
-}
-
-/**
  * `.nuke(reason)` on a Durable Object stub always rejects — even when the nuke itself succeeded — with `Error: nuked: <reason>` (or bare `nuked` when no reason was passed). That rejection is not a failure signal; any code awaiting a nuke (directly, or via `Promise.allSettled` alongside other cleanup) must exclude it before deciding whether a *real* error occurred.
  */
 export function isNukedError(error: unknown): boolean {
@@ -235,9 +166,11 @@ export function bitwardenProjectIdsFromEnv(env: Pick<EnvVars, 'EU_BW_SM_PROJECT_
 }
 
 /**
- * Deletes a tenant everywhere it exists: its Durable Object, its logs Durable Object, its BYO Bitwarden connection secret (if it has one), and every root lookup row pointing at it.
+ * Deletes a tenant everywhere it exists: its pooled Bitwarden sessions, its secrets in Autosec's root Bitwarden org, its logs Durable Object, its own Durable Object, and every root lookup row pointing at it.
  *
- * The Durable Objects go first — `do_id` only lives in the root row, so dropping that row before the wipes would strand storage nobody can address anymore. A failed wipe therefore leaves the root rows intact and throws, making the delete safe to retry.
+ * All of that except the last belongs to the tenant, so the tenant does it — see `TenantD0.purge`, which sequences the teardown from inside the object being torn down. Orchestrating it from out here is what used to leave orphans behind: a session or a queued audit row addressed to the tenant would land after its storage was wiped and rebuild it, alarms and all.
+ *
+ * The root row is what's left over, and it goes last on purpose: `do_id` lives only there, so dropping it first would strand storage nobody can address anymore. A failed purge therefore leaves the root rows intact and throws, making the delete safe to retry.
  */
 export async function purgeTenant(options: {
 	r_db: DrizzleD1Database;
@@ -245,50 +178,19 @@ export async function purgeTenant(options: {
 	jurisdiction: DOJurisdictions | null;
 	do_id_hex?: string | null;
 	tenantNamespace: EnvVars['TENANT_D0_PROD'];
-	logsNamespace: EnvVars['TENANT_D0_LOGS_PROD'];
-	bitwardenNamespace: EnvVars['BITWARDEN_SESSION_PROD'];
-	bitwardenAccessTokens: { us: string; eu: string };
-	/** Which root Bitwarden project the tenant's BYO secret should live in — split by admin environment (dev/prod) since dev-onboarded and prod-onboarded tenants land in different projects, even though they share an access token */
+	/** Which root Bitwarden project the tenant's secrets should live in — split by admin environment (dev/prod) since dev-onboarded and prod-onboarded tenants land in different projects, even though they share an access token */
 	bitwardenProjectIds: { us: { prod: string; dev: string }; eu: { prod: string; dev: string } };
 	isProd: boolean;
 }) {
-	const { r_db, t_id_hex, jurisdiction, do_id_hex, tenantNamespace, logsNamespace, bitwardenNamespace, bitwardenAccessTokens, bitwardenProjectIds, isProd } = options;
-
-	const tenantDoStub = tenantNamespace.get(resolveTenantDoId(tenantNamespace, jurisdiction, t_id_hex, do_id_hex));
-	// Read before nuking below wipes it out from under us
-	const { byo_bw } = await tenantDoStub.getProperties({ byo_bw: true }, true).catch(() => ({}) as Record<string, never>);
+	const { r_db, t_id_hex, jurisdiction, do_id_hex, tenantNamespace, bitwardenProjectIds, isProd } = options;
 
 	const isEu = jurisdiction === DOJurisdictions['The European Union'];
 
-	// Sequenced ahead of the wipes below, not alongside them: a session deregisters itself from the tenant's database on its way out, which only works while that database is still there
-	await nukePooledBitwardenSessions({ tenantDoStub, bitwardenNamespace, jurisdiction });
-
-	await Promise.allSettled([
-		tenantDoStub.nuke('Tenant deleted by admin'),
-		logsNamespace.get(resolveTenantLogsDoId(logsNamespace, jurisdiction, t_id_hex)).nuke('Tenant deleted by admin'),
-		...(byo_bw
-			? [
-					deleteByoBwSecret({
-						bitwardenNamespace,
-						jurisdiction,
-						t_id_hex,
-						accessToken: isEu ? bitwardenAccessTokens.eu : bitwardenAccessTokens.us,
-						projectId: isEu ? (isProd ? bitwardenProjectIds.eu.prod : bitwardenProjectIds.eu.dev) : isProd ? bitwardenProjectIds.us.prod : bitwardenProjectIds.us.dev,
-						secretId: byo_bw,
-					}),
-				]
-			: []),
-	]).then((settled) => {
-		const errors = settled
-			.filter((result): result is PromiseRejectedResult => result.status === 'rejected')
-			// eslint-disable-next-line @typescript-eslint/no-unsafe-return
-			.map((result) => result.reason)
-			// The two `nuke()` calls above always reject on success too — that's not a failure, so it must not be counted as one
-			.filter((error) => !isNukedError(error));
-
-		if (errors.length > 0) {
-			throw new AggregateError(errors, 'Failed to wipe one or more of the tenant durable objects. Root references were left intact so the delete can be retried.');
-		}
+	await tenantNamespace.get(resolveTenantDoId(tenantNamespace, jurisdiction, t_id_hex, do_id_hex)).purge({
+		t_id: t_id_hex,
+		jurisdiction,
+		rootBitwardenProjectId: isEu ? (isProd ? bitwardenProjectIds.eu.prod : bitwardenProjectIds.eu.dev) : isProd ? bitwardenProjectIds.us.prod : bitwardenProjectIds.us.dev,
+		reason: 'Tenant deleted by admin',
 	});
 
 	// `users_tenants.t_id` and `api_keys_tenants.t_id` both cascade on delete, so the tenant row is all it takes to clear every root reference

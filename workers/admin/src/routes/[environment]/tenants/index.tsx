@@ -155,9 +155,6 @@ export const useDeleteTenants = routeAction$(
 				jurisdiction: tenant.jurisdiction,
 				do_id_hex: tenant.do_id,
 				tenantNamespace: platform.env.TENANT_D0_PROD,
-				logsNamespace: platform.env.TENANT_D0_LOGS_PROD,
-				bitwardenNamespace: platform.env.BITWARDEN_SESSION_PROD,
-				bitwardenAccessTokens: { us: platform.env.US_BW_SM_ACCESS_TOKEN, eu: platform.env.EU_BW_SM_ACCESS_TOKEN },
 				bitwardenProjectIds,
 				isProd,
 			})
