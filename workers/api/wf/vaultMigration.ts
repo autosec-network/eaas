@@ -172,8 +172,10 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 	 * Open an authenticated, single-use Bitwarden Secrets Manager session. The caller owns closing it with {@link closeBitwardenSession}.
 	 *
 	 * `log_t_id_hex` is whichever tenant this session's activity should be attributed to in the audit row the session logs on open/close - not necessarily the tenant whose vault it's talking to, though it usually is. The session logs itself (see `BitwardenSession.logSessionEvent`) straight onto the `eaas-logs-*` queue; a message for a tenant that no longer exists by the time it's processed - e.g. 'Delete old tenant' having already nuked the old tenant's logs DO - is the queue consumer's problem to filter out, not this workflow's to avoid by misattributing rows (see `workers/api/src/queue.ts`).
+	 *
+	 * `u_id_hex` is always the tenant admin who requested this migration - `workflowParams.u_id`, threaded through every call site rather than read from `this` because nothing else in this class keeps state that way. Unlike other Workflows here, a vault migration never runs unattended, so every session it opens carries a real actor, never `system`.
 	 */
-	private async openBitwardenSession(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string) {
+	private async openBitwardenSession(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, endpoints: { base: string; authentication: string }, accessToken: string, u_id_hex: string) {
 		const stub = this.env.BITWARDEN_SESSION.get((jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : this.env.BITWARDEN_SESSION).newUniqueId());
 
 		await stub.init({
@@ -183,8 +185,8 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 				return mainBuffer.buffer.slice(mainBuffer.byteOffset, mainBuffer.byteOffset + mainBuffer.byteLength);
 			})(),
 			t_id: log_t_id_hex,
-			// No human session inside a Workflow
-			u_id: null,
+			u_id: u_id_hex,
+			// A vault migration is always requested by a tenant admin from the dashboard - never an API key
 			ak_id: null,
 			endpoints,
 		});
@@ -220,9 +222,9 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 	 *
 	 * `byo_bw` is the id of a secret in *our* organization whose value is the tenant's own access token, so reaching a BYO vault always costs two sessions. Both are returned so the caller can nuke them.
 	 */
-	private async openTenantVault(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, byo_bw: string | null | undefined) {
+	private async openTenantVault(log_t_id_hex: string, jurisdiction: DOJurisdictions | null, t_do_id_hex: string, byo_bw: string | null | undefined, u_id_hex: string) {
 		const rootToken = this.rootAccessToken(jurisdiction);
-		const rootStub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, this.rootEndpoints(jurisdiction), rootToken);
+		const rootStub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, this.rootEndpoints(jurisdiction), rootToken, u_id_hex);
 
 		if (!byo_bw) {
 			return { stub: rootStub, token: rootToken, projectId: this.rootProjectId(jurisdiction), sessions: [rootStub], byo: false as const };
@@ -236,7 +238,7 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 
 		const note = JSON.parse(await decryptOne(rootStub, rootToken, connection.note)) as zm.output<typeof TenantByoBwNoteSchema>;
 		const token = await decryptOne(rootStub, rootToken, connection.value);
-		const stub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, note.endpoints, token);
+		const stub = await this.openBitwardenSession(log_t_id_hex, jurisdiction, t_do_id_hex, note.endpoints, token, u_id_hex);
 
 		return { stub, token, projectId: note.project, sessions: [rootStub, stub], byo: true as const };
 	}
@@ -495,10 +497,10 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 				if (!carryKeyMaterial) return [] as { dk_id_hex: string; bw_id_hex: string }[];
 
 				const config = await unsealVaultConfig(rawToken, parsedPayload.config);
-				const source = await this.openTenantVault(parsedPayload.t_id.hex, oldTenant.jurisdiction, oldTenant.do_id, oldProperties.byo_bw);
+				const source = await this.openTenantVault(parsedPayload.t_id.hex, oldTenant.jurisdiction, oldTenant.do_id, oldProperties.byo_bw, parsedPayload.u_id);
 
 				// The destination is whatever the sealed config describes: back onto our organization, or onto the tenant's own
-				const destination = config.mode === 'managed' ? { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, this.rootEndpoints(oldTenant.jurisdiction), this.rootAccessToken(oldTenant.jurisdiction)), token: this.rootAccessToken(oldTenant.jurisdiction), projectId: this.rootProjectId(oldTenant.jurisdiction) } : { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, config.endpoints, config.accessToken), token: config.accessToken, projectId: config.project };
+				const destination = config.mode === 'managed' ? { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, this.rootEndpoints(oldTenant.jurisdiction), this.rootAccessToken(oldTenant.jurisdiction), parsedPayload.u_id), token: this.rootAccessToken(oldTenant.jurisdiction), projectId: this.rootProjectId(oldTenant.jurisdiction) } : { stub: await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, config.endpoints, config.accessToken, parsedPayload.u_id), token: config.accessToken, projectId: config.project };
 
 				try {
 					const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
@@ -584,7 +586,7 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 			if (config.mode === 'managed') return { byo: false };
 
 			const rootToken = this.rootAccessToken(oldTenant.jurisdiction);
-			const rootStub = await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, this.rootEndpoints(oldTenant.jurisdiction), rootToken);
+			const rootStub = await this.openBitwardenSession(newTenant.hex, oldTenant.jurisdiction, newTenant.do_id, this.rootEndpoints(oldTenant.jurisdiction), rootToken, parsedPayload.u_id);
 
 			// Tracks whether the secret landed in our organization, so a failure below can delete it instead of leaving the tenant's access token sitting there unreferenced - same rollback onboarding does
 			let createdSecretId: string | undefined;
@@ -629,7 +631,7 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 		 * Step 9. Only this tenant's secrets, identified the same way the clone identified them - in the managed organization the listing is shared with every other tenant, and a BYO organization is the customer's own and may hold anything. The BYO connection secret in *our* organization goes too; it named a vault this tenant no longer uses.
 		 */
 		await step.do('Purge old vault secrets', VaultMigration.bitwardenCallRetry, async () => {
-			const source = await this.openTenantVault(parsedPayload.t_id.hex, oldTenant.jurisdiction, oldTenant.do_id, oldProperties.byo_bw);
+			const source = await this.openTenantVault(parsedPayload.t_id.hex, oldTenant.jurisdiction, oldTenant.do_id, oldProperties.byo_bw, parsedPayload.u_id);
 
 			try {
 				const owned = await this.ownedSecrets(source.stub, source.token, parsedPayload.t_id.base64url);
@@ -672,7 +674,8 @@ export class VaultMigration extends WorkflowEntrypoint<EnvVars, zm.input<typeof 
 					instance: event.instanceId,
 					datakeys: clonedSecrets.length,
 				},
-				system: true,
+				// The admin who requested this migration - not `system`, since nothing about this workflow runs unattended (see `workflowParams.u_id`'s doc comment)
+				u_id: parsedPayload.u_id,
 				status: TenantLogEventStatus.success,
 			};
 			// Post the raw version, not the parsed one, so the consumer validates it independently
