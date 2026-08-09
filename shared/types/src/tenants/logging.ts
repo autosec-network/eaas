@@ -10,6 +10,8 @@ export enum TenantLogEventType {
 	'requested vault migration' = 4,
 	'approved vault migration' = 5,
 	'completed vault migration' = 6,
+	'created bitwarden session' = 7,
+	'ended bitwarden session' = 8,
 }
 
 export enum TenantLogEventStatus {
