@@ -59,5 +59,6 @@ export const TENANT_TABS = [
 	{ label: 'Properties', segment: 'properties' },
 	{ label: 'Users', segment: 'users' },
 	{ label: 'API Keys', segment: 'api-keys' },
+	{ label: 'Bitwarden Sessions', segment: 'bitwarden-sessions' },
 	{ label: 'Logs', segment: 'logs' },
 ] as const;
