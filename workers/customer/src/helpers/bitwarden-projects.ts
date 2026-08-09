@@ -16,7 +16,8 @@ export const getProjects = server$(async function (jurisdiction: DOJurisdictions
 	const doStub = resolveDoStub(this.platform, this.platform.env.BITWARDEN_SESSION, this.platform.env.BITWARDEN_SESSION_PROXY, { id: bwId, jurisdiction: jurisdiction ?? undefined });
 
 	try {
-		await doStub.init({ t_jurisdiction: null, t_do_id: null, endpoints: { base: baseEndpoint, authentication: authEndpoint } });
+		// No tenant exists yet at this point (this runs while a customer is still typing a token, before either onboarding or a vault-settings save has committed anything), so there's nothing for the session to audit-log against - see `BitwardenSession.initOptions.t_id`'s doc comment.
+		await doStub.init({ t_jurisdiction: null, t_do_id: null, t_id: null, u_id: null, ak_id: null, endpoints: { base: baseEndpoint, authentication: authEndpoint } });
 		await doStub.auth(apiKey);
 		const projects = await doStub.getProjects();
 
