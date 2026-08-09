@@ -6,9 +6,11 @@ import { drizzle } from 'drizzle-orm/durable-sqlite';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { and, asc, eq, gt, gte, inArray, lte, sql } from 'drizzle-orm/sql';
 import { hexToUuid } from 'helpers';
+import { ZodUuidInputConverted } from 'helpers/zod/mini';
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
-import type { MethodNames, ObjectValues } from 'types';
+import { DOJurisdictions, type MethodNames, type ObjectValues } from 'types';
+import { BitwardenCloudEndpoints } from 'types/bw';
 import type { ZodPick } from 'types/zod/mini';
 import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
@@ -71,6 +73,11 @@ export class TenantD0 extends BaseD0 {
 		if (alarm) await this.ctx.storage.setAlarm(alarm.next_time, { allowConcurrency: true });
 	}
 
+	/**
+	 * Records a schedule row and arms the Durable Object alarm for whichever row is due next.
+	 *
+	 * Arming is **awaited** rather than handed to `waitUntil`: {@link _setupSystemAlarms} calls this from the constructor's `blockConcurrencyWhile`, and a deferred `setAlarm()` outlives that block — it lands after whatever RPC ran next, so a {@link nuke} re-arms the object it just wiped, which then wakes on its own cron forever as an orphan nothing accounts for.
+	 */
 	public async schedule<
 		// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		T extends any[] = any[],
@@ -86,7 +93,7 @@ export class TenantD0 extends BaseD0 {
 				next_time: when,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,
@@ -106,7 +113,7 @@ export class TenantD0 extends BaseD0 {
 				next_time,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,
@@ -134,7 +141,7 @@ export class TenantD0 extends BaseD0 {
 				next_time: nextExecutionTimeWithJitter,
 			});
 
-			this.ctx.waitUntil(this._scheduleNextAlarm());
+			await this._scheduleNextAlarm();
 
 			return {
 				id,
@@ -482,5 +489,104 @@ export class TenantD0 extends BaseD0 {
 		}
 
 		return properties;
+	}
+
+	/**
+	 * Deletes the secrets this tenant owns in Autosec's **root** Bitwarden organization — its BYO connection secret and its Noise static private key. Neither holds tenant data: `byo_bw` points at the customer's own vault (their access token and project), and `noise_bw` is transport key material. Removing them forgets the connection rather than destroying anything the customer stored.
+	 *
+	 * Opens a session of its own rather than borrowing from the pool, and ends it when done: the pool is being torn down in the same breath, so a pooled session would only have to be dismantled again a moment later. `t_do_id: null` keeps it out of the pool and `t_id: null` keeps it from logging — this session must leave no trace addressed to a tenant that is about to stop existing.
+	 *
+	 * Before deleting, confirms each secret actually lives in the project the caller expects. `byo_bw`/`noise_bw` are only id pointers, so this catches one having drifted onto the wrong project (a dev-onboarded tenant's row pointing at a prod secret, say) instead of silently deleting someone else's secret. Throws on anything unexpected — this runs ahead of the wipes in {@link purge} precisely so a failure here leaves the tenant intact and the delete retryable.
+	 */
+	private async _deleteRootBitwardenSecrets(jurisdiction: DOJurisdictions | null, projectId: string, secretIds: string[], reason: string) {
+		const isEu = jurisdiction === DOJurisdictions['The European Union'];
+		const namespace = jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(jurisdiction) : this.env.BITWARDEN_SESSION;
+		const stub = this.env.BITWARDEN_SESSION.get(namespace.newUniqueId());
+
+		try {
+			await stub.init({
+				t_jurisdiction: jurisdiction,
+				t_do_id: null,
+				t_id: null,
+				u_id: null,
+				ak_id: null,
+				endpoints: {
+					base: isEu ? BitwardenCloudEndpoints.Api.eu : BitwardenCloudEndpoints.Api.us,
+					authentication: isEu ? BitwardenCloudEndpoints.Identity.eu : BitwardenCloudEndpoints.Identity.us,
+				},
+			});
+			await stub.auth(isEu ? this.env.EU_BW_SM_ACCESS_TOKEN : this.env.US_BW_SM_ACCESS_TOKEN);
+
+			const secrets = await stub.getSecrets(secretIds);
+			secretIds.forEach((secretId) => {
+				const secret = secrets.find(({ id }) => id === secretId);
+				if (!secret?.projects.some((project) => project.id === projectId)) {
+					throw new Error(`Root bitwarden secret ${secretId} does not belong to the expected project ${projectId} — refusing to delete`);
+				}
+			});
+
+			await stub.deleteSecrets(secretIds);
+		} finally {
+			// Soft, so it resolves instead of rejecting with the `nuked` an `abort()` would produce — a `finally` that throws replaces whatever the `try` returned or threw, and would mask a real error above
+			await stub.nuke(`${reason} (root secret cleanup session)`, false).catch((error: unknown) => console.error('Failed to end root bitwarden secret cleanup session', error));
+		}
+	}
+
+	public static purgeOptions = zm.object({
+		/**
+		 * This tenant's own id, in any encoding. Has to be told to it: nothing in this object's storage records which tenant it is, and `ctx.id.name` is `undefined` for an object reached through `idFromString()` — which is how every caller holding a root `do_id` reaches it.
+		 */
+		t_id: ZodUuidInputConverted(7),
+		/**
+		 * Which jurisdiction this tenant's objects were minted in. `idFromName()` only resolves on the same (sub)namespace that created the id, so the logs object is unreachable without it.
+		 */
+		jurisdiction: zm.nullable(zm.enum(DOJurisdictions)),
+		/**
+		 * The root Bitwarden project this tenant's secrets are expected to live in, or `null` to leave the vault entirely alone. Told to it rather than read from `env` because a tenant onboarded through the dev admin environment keeps its secrets in the dev project while still living in this (prod) Durable Object namespace — only the caller knows which. `null` is for a caller that has already dealt with the secrets itself (see `VaultMigration`'s 'Purge old vault secrets' step).
+		 */
+		rootBitwardenProjectId: zm.nullable(zm.uuidv4().check(zm.trim())),
+		reason: zm._default(zm.string().check(zm.trim(), zm.minLength(1)), 'Tenant purged'),
+	});
+	/**
+	 * Ends this tenant completely: its pooled Bitwarden sessions, its secrets in the root organization, its logs Durable Object, and finally its own storage — **in that order, from inside the tenant itself**.
+	 *
+	 * Ordering is the whole point of doing it here rather than from the caller. Every one of these resources is reached *through* this object or names it, so anything still in flight when its storage goes lands afterwards and rebuilds what it touched: a session deregistering into a wiped tenant, or its closing audit row reaching a wiped logs object, recreates that object's schema and re-arms its cron alarms, leaving an orphan that keeps itself alive forever and that no root row can be traced back to. Sequenced from in here, each stage is finished — not merely started — before the next one removes what it depended on, and the sessions are told the tenant is going (see `BitwardenSession.nuke`) so they stop addressing it at all.
+	 *
+	 * What's left for the caller is the root `tenants` row, deliberately: `do_id` lives only there, so dropping it before these wipes would strand storage nobody can address anymore. A failure here therefore throws with the root row still intact and the delete safe to retry. Sessions are the one best-effort stage — one that can't be reached is worth a log line, never a reason to abandon a delete that was asked for; it expires on its own soon enough.
+	 *
+	 * The self-wipe is soft (no `abort()`), so this resolves normally with a summary instead of rejecting with the `nuked` a hard nuke produces. A rejection from `purge()` is a real failure, and callers can treat it as one.
+	 */
+	public async purge(_options: zm.input<typeof TenantD0.purgeOptions>) {
+		const options = await TenantD0.purgeOptions.parseAsync(_options);
+
+		// Read before any of the wipes below takes it away
+		const { byo_bw, noise_bw } = await this.getProperties({ byo_bw: true, noise_bw: true }, true);
+
+		const sessionNamespace = options.jurisdiction ? this.env.BITWARDEN_SESSION.jurisdiction(options.jurisdiction) : this.env.BITWARDEN_SESSION;
+		const sessions = await this.listBitwardenSessions({ includeExpired: true }).catch((error: unknown) => {
+			console.error('Failed to list pooled bitwarden sessions for tenant purge', error);
+			return [];
+		});
+		const settled = await Promise.allSettled(sessions.map(({ do_id }) => this.env.BITWARDEN_SESSION.get(sessionNamespace.idFromString(do_id)).nuke(options.reason, false, true)));
+		settled.forEach((result) => {
+			// A session nuked softly resolves normally, so unlike a hard nuke there's no expected rejection to filter out here
+			if (result.status === 'rejected') console.error('Failed to nuke pooled bitwarden session', result.reason);
+		});
+
+		const secretIds = [byo_bw, noise_bw].filter((secretId): secretId is string => Boolean(secretId));
+		if (options.rootBitwardenProjectId && secretIds.length > 0) await this._deleteRootBitwardenSecrets(options.jurisdiction, options.rootBitwardenProjectId, secretIds, options.reason);
+
+		// The audit log lives in an object of its own, named after this tenant. Leaving it behind would strand a store of request metadata nothing can reach anymore.
+		const logsNamespace = options.jurisdiction ? this.env.TENANT_D0_LOGS.jurisdiction(options.jurisdiction) : this.env.TENANT_D0_LOGS;
+		await this.env.TENANT_D0_LOGS.get(logsNamespace.idFromName(`${options.t_id.utf8}_logs`)).nuke(options.reason, false);
+
+		// Last, and last for a reason: nothing after this line can rely on this object's storage still being there
+		await this.nuke(options.reason, false);
+
+		return {
+			sessions: settled.filter(({ status }) => status === 'fulfilled').length,
+			totalSessions: sessions.length,
+			secrets: options.rootBitwardenProjectId ? secretIds.length : 0,
+		};
 	}
 }
