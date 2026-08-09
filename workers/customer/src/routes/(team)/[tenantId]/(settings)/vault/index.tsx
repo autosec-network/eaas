@@ -797,7 +797,7 @@ const useSaveVaultConnection = routeAction$(
 
 			await platform.env.VAULT_MIGRATION.create({
 				id: instanceId,
-				params: { t_id: t_id_hex, action, config },
+				params: { t_id: t_id_hex, u_id: session.user!.u_id.hex, action, config },
 				// A completed migration's step log is an audit trail, not something worth keeping for a month
 				retention: { successRetention: '1 day' },
 			});
