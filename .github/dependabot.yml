@@ -71,6 +71,10 @@ updates:
       - dependency-name: '@simplewebauthn/*'
         versions:
           - '>=10.0.0'
+      # Not supported with qwik
+      - dependency-name: 'typescript'
+        versions:
+          - '>=7.0.0'
     groups:
       auth:
         patterns:
