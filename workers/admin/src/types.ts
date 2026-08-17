@@ -35,6 +35,11 @@ interface TypedBindings {
 	USER_SESSION_PROD: DurableObjectNamespace<UserSession>;
 }
 
+export interface Session {
+	user?: { id?: string } & Omit<CloudflareAccessIdentity, 'user_uuid' | 'device_sessions'>;
+	expires: string;
+}
+
 interface ProjectResponseEnhanced extends Omit<ProjectResponse, 'id'> {
 	id: UUID;
 	read: boolean;
