@@ -104,7 +104,7 @@ Delete a specific API Key by its token ID. Requires Admin permissions.
 
 - **In:** `path`
 
-`string`
+`string`, format: `base64url`
 
 #### Responses
 
@@ -272,7 +272,7 @@ Get a specific Api Key by its token ID.
 
 - **In:** `path`
 
-`string`
+`string`, format: `base64url`
 
 #### Responses
 
@@ -306,7 +306,7 @@ Get a specific Api Key by its token ID.
 
 - **`token_id` (required)**
 
-  `string`
+  `string`, format: `base64url`
 
 - **`apikeysPermission`**
 
@@ -384,7 +384,7 @@ Get a list of Api Keys.
 
 - **`token_id` (required)**
 
-  `string`
+  `string`, format: `base64url`
 
 - **`apikeysPermission`**
 
