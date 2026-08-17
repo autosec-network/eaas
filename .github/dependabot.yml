@@ -51,6 +51,10 @@ updates:
       - dependency-name: '@types/node'
         versions:
           - '>=25.0.0'
+      # 7.0.x doesn't have the stable native API yet; that's slated for 7.1 (ts-eslint needs it)
+      - dependency-name: 'typescript'
+        versions:
+          - '>=7.0.0, <7.1.0'
       # All tutorials use v9. Keep it on v9 until I get around to figuring out breaking upgrade
       - dependency-name: '@simplewebauthn/*'
         versions:
