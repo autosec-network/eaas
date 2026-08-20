@@ -5,7 +5,7 @@
 
 ***Undergoing rearchitect/rewrite***
 
-Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.
+Inspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional [Noise Pipes](https://noiseprotocol.org/noise.html) for MITM/TLS inspection protection.
 
 ## Servers
 
