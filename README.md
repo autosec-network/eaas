@@ -2,7 +2,7 @@
 
 Inspired by [Hashicorp's Vault's Transit secrets engine](https://developer.hashicorp.com/vault/docs/v1.14.x/secrets/transit) (pre license change - AUG 10 2023), powered by [Bitwarden Secrets Manager](https://bitwarden.com/products/secrets-manager/), [`node:crypto`](https://nodejs.org/api/crypto.html), [Web Crypto](https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API) and runs completely on Cloudflare Workers.
 
-Keep your own storage system and just pass-through encrypt/decrypt and stay up to date and compliant. No data is ever stored and only lives long enough to do the operation. Noise pipes for request additional wrapping to counter MITM/TLS inspection coming soon.
+Keep your own storage system and just pass-through encrypt/decrypt and stay up to date and compliant. No data is ever stored and only lives long enough to do the operation. [Noise Pipes](https://noiseprotocol.org/noise.html) for request additional wrapping to counter MITM/TLS inspection coming soon.
 
 ## Versioning
 
