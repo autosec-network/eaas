@@ -22,7 +22,7 @@ const app = new OpenAPIHono<{ Bindings: EnvVars; Variables: ContextVariables }>(
 });
 
 const title = 'EaaS API';
-const description = '***Undergoing rearchitect/rewrite***\n\nInspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional per-request wrapping for MITM/TLS inspection compliance.';
+const description = '***Undergoing rearchitect/rewrite***\n\nInspired by Hashicorp Vault Transit, powered by Bitwarden Secrets Manager, node:crypto, and Web Crypto and runs fully on Cloudflare Workers. No data stored - just key management with pass-through encrypt/decrypt, and optional [Noise Pipes](https://noiseprotocol.org/noise.html) for MITM/TLS inspection protection.';
 // const termsOfService = 'https://example.com';
 const contact: oas31.ContactObject = {
 	name: 'Issues',
