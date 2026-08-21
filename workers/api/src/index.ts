@@ -82,9 +82,7 @@ export default {
 
 		// Dev debug injection point
 		app.use('*', async (c, next) => {
-			if (c.env.NODE_ENV === 'development') {
-				/* empty */
-			}
+			console.debug('raw d1 test', await c.env.DB_ROOT.withSession('first-unconstrained').prepare('PRAGMA table_list').all());
 
 			await next();
 		});
