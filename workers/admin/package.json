@@ -43,7 +43,7 @@
 		"cloudflare": "7.0.0",
 		"drizzle-orm": "1.0.0-rc.4",
 		"jose": "6.2.9",
-		"uuid": "14.0.1",
+		"uuid": "14.0.2",
 		"zod": "4.4.3"
 	},
 	"devDependencies": {
