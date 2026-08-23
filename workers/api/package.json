@@ -43,6 +43,6 @@
 	},
 	"devDependencies": {
 		"@scalar/openapi-to-markdown": "0.5.42",
-		"cloudflare": "7.0.0"
+		"cloudflare": "7.1.0"
 	}
 }
