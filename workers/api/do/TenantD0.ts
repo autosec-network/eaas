@@ -5,7 +5,7 @@ import * as tenantSchema from 'db/schemas/tenant/main';
 import { drizzle } from 'drizzle-orm/durable-sqlite';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { and, asc, eq, gt, gte, inArray, lte, sql } from 'drizzle-orm/sql';
-import { hexToUuid } from 'helpers';
+import { hexToUuid, workflowInstanceId } from 'helpers';
 import { ZodUuidInputConverted } from 'helpers/zod/mini';
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
@@ -214,6 +214,19 @@ export class TenantD0 extends BaseD0 {
 			.limit(1);
 
 		this.ctx.waitUntil(this._scheduleNextAlarm());
+	}
+
+	/**
+	 * The `callee` a keyring's `time_rotation` cron schedule fires - see the dashboard's `useCreateKeyring`/`useUpdateKeyring`, which `schedule()` this under the keyring's own id (so re-saving replaces rather than accumulates alarm rows) whenever it's enabled.
+	 *
+	 * `t_id_hex` travels in the payload alongside `kr_id_hex` because this object never learns its own tenant id otherwise - every other method that needs it takes it as a parameter too (see `purge`'s `options.t_id`).
+	 */
+	public async rotateKeyringOnSchedule(t_id_hex: string, kr_id_hex: string) {
+		await this.env.DATA_KEY_ROTATION.create({
+			id: workflowInstanceId(t_id_hex, uuidv7() as UUID),
+			// Nothing triggered this but the schedule itself, so it logs as `system` - same as any other cron/count-based rotation
+			params: { t_id: t_id_hex, kr_id: kr_id_hex, u_id: null, ak_id: null },
+		});
 	}
 
 	override async alarm() {
