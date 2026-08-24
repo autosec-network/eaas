@@ -92,6 +92,12 @@
 	},
 	"workflows": [
 		{
+			"name": "data-key-rotation-preview",
+			"binding": "DATA_KEY_ROTATION",
+			"class_name": "DataKeyRotation",
+			"script_name": "eaas-api-dev"
+		},
+		{
 			"name": "vault-migration-preview",
 			"binding": "VAULT_MIGRATION",
 			"class_name": "VaultMigration",
@@ -226,6 +232,12 @@
 				]
 			},
 			"workflows": [
+				{
+					"name": "data-key-rotation",
+					"binding": "DATA_KEY_ROTATION",
+					"class_name": "DataKeyRotation",
+					"script_name": "eaas-api-prod"
+				},
 				{
 					"name": "vault-migration",
 					"binding": "VAULT_MIGRATION",

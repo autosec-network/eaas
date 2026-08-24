@@ -1,6 +1,7 @@
 import type { DurableObject } from 'cloudflare:workers';
 import type { TenantPropertiesSchema, UserPropertiesSchema } from 'db';
 import type { VaultMigrationParamsSchema } from 'helpers/vault-migration';
+import type { DataKeyRotationParamsSchema } from 'helpers/zod/mini';
 import type { UUID } from 'node:crypto';
 import type { DOJurisdictions } from 'types';
 import type { ProjectResponse, SecretResponse } from 'types/bw/schemas';
@@ -9,7 +10,7 @@ import type { ZodPick } from 'types/zod/mini';
 import type * as zm from 'zod/mini';
 import type { BitwardenSessionProxy, TenantD0LogsProxy, TenantD0Proxy, UserD0Proxy, UserSessionProxy } from '../../do-proxy/src/index';
 
-export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'VAULT_MIGRATION' | 'BITWARDEN_SESSION' | 'TENANT_D0' | 'TENANT_D0_LOGS' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY' | 'USER_SESSION_PROXY'>, TypedBindings {
+export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'DATA_KEY_ROTATION' | 'VAULT_MIGRATION' | 'BITWARDEN_SESSION' | 'TENANT_D0' | 'TENANT_D0_LOGS' | 'USER_D0' | 'BITWARDEN_SESSION_PROXY' | 'TENANT_D0_PROXY' | 'TENANT_D0_LOGS_PROXY' | 'USER_D0_PROXY' | 'USER_SESSION_PROXY'>, TypedBindings {
 	GIT_HASH?: string;
 	EU_BW_SM_PROJECT_ID: string;
 	US_BW_SM_PROJECT_ID: string;
@@ -17,6 +18,7 @@ export interface EnvVars extends Omit<Cloudflare.Env, 'LOGS' | 'VAULT_MIGRATION'
 
 interface TypedBindings {
 	LOGS: Queue<zm.input<typeof TenantLogQueueMessageSchema>>;
+	DATA_KEY_ROTATION: Workflow<zm.input<typeof DataKeyRotationParamsSchema>>;
 	VAULT_MIGRATION: Workflow<zm.input<typeof VaultMigrationParamsSchema>>;
 	BITWARDEN_SESSION: DurableObjectNamespace<BitwardenSession>;
 	TENANT_D0: DurableObjectNamespace<TenantD0>;
@@ -427,6 +429,20 @@ declare class BaseD0 extends DurableObject {
 	public nuke(reason?: string, hard?: boolean): Promise<void>;
 }
 
+/**
+ * One row of {@link TenantD0.getSchedule}/{@link TenantD0.getSchedules}, mirroring the `alarms` table.
+ */
+export interface TenantScheduleRow {
+	id: UUID;
+	callee: string;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	payload: any[];
+	type: 'scheduled' | 'delayed' | 'cron';
+	next_time: Date;
+	delay_in_seconds: number | null;
+	cron: string[] | null;
+}
+
 export declare class TenantD0 extends BaseD0 {
 	public registerBitwardenSession(_options: { do_id: string; fingerprint: string; expires: Date }): Promise<void>;
 	public listBitwardenSessions(_options?: { fingerprint?: string; includeExpired?: boolean }): Promise<PooledBitwardenSession[]>;
@@ -435,6 +451,28 @@ export declare class TenantD0 extends BaseD0 {
 	public getPropertiesSync(_keys?: ZodPick<typeof TenantPropertiesSchema>): Partial<zm.output<typeof TenantPropertiesSchema>>;
 	public updateProperties(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background?: boolean, lazy?: boolean): Promise<Partial<zm.output<typeof TenantPropertiesSchema>>>;
 	public updatePropertiesSync(_properties: Partial<zm.input<typeof TenantPropertiesSchema>>, background?: boolean, lazy?: boolean): Partial<zm.output<typeof TenantPropertiesSchema>>;
+	/**
+	 * Records a schedule row (`when` as a cron array arms a recurring `type: 'cron'` alarm) and arms the Durable Object alarm for whichever row is due next. `id` defaults to a fresh one - pass the same `id` back to replace an existing schedule instead of accumulating a second row (`cancelSchedule` first; `schedule` doesn't upsert).
+	 *
+	 * Two deliberate departures from the real `TenantD0.schedule` this mirrors, both to keep this class's RPC stub type-checkable at all:
+	 * - `callee` is a plain `string`, not `MethodNames<TenantD0>` - a self-referential type here (this class naming its own methods, inside its own method's signature) is what was sending `Provider<TenantD0>`'s mapped type into "Type instantiation is excessively deep" territory, and not just for this method - it was enough to flip an unrelated, already-fragile `@ts-expect-error` elsewhere in the worker. The real `TenantD0.alarm()` still validates the callee at dispatch time (an unknown one just gets logged and the schedule deleted), so this only gives up a compile-time typo check, not a real one.
+	 * - `payload` is `any[]`, not generic: `unknown[]` fails a stubbed method's `Serializable<T>` check (unknown isn't known to be *anything* serializable), collapsing the whole call to `never`; `any` bypasses that check instead of failing it. Nothing in `customer` needs the payload's specific tuple type reflected back through the return value anyway.
+	 */
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	public schedule(when: Date | number | string[], callee: string, payload?: any[], id?: UUID): Promise<{ id: UUID; payload: any[]; next_time: Date; type: 'scheduled' | 'delayed' | 'cron' }>;
+	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+	public getSchedule(id: UUID | string): Promise<TenantScheduleRow | undefined>;
+	/**
+	 * Returns an inline shape rather than `TenantScheduleRow[]` - an *array* of that interface, through this RPC stub's mapped type, is what was hitting "Type instantiation is excessively deep" (a single one, as `getSchedule` returns, was fine). Add fields here only as callers actually need them.
+	 */
+	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+	public getSchedules(criteria?: { id?: UUID | string; type?: 'scheduled' | 'delayed' | 'cron'; timeRange?: { start?: Date; end?: Date } }): Promise<{ id: UUID; cron: string[] | null }[]>;
+	// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+	public cancelSchedule(id: UUID | string): Promise<void>;
+	/**
+	 * The `callee` a keyring's `time_rotation` cron schedule fires - triggers `DATA_KEY_ROTATION` for the given keyring as `system`. Never called directly from the dashboard; only named as a `schedule()` `callee` argument.
+	 */
+	public rotateKeyringOnSchedule(t_id_hex: string, kr_id_hex: string): Promise<void>;
 }
 export declare class UserD0 extends BaseD0 {
 	public getProperties(_keys?: ZodPick<typeof UserPropertiesSchema>, lazy?: boolean): Promise<Partial<zm.output<typeof UserPropertiesSchema>>>;

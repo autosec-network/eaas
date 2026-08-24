@@ -12,26 +12,18 @@ import * as tenantSchema from 'db/schemas/tenant/main';
 import { drizzle } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { eq, sql } from 'drizzle-orm/sql';
-import { ZodUuidHex, ZodUuidInputConverted } from 'helpers/zod/mini';
+import { DataKeyRotationParamsSchema } from 'helpers/zod/mini';
 import { createHash, randomBytes } from 'node:crypto';
 import { DOJurisdictions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
 import { KeyAlgorithms } from 'types/crypto';
+import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
 import * as zm from 'zod/mini';
 import { openBitwardenSession as openPooledBitwardenSession } from '~/bitwarden-pool';
 import type { EnvVars } from '~/types';
 
-// eslint-disable-next-line zod-mini/consistent-schema-var-name
-export const workflowParams = zm.object({
-	t_id: ZodUuidInputConverted(7),
-	kr_id: ZodUuidInputConverted(7),
-	/**
-	 * Whoever triggered this rotation, for the Bitwarden sessions it opens to audit-log against - a dashboard "rotate now" click carries {@link u_id}, an API-key-triggered one carries {@link ak_id}, and a cron/count-based rotation (`keyrings.time_rotation`/`count_rotation`) leaves both `null`, which is what makes those sessions log as `system`.
-	 */
-	u_id: zm.nullable(ZodUuidHex(7)),
-	ak_id: zm.nullable(ZodUuidHex(7)),
-});
+export const workflowParams = DataKeyRotationParamsSchema;
 
 export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof workflowParams>> {
 	private static readonly cfApiCallRetry: WorkflowStepConfig = {
@@ -228,7 +220,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 			switch (key_type) {
 				case KeyAlgorithms['RSASSA-PKCS1-v1_5']:
 				case KeyAlgorithms['RSA-PSS']:
-				case KeyAlgorithms['RSA-OAEP']:
+				case KeyAlgorithms['RSA-OAEP']: {
 					let normalizedRsaKeySize: undefined | number;
 					if (key_size && key_size % 8 === 0) {
 						normalizedRsaKeySize = key_size;
@@ -267,8 +259,9 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 					} else {
 						throw new NonRetryableError('Missing or bad `key_size`');
 					}
+				}
 				case KeyAlgorithms.ECDSA:
-				case KeyAlgorithms.ECDH:
+				case KeyAlgorithms.ECDH: {
 					let normalizedEccCurve: undefined | 'P-256' | 'P-384' | 'P-521';
 					switch (key_size) {
 						case 256:
@@ -326,6 +319,7 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 					} else {
 						throw new NonRetryableError('Unsupported curve');
 					}
+				}
 				case KeyAlgorithms.HMAC:
 					const key = await crypto.subtle
 						.generateKey(
@@ -842,5 +836,28 @@ export class DataKeyRotation extends WorkflowEntrypoint<EnvVars, zm.input<typeof
 				})
 				.then(() => {}),
 		);
+
+		/**
+		 * The one place this event can be logged accurately: whoever triggered this workflow (a dashboard "rotate now" click, a keyring's auto-started first key, or eventually a schedule) only knows the rotation was *requested*, not that it succeeded - a Workflow can retry every step above any number of times before landing here. There's no request in a Workflow, so unlike the dashboard-side logs this one carries no `ip`/`ray_id`/`user_agent`.
+		 */
+		await step.do('Record audit log', DataKeyRotation.cfApiCallRetry, async () => {
+			const now = new Date();
+
+			const log: zm.input<typeof TenantLogQueueMessageSchema> = {
+				t_id: parsedPayload.t_id.hex,
+				jurisdiction: tenant.jurisdiction,
+				id: uuidv7({ msecs: now.getTime() }).replaceAll('-', ''),
+				timestamp: now.toISOString(),
+				event_type: TenantLogEventType['generated datakey'],
+				context: { key: { algorithm: key_type, size: key_size, hash } },
+				kr_id: parsedPayload.kr_id.hex,
+				dk_id: dk_id.hex,
+				// Mirrors `openPooledBitwardenSession`'s own actor selection just above - whoever triggered the rotation, or `system` when nothing did (a schedule/count-based trigger)
+				...(parsedPayload.u_id ? { u_id: parsedPayload.u_id } : parsedPayload.ak_id ? { ak_id: parsedPayload.ak_id } : { system: true }),
+				status: TenantLogEventStatus.success,
+			};
+			await TenantLogQueueMessageSchema.parseAsync(log);
+			await this.env.LOGS.sendBatch([{ body: log, contentType: 'json' }]);
+		});
 	}
 }
