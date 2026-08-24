@@ -42,6 +42,21 @@ export function ZodUuidInputConvertedSchema(version?: 4 | 7) {
 	});
 }
 
+/**
+ * Parameters the `DataKeyRotation` workflow (`workers/api/wf/dataKeyRotation.ts`) is created with.
+ *
+ * Lives here rather than next to the workflow because the customer dashboard triggers rotations over a **cross-script** workflow binding, which `wrangler types` can only see as an untyped `Workflow`. Both sides deriving the shape from this one schema is what keeps the binding honest.
+ */
+export const DataKeyRotationParamsSchema = zm.object({
+	t_id: ZodUuidInputConverted(7),
+	kr_id: ZodUuidInputConverted(7),
+	/**
+	 * Whoever triggered this rotation, for the Bitwarden sessions it opens to audit-log against - a dashboard "rotate now" click carries {@link u_id}, an API-key-triggered one carries {@link ak_id}, and a cron/count-based rotation (`keyrings.time_rotation`/`count_rotation`) leaves both `null`, which is what makes those sessions log as `system`.
+	 */
+	u_id: zm.nullable(ZodUuidHex(7)),
+	ak_id: zm.nullable(ZodUuidHex(7)),
+});
+
 export function ZodUuidInputConverted(version?: 4 | 7) {
 	return zm.union([
 		zm.codec(ZodUuidUtf8(version), ZodUuidInputConvertedSchema(version), {

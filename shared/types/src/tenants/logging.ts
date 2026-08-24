@@ -12,6 +12,15 @@ export enum TenantLogEventType {
 	'completed vault migration' = 6,
 	'created bitwarden session' = 7,
 	'ended bitwarden session' = 8,
+	/**
+	 * Appended, not inserted alongside `created` - every existing member's numeric value is already stored raw in each tenant's logs DO, so renumbering would relabel history. Same rule for any future addition.
+	 */
+	'created keyring' = 9,
+	'changed keyring' = 10,
+	/**
+	 * A new row in `datakeys`, regardless of what triggered the rotation - the keyring's first key at creation, an explicit "Rotate now" click, or (in the future) a time/count-based schedule. Emitted once, from inside the `DataKeyRotation` workflow itself, because that's the only point that knows generation actually succeeded.
+	 */
+	'generated datakey' = 11,
 }
 
 export enum TenantLogEventStatus {
