@@ -73,6 +73,7 @@ updates:
           - 'eslint-plugin-*'
           - 'eslint-config-*'
           - 'typescript-eslint'
+          - '@microsoft/eslint-formatter-sarif'
       typescript-core:
         patterns:
           - 'typescript'
