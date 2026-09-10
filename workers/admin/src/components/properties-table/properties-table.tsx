@@ -45,7 +45,7 @@ export const PropertiesTable = component$<PropertiesTableProps>(({ title, proper
 											<span class="text-body-subtle italic">null</span>
 										) : (
 											(() => {
-												if (zm.iso.datetime().safeParse(value).success) {
+												if (zm.validate(zm.iso.datetime(), value)) {
 													const dateValue = new Date(value as string | Date);
 													return (
 														<time dateTime={dateValue.toISOString()} title={[dateValue.toLocaleString(locale, { hour12: false, timeZone: 'UTC' }), 'UTC'].join(' ')}>

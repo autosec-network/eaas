@@ -147,7 +147,7 @@ export default {
 							.trim()
 							.min(2)
 							.regex(/^v\d+$/)
-							.refine((version) => z4.coerce.number().int().nonnegative().safeParse(version.slice(1)).success),
+							.refine((version) => z4.validate(z4.coerce.number().int().nonnegative(), version.slice(1))),
 					}),
 					// @ts-expect-error we don't want to always return to all passthrough
 					async (result, c) => {

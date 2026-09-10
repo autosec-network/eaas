@@ -78,7 +78,7 @@ export default component$(() => {
 		const onInput = () => {
 			window.clearTimeout(emailFieldDebouncer.value);
 			emailFieldDebouncer.value = window.setTimeout(() => {
-				emailValid.value = zm.email({ pattern: zm.regexes.idnEmail }).check(zm.trim()).safeParse(emailField.value?.value).success;
+				emailValid.value = zm.validate(zm.email({ pattern: zm.regexes.idnEmail }).check(zm.trim()), emailField.value?.value);
 			}, 300);
 		};
 

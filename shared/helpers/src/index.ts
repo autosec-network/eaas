@@ -36,15 +36,7 @@ export async function createApiKey(_existingAk_id_hex?: string) {
 			zm.hex().check(
 				zm.trim(),
 				zm.length(32),
-				zm.refine(
-					(hex) =>
-						zm
-							.uuidv7()
-							.check(zm.trim(), zm.toLowerCase())
-							.safeParseAsync(hexToUuid(hex))
-							.then(({ success }) => success),
-					'Invalid API key id hex value',
-				),
+				zm.refine((hex) => zm.validateAsync(zm.uuidv7().check(zm.trim(), zm.toLowerCase()), hexToUuid(hex)), 'Invalid API key id hex value'),
 			),
 		)
 		.parseAsync(_existingAk_id_hex);
