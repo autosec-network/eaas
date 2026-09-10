@@ -39,7 +39,7 @@
 		"jose": "6.2.12",
 		"types": "*",
 		"uuid": "14.0.2",
-		"zod": "4.4.3"
+		"zod": "4.5.4"
 	},
 	"devDependencies": {
 		"@scalar/openapi-to-markdown": "0.5.42",
