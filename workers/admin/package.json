@@ -42,7 +42,7 @@
 		"@qwikest/icons": "0.0.13",
 		"cloudflare": "7.1.0",
 		"drizzle-orm": "1.0.0-rc.4",
-		"jose": "6.2.10",
+		"jose": "6.2.12",
 		"uuid": "14.0.2",
 		"zod": "4.4.3"
 	},
