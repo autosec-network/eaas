@@ -59,6 +59,10 @@ updates:
       - dependency-name: '@simplewebauthn/*'
         versions:
           - '>=10.0.0'
+      # 2.24.0+ breaks compile with "No Lix transaction is active" on message files with ~171+ alphabetically-sorted keys (our en.json qualifies). Upstream bug, unfixed as of 2026-09-09: https://github.com/opral/inlang/issues/4413. Unpin once that's resolved.
+      - dependency-name: '@inlang/paraglide-js'
+        versions:
+          - '>=2.24.0'
     groups:
       auth:
         patterns:
