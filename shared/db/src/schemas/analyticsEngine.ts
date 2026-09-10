@@ -1,4 +1,6 @@
 import { sqliteTable } from 'drizzle-orm/sqlite-core';
+import type { AnalyticsSize } from 'types';
+import { workersCryptoCatalog } from 'types/crypto/catalog';
 
 export const EAAS_LANG_ANALYTICS = sqliteTable('EAAS_LANG_ANALYTICS', (ela) => ({
 	dataset: ela.text({ enum: ['EAAS_LANG_ANALYTICS'] }),
@@ -25,4 +27,30 @@ export const EAAS_LANG_ANALYTICS = sqliteTable('EAAS_LANG_ANALYTICS', (ela) => (
 	lang18: ela.text('blob18', { mode: 'text' }).notNull().default(''),
 	lang19: ela.text('blob19', { mode: 'text' }).notNull().default(''),
 	lang20: ela.text('blob20', { mode: 'text' }).notNull().default(''),
+}));
+
+export const EAAS_PLATFORM_ANALYTICS = sqliteTable('EAAS_PLATFORM_ANALYTICS', (epa) => ({
+	dataset: epa.text({ enum: ['EAAS_PLATFORM_ANALYTICS'] }),
+	_sample_interval: epa.integer({ mode: 'number' }),
+	timestamp: epa.text({ mode: 'text', length: 19 }),
+	/**
+	 * Rewrap counts as 1 encrypt AND 1 decrypt
+	 */
+	operation: epa.text('index1', { enum: ['encrypt', 'decrypt', 'sign', 'verify', 'hmac', 'hash', 'random'] }).notNull(),
+	algorithm: epa
+		.text('blob1', { enum: ['', ...workersCryptoCatalog.ciphers, ...workersCryptoCatalog.curves, ...workersCryptoCatalog.hashes] })
+		.notNull()
+		.default(''),
+	iata: epa.text('blob2', { mode: 'text' }).notNull().default(''),
+	/**
+	 * Size is rounded for privacy reasons. Value: Previous bucket > (plaintext content) <= specified bucket.
+	 * If multiple collapsed, all in this point are of the same size (different size will trigger a different point).
+	 * @example `2`: 1Kib > (plaintext content) ≤ 4KiB
+	 */
+	size: epa.real('double1').notNull().default(0).$type<AnalyticsSize>(),
+	/**
+	 * Number of events collapsed into this point.
+	 * Cost saving: 10M data points/month included, $0.25/M after. One point per op at 100 ops/sec (max_batch_size) is 262.8M points/month ~$63.2/mo. At 1,000 ops/sec it's ~$654.5/mo
+	 */
+	count: epa.real('double2').notNull().default(0),
 }));
