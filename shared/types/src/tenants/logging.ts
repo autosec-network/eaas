@@ -21,6 +21,10 @@ export enum TenantLogEventType {
 	 * A new row in `datakeys`, regardless of what triggered the rotation - the keyring's first key at creation, an explicit "Rotate now" click, or (in the future) a time/count-based schedule. Emitted once, from inside the `DataKeyRotation` workflow itself, because that's the only point that knows generation actually succeeded.
 	 */
 	'generated datakey' = 11,
+	/**
+	 * The tenant's `platform_analytics` property (`db/properties/tenant`) was flipped on or off - `context.enabled` carries the new value.
+	 */
+	'changed platform analytics setting' = 12,
 }
 
 export enum TenantLogEventStatus {

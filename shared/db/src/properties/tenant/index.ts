@@ -21,6 +21,10 @@ export const TenantPropertiesSchema = zm.extend(PropertiesSchema, {
 	 * UUID of noise static private key secret on root bw
 	 */
 	noise_bw: zm.nullish(zm.uuidv4().check(zm.trim())),
+	/**
+	 * Whether this tenant's crypto operations may be collapsed into the fully anonymized `EAAS_PLATFORM_ANALYTICS` dataset (`shared/db/src/schemas/analyticsEngine.ts`) - no `t_id`/tenant identifier ever leaves with that data, this only controls whether it's produced at all. Nullish (never `default`) since a partial properties read must not clobber a real stored value with this fallback; `true` is written explicitly at tenant creation instead, same as `name`/`avatar`.
+	 */
+	platform_analytics: zm.nullish(zm.boolean()),
 });
 export const TenantPropertiesSchema4 = PropertiesSchema4.extend({
 	avatar: z4
@@ -41,6 +45,10 @@ export const TenantPropertiesSchema4 = PropertiesSchema4.extend({
 	 * UUID of noise static private key secret on root bw
 	 */
 	noise_bw: z4.uuidv4().trim().nullish(),
+	/**
+	 * Whether this tenant's crypto operations may be collapsed into the fully anonymized `EAAS_PLATFORM_ANALYTICS` dataset - no `t_id`/tenant identifier ever leaves with that data, this only controls whether it's produced at all. Nullish (never `default`) since a partial properties read must not clobber a real stored value with this fallback; `true` is written explicitly at tenant creation instead.
+	 */
+	platform_analytics: z4.boolean().nullish(),
 });
 
 export const TenantByoBwNoteSchema = zm.object({

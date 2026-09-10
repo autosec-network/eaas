@@ -29,6 +29,28 @@ export enum Permissions {
 	Admin = 3,
 }
 
+// _iB = 1024based
+export enum AnalyticsSize {
+	'256B',
+	'1KiB',
+	'4KiB',
+	'16KiB',
+	'64KiB',
+	'128KiB',
+	'256KiB',
+	'512KiB',
+	'1MiB',
+	'4MiB',
+	'16MiB',
+	'64MiB',
+	'128MiB',
+	'256MiB',
+	'512MiB',
+	'1GiB',
+	'4GiB',
+	'4GiB+',
+}
+
 /**
  * @link https://developers.cloudflare.com/durable-objects/reference/data-location/#restrict-durable-objects-to-a-jurisdiction
  */

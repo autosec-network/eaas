@@ -23,6 +23,8 @@ export default component$(() => {
 	const isUsersRoute = location.url.pathname === usersPath || location.url.pathname === `${usersPath}/`;
 	const vaultPath = tenantId ? `/${tenantId}/vault` : '/';
 	const isVaultRoute = location.url.pathname === vaultPath || location.url.pathname === `${vaultPath}/`;
+	const analyticsPath = tenantId ? `/${tenantId}/analytics` : '/';
+	const isAnalyticsRoute = location.url.pathname === analyticsPath || location.url.pathname === `${analyticsPath}/`;
 
 	return (
 		<div class="flex h-dvh min-h-0 overflow-hidden">
@@ -52,6 +54,9 @@ export default component$(() => {
 							</Link>
 							<Link prefetch="js" href={vaultPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isVaultRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
 								{m.sidebar_group_vault()}
+							</Link>
+							<Link prefetch="js" href={analyticsPath} class={['block rounded-lg px-2.5 py-2 text-sm font-medium transition-colors', isAnalyticsRoute ? 'bg-primary-accent/10 text-primary-accent dark:bg-primary-accent/20' : 'text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800/60']}>
+								{m.sidebar_group_analytics()}
 							</Link>
 						</div>
 					) : null}

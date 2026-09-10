@@ -220,6 +220,7 @@ const useOnboardTenant = routeAction$(
 				{
 					name: data.name,
 					avatar: data.avatar,
+					platform_analytics: true,
 					m_time: now,
 				},
 				false,

@@ -36,6 +36,7 @@
 		"drizzle-orm": "1.0.0-rc.4",
 		"helpers": "*",
 		"hono": "4.13.7",
+		"iata-location": "1.0.1",
 		"jose": "6.2.12",
 		"types": "*",
 		"uuid": "14.0.2",

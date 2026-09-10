@@ -48,7 +48,11 @@ export default {
 				'a_db',
 				await import('db/wae').then(async ({ drizzleAE }) =>
 					drizzleAE(
-						{ read: { accountId: c.env.CF_ACCOUNT_ID, apiKey: c.env.CF_API_TOKEN } },
+						{
+							read: { accountId: c.env.CF_ACCOUNT_ID, apiKey: c.env.CF_API_TOKEN },
+							// Write binding is prod-only (optional in the generated env), so declare it only when present - this is what lets encrypt/decrypt record anonymized platform analytics
+							write: { ...(c.env.PLATFORM_ANALYTICS && { EAAS_PLATFORM_ANALYTICS: c.env.PLATFORM_ANALYTICS }) },
+						},
 						{
 							// ...(c.env.NODE_ENV !== 'production' && { logger: await import('drizzle-orm/logger').then(async ({ DefaultLogger }) => new DefaultLogger({ writer: await import('db/core').then(({ DebugLogWriter }) => new DebugLogWriter('wae')) })) }),
 							logger: await import('drizzle-orm/logger').then(async ({ DefaultLogger }) => new DefaultLogger({ writer: await import('db/core').then(({ DebugLogWriter }) => new DebugLogWriter('wae')) })),

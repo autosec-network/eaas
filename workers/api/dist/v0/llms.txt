@@ -694,3 +694,180 @@ Returns the top 20 browser-reported languages and their percentage share of visi
   }
 ]
 ```
+
+### GET /stats/platform/minute
+
+- **Method:** `GET`
+- **Path:** `/stats/platform/minute`
+- **Tags:** Stats
+
+Raw feed of individual crypto operations, newest first, over the last minute.
+
+#### Responses
+
+##### Status: 200 Individual operations, newest first, one line per WAE data point (already collapsed by the writer - see \`count\`).
+
+###### Content-Type: application/json
+
+**Array of:**
+
+- **`algorithm` (required)**
+
+  `string | null`
+
+- **`count` (required)**
+
+  `number`
+
+- **`iata` (required)**
+
+  `string`
+
+- **`latitude` (required)**
+
+  `string`
+
+- **`location` (required)**
+
+  `string`
+
+- **`longitude` (required)**
+
+  `string`
+
+- **`operation` (required)**
+
+  `string`, possible values: `"encrypt", "decrypt", "sign", "verify", "hmac", "hash", "random"`
+
+- **`size` (required)**
+
+  `string`, possible values: `"256B", "1KiB", "4KiB", "16KiB", "64KiB", "128KiB", "256KiB", "512KiB", "1MiB", "4MiB", "16MiB", "64MiB", "128MiB", "256MiB", "512MiB", "1GiB", "4GiB", "4GiB+"`
+
+- **`timestamp` (required)**
+
+  `string`, format: `date-time`
+
+* Max items: `60000`
+
+**Example:**
+
+```json
+[
+  {
+    "timestamp": "1970-01-01T00:00:00.000Z",
+    "operation": "encrypt",
+    "algorithm": "AES-GCM",
+    "iata": "SFO",
+    "latitude": "37.619806",
+    "longitude": "-122.374821",
+    "location": "San Francisco, CA, US",
+    "size": "4KiB",
+    "count": 0
+  }
+]
+```
+
+### GET /stats/platform/hour
+
+- **Method:** `GET`
+- **Path:** `/stats/platform/hour`
+- **Tags:** Stats
+
+Crypto operation volume per Cloudflare PoP over the last hour. All timestamps are GMT.
+
+#### Responses
+
+##### Status: 200 Total operations over the window, keyed by PoP and broken down by operation type.
+
+###### Content-Type: application/json
+
+**Example:**
+
+```json
+{
+  "additionalProperty": {
+    "latitude": "37.619806",
+    "longitude": "-122.374821",
+    "location": "San Francisco, CA, US",
+    "operations": {
+      "encrypt": 0,
+      "decrypt": 0,
+      "sign": 0,
+      "verify": 0,
+      "hmac": 0,
+      "hash": 0,
+      "random": 0
+    }
+  }
+}
+```
+
+### GET /stats/platform/day
+
+- **Method:** `GET`
+- **Path:** `/stats/platform/day`
+- **Tags:** Stats
+
+Crypto operation volume per Cloudflare PoP over the last day. All timestamps are GMT.
+
+#### Responses
+
+##### Status: 200 Total operations over the window, keyed by PoP and broken down by operation type.
+
+###### Content-Type: application/json
+
+**Example:**
+
+```json
+{
+  "additionalProperty": {
+    "latitude": "37.619806",
+    "longitude": "-122.374821",
+    "location": "San Francisco, CA, US",
+    "operations": {
+      "encrypt": 0,
+      "decrypt": 0,
+      "sign": 0,
+      "verify": 0,
+      "hmac": 0,
+      "hash": 0,
+      "random": 0
+    }
+  }
+}
+```
+
+### GET /stats/platform/week
+
+- **Method:** `GET`
+- **Path:** `/stats/platform/week`
+- **Tags:** Stats
+
+Crypto operation volume per Cloudflare PoP over the last week. All timestamps are GMT.
+
+#### Responses
+
+##### Status: 200 Total operations over the window, keyed by PoP and broken down by operation type.
+
+###### Content-Type: application/json
+
+**Example:**
+
+```json
+{
+  "additionalProperty": {
+    "latitude": "37.619806",
+    "longitude": "-122.374821",
+    "location": "San Francisco, CA, US",
+    "operations": {
+      "encrypt": 0,
+      "decrypt": 0,
+      "sign": 0,
+      "verify": 0,
+      "hmac": 0,
+      "hash": 0,
+      "random": 0
+    }
+  }
+}
+```
