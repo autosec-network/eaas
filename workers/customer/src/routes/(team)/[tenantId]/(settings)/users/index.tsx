@@ -113,7 +113,7 @@ const useUpdatePermission = routeAction$(
 			.trim()
 			.toLowerCase()
 			.length(32)
-			.refine((string) => zm.hex().safeParse(string).success),
+			.refine((string) => zm.validate(zm.hex(), string)),
 		field: z.enum(PERM_FIELDS),
 		value: z.number().int().min(0).max(3),
 	}),

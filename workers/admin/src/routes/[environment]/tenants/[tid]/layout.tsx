@@ -9,6 +9,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { eq, sql } from 'drizzle-orm/sql';
 import type { DOJurisdictions } from 'types';
+import * as zm from 'zod/mini';
 import { TenantTabs } from '~/components/tenant-tabs/tenant-tabs';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
 import { bitwardenProjectIdsFromEnv, lookupDoInstances, purgeTenant, resolveTenantDoId, resolveTenantLogsDoId, serializeActionError, tenantHasDatakeys, tenantIdParamSchema, type TenantDoStub } from '~/routes/[environment]/tenants/tenant-ops';
@@ -19,9 +20,7 @@ import { useCfAccountId } from '~/routes/layout';
  * Resolves everything the tabs below need: the root lookup row, the tenant's Durable Object, and the separate Durable Object holding its logs. A tenant with no root row still resolves (its DO id is derivable from `t_id`) so drift stays inspectable instead of 404ing.
  */
 export const onRequest: RequestHandler = async ({ params, sharedMap, platform, next, redirect }) => {
-	const { success } = await tenantIdParamSchema.safeParseAsync(params['tid']);
-
-	if (success) {
+	if (zm.validate(tenantIdParamSchema, params['tid'])) {
 		const t_id_hex = await import('node:buffer').then(({ Buffer }) => Buffer.from(params['tid']!, 'base64url').toString('hex'));
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 

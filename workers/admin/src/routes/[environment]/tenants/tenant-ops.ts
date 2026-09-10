@@ -19,14 +19,14 @@ export const uuidAnyFormatSchema = z.union([
 		.string()
 		.trim()
 		.uuid()
-		.refine((val) => zm.uuidv7().safeParse(val).success, 'Must be a valid UUIDv7')
+		.refine((val) => zm.validate(zm.uuidv7(), val), 'Must be a valid UUIDv7')
 		.transform((uuid) => uuid.replaceAll('-', '')),
 	z
 		.string()
 		.trim()
 		.toLowerCase()
 		.length(32)
-		.refine((val) => zm.hex().safeParse(val).success, 'Must be a valid UUIDv7 without hyphens'),
+		.refine((val) => zm.validate(zm.hex(), val), 'Must be a valid UUIDv7 without hyphens'),
 	z
 		.string()
 		.trim()

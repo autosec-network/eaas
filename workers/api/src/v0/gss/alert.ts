@@ -120,7 +120,7 @@ function isWellFormedApiKey(token: string): boolean {
 	if (!(version in ApiKeyVersions)) return false;
 
 	const ak_id_buffer = Buffer.from(ak_id_base64url, 'base64url');
-	if (ak_id_buffer.byteLength !== 16 || !zm.uuidv7().safeParse(hexToUuid(ak_id_buffer.toString('hex'))).success) return false;
+	if (ak_id_buffer.byteLength !== 16 || !zm.validate(zm.uuidv7(), hexToUuid(ak_id_buffer.toString('hex')))) return false;
 
 	const ak_secret_buffer = Buffer.from(ak_secret_base64url, 'base64url');
 	// eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion

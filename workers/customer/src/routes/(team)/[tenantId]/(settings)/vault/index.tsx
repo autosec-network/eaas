@@ -23,7 +23,7 @@ import { BitwardenCloudEndpoints, type SecretNote } from 'types/bw';
 import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { TenantVerificationAction } from 'types/tenants/verification';
 import { v7 as uuidv7 } from 'uuid';
-import type * as zm from 'zod/mini';
+import * as zm from 'zod/mini';
 import { VaultConnectionFields } from '~/components/team/vault-connection/vault-connection';
 import { openBitwardenSession as openPooledBitwardenSession } from '~/helpers/bitwarden-pool';
 import { JwkMetadata, type Jwk, type KeyringMetadata } from '~/helpers/jwk-metadata';
@@ -351,7 +351,7 @@ const useRescanVault = routeAction$(async (_data, { sharedMap, platform, fail, r
 			const [t, kr, dk, ...rest] = (path ?? '').split('/');
 
 			// `<t_id>/bw` (the BYO vault token) and anything belonging to another tenant fall out here
-			if (rest.length === 0 && t === t_id_base64url && kr && dk && uuidBase64urlSchema.safeParse(kr).success && uuidBase64urlSchema.safeParse(dk).success) {
+			if (rest.length === 0 && t === t_id_base64url && kr && dk && zm.validate(uuidBase64urlSchema, kr) && zm.validate(uuidBase64urlSchema, dk)) {
 				acc.push({
 					bw_id: secrets[index]!.id,
 					kr_id_hex: Buffer.from(kr, 'base64url').toString('hex'),

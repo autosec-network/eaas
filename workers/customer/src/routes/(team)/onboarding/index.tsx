@@ -17,7 +17,7 @@ import { DOJurisdictions, Permissions } from 'types';
 import { BitwardenCloudEndpoints } from 'types/bw';
 import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
-import type * as zm from 'zod/mini';
+import * as zm from 'zod/mini';
 import { getProjects } from '~/helpers/bitwarden-projects';
 import { deriveId, isLocal, resolveDoStub, type DOLocator } from '~/helpers/do-proxy';
 import { proxiedImageUrl } from '~/helpers/image-proxy';
@@ -48,7 +48,7 @@ const useOnboardTenantBaseSchema = z.object({
 			.nonempty()
 			.url()
 			// Use zod3 to do zod4
-			.refine((url) => TenantPropertiesSchema.def.shape.avatar.safeParse(url).success)
+			.refine((url) => zm.validate(TenantPropertiesSchema.def.shape.avatar, url))
 			.optional(),
 	]),
 	jurisdiction: z.union([z.nativeEnum(DOJurisdictions), z.literal('none').transform(() => null)]),
@@ -293,19 +293,19 @@ const useOnboardTenant = routeAction$(
 					.string()
 					.url()
 					// Use zod3 to do zod4
-					.refine((url) => TenantByoBwNoteSchema.def.shape.endpoints.def.shape.base.safeParse(url).success),
+					.refine((url) => zm.validate(TenantByoBwNoteSchema.def.shape.endpoints.def.shape.base, url)),
 				authCloudEndpoint: z
 					.string()
 					.url()
 					// Use zod3 to do zod4
-					.refine((url) => TenantByoBwNoteSchema.def.shape.endpoints.def.shape.authentication.safeParse(url).success),
+					.refine((url) => zm.validate(TenantByoBwNoteSchema.def.shape.endpoints.def.shape.authentication, url)),
 				accessToken: z.string().nonempty(),
 				project: z
 					.string()
 					.uuid()
 					.nonempty()
 					// Use zod3 to do zod4
-					.refine((url) => TenantByoBwNoteSchema.def.shape.project.safeParse(url).success),
+					.refine((url) => zm.validate(TenantByoBwNoteSchema.def.shape.project, url)),
 			}),
 		]),
 	),
@@ -388,7 +388,7 @@ export default component$(() => {
 								pattern="https://.*"
 								class={[inputClass, 'font-mono']}
 								onInput$={(_, el) => {
-									if (TenantPropertiesSchema.def.shape.avatar.safeParse(el.value).success) {
+									if (zm.validate(TenantPropertiesSchema.def.shape.avatar, el.value)) {
 										avatarPreview.value = proxiedImageUrl(location.url.origin, el.value);
 									}
 								}}

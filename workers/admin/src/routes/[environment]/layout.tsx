@@ -6,9 +6,7 @@ import { DefaultLogger } from 'drizzle-orm/logger';
 import * as zm from 'zod/mini';
 
 export const onRequest: RequestHandler = async ({ params, sharedMap, platform, next, redirect }) => {
-	const { success } = await zm.enum(['production', 'dev']).safeParseAsync(params['environment']);
-
-	if (success) {
+	if (zm.validate(zm.enum(['production', 'dev']), params['environment'])) {
 		// Setup vars
 		const isProd = params['environment'] === 'production';
 		sharedMap.set('isProd', isProd);
