@@ -9,6 +9,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { eq, sql } from 'drizzle-orm/sql';
 import type { DOJurisdictions } from 'types';
+import * as zm from 'zod/mini';
 import { UserTabs } from '~/components/user-tabs/user-tabs';
 import { actionErrorMessage } from '~/routes/[environment]/tenants/db-helpers';
 import { lookupDoInstances, serializeActionError } from '~/routes/[environment]/tenants/tenant-ops';
@@ -20,9 +21,7 @@ import { useCfAccountId } from '~/routes/layout';
  * Resolves everything the tabs below need: the root lookup row and the user's Durable Object. A user with no root row still resolves (its DO id is derivable from `u_id`) so drift stays inspectable instead of 404ing.
  */
 export const onRequest: RequestHandler = async ({ params, sharedMap, platform, next, redirect }) => {
-	const { success } = await userIdParamSchema.safeParseAsync(params['uid']);
-
-	if (success) {
+	if (zm.validate(userIdParamSchema, params['uid'])) {
 		const u_id_hex = await import('node:buffer').then(({ Buffer }) => Buffer.from(params['uid']!, 'base64url').toString('hex'));
 		const r_db = sharedMap.get('r_db') as DrizzleD1Database;
 
