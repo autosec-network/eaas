@@ -37,7 +37,7 @@
 		"eslint-plugin-zod": "4.9.1",
 		"eslint-plugin-zod-mini": "1.6.1",
 		"prettier": "3.9.6",
-		"tsx": "4.23.12",
+		"tsx": "4.23.13",
 		"typescript": "6.0.3",
 		"typescript-eslint": "8.67.0",
 		"wrangler": "4.125.0"
