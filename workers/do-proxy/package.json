@@ -23,7 +23,7 @@
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/workers/do-proxy/README.md",
 	"dependencies": {},
 	"devDependencies": {
-		"@cloudflare/workers-types": "5.20260822.1",
+		"@cloudflare/workers-types": "5.20260908.1",
 		"db": "*",
 		"types": "*",
 		"zod": "4.4.3"
