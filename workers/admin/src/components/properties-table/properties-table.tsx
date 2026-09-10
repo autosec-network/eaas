@@ -46,7 +46,7 @@ export const PropertiesTable = component$<PropertiesTableProps>(({ title, proper
 										) : (
 											(() => {
 												if (zm.validate(zm.iso.datetime(), value)) {
-													const dateValue = new Date(value as string | Date);
+													const dateValue = new Date(value);
 													return (
 														<time dateTime={dateValue.toISOString()} title={[dateValue.toLocaleString(locale, { hour12: false, timeZone: 'UTC' }), 'UTC'].join(' ')}>
 															{[dateValue.toLocaleString(locale, { timeZone: timezone.value.long }), timezone.value.short].join(' ')}
