@@ -26,6 +26,6 @@
 		"@cloudflare/workers-types": "5.20260908.1",
 		"db": "*",
 		"types": "*",
-		"zod": "4.5.4"
+		"zod": "4.6.2"
 	}
 }

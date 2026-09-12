@@ -46,7 +46,7 @@
 		"@simplewebauthn/server": "9.0.3",
 		"cron-validate": "1.5.3",
 		"drizzle-orm": "1.0.0-rc.4",
-		"zod": "4.5.4"
+		"zod": "4.6.2"
 	},
 	"devDependencies": {
 		"@auth/qwik": "0.9.3",
