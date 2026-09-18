@@ -5,7 +5,7 @@ import * as tenantSchema from 'db/schemas/tenant/main';
 import { drizzle } from 'drizzle-orm/durable-sqlite';
 import { DefaultLogger } from 'drizzle-orm/logger';
 import { and, asc, eq, gt, gte, inArray, lte, sql } from 'drizzle-orm/sql';
-import { hexToUuid, workflowInstanceId } from 'helpers';
+import { blobToBigInt, hexToUuid, workflowInstanceId } from 'helpers';
 import { ZodUuidInputConverted } from 'helpers/zod/mini';
 import type { Buffer } from 'node:buffer';
 import type { UUID } from 'node:crypto';
@@ -226,6 +226,43 @@ export class TenantD0 extends BaseD0 {
 			id: workflowInstanceId(t_id_hex, uuidv7() as UUID),
 			// Nothing triggered this but the schedule itself, so it logs as `system` - same as any other cron/count-based rotation
 			params: { t_id: t_id_hex, kr_id: kr_id_hex, u_id: null, ak_id: null },
+		});
+	}
+
+	/**
+	 * Record that a data key was used: stamp its `a_time`, and add `by` to its `generation_count` when `by` is positive (an encrypt generates, a decrypt only reads).
+	 *
+	 * This lives on the Durable Object rather than in the route because the counter is a read-modify-write, and only here can the two halves share a transaction. A caller going through `sqlExec` would issue the select and the update as two separate calls, and therefore two separate transactions, leaving room for a concurrent operation to read the same value and overwrite the other's increment. Inside one invocation the storage is single-threaded and `ctx.storage.transaction` makes the pair atomic, so concurrent encrypts on one data key each count exactly once.
+	 *
+	 * `generation_count` is a blob holding a bigint as hex, because native bigint support in Drizzle is broken (see the column's own comment). The hex is padded to an even length before `unhex()` sees it, since `unhex()` answers `NULL` for an odd-length string and would blank the counter rather than fail.
+	 */
+	public recordDatakeyUsage(dk_id_hex: string, by: number = 0) {
+		return this.ctx.storage.transaction(async () => {
+			const a_time = new Date();
+
+			if (by <= 0) {
+				await this.drizzle
+					.update(tenantSchema.datakeys)
+					.set({ a_time })
+					.where(eq(tenantSchema.datakeys.dk_id, sql`unhex(${dk_id_hex})`))
+					.limit(1);
+				return;
+			}
+
+			const [row] = await this.drizzle
+				.select({ generation_count: tenantSchema.datakeys.generation_count })
+				.from(tenantSchema.datakeys)
+				.where(eq(tenantSchema.datakeys.dk_id, sql`unhex(${dk_id_hex})`))
+				.limit(1);
+			if (!row) return;
+
+			const hex = ((blobToBigInt(row.generation_count) ?? BigInt(0)) + BigInt(by)).toString(16);
+
+			await this.drizzle
+				.update(tenantSchema.datakeys)
+				.set({ generation_count: sql`unhex(${hex.length % 2 === 0 ? hex : `0${hex}`})`, a_time })
+				.where(eq(tenantSchema.datakeys.dk_id, sql`unhex(${dk_id_hex})`))
+				.limit(1);
 		});
 	}
 

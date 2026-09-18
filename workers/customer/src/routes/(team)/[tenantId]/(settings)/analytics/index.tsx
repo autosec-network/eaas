@@ -9,6 +9,7 @@ import type { DrizzleD1Database } from 'drizzle-orm/d1';
 import { and, desc, eq, inArray, sql } from 'drizzle-orm/sql';
 import type { SqliteRemoteDatabase } from 'drizzle-orm/sqlite-proxy';
 import { hexToUuid } from 'helpers';
+import type { AnalyticsSize } from 'types';
 import { Permissions } from 'types';
 import { TenantLogEventStatus, TenantLogEventType, TenantLogQueueMessageSchema } from 'types/tenants/logging';
 import { v7 as uuidv7 } from 'uuid';
@@ -22,11 +23,36 @@ import type { EnvVars } from '~/types';
 import * as m from '~/paraglide/messages';
 
 /**
- * Which tenant-log event types would currently also produce a (fully anonymized, tenant-less) `EAAS_PLATFORM_ANALYTICS` row, and how to render an example of that row from the log's own `context`.
- *
- * **Empty on purpose.** No operation in this API yet performs an actual encrypt/decrypt/sign/verify/hmac/hash/random call, so nothing is wired to write platform analytics (see `workers/api/src/queue.ts`). Add an entry here the same change that starts feeding `EAAS_PLATFORM_ANALYTICS` from a real event type, so this preview stays honest about what the toggle below actually controls - until then it always renders the empty state.
+ * The shape encrypt/decrypt audit rows carry in their `context` - just enough to render an example of the anonymized analytics row they also produce, never any plaintext, ciphertext, or key material.
  */
-const ANALYTICS_PREVIEW_BUILDERS: Partial<Record<TenantLogEventType, (context: Record<string, unknown>) => Record<string, unknown>>> = {};
+interface CryptoOperationContext {
+	count?: number;
+	size?: keyof typeof AnalyticsSize;
+	/**
+	 * One entry per payload the request covered. `bitStrength` is `null` for an algorithm that has no choice of key size, written explicitly rather than omitted so every row reads the same. Each entry also carries a `digest` of the plaintext, which is deliberately **not** surfaced in this preview - the analytics row that leaves the tenant never contains it.
+	 */
+	operations?: { algorithm?: string; bitStrength?: string | null; cipher?: string; size?: keyof typeof AnalyticsSize }[];
+}
+
+/**
+ * Which tenant-log event types also produce a (fully anonymized, tenant-less) `EAAS_PLATFORM_ANALYTICS` row, and how to render an example of that row from the log's own `context`.
+ *
+ * The encrypt/decrypt endpoints (`workers/api/src/v0/encrypt.ts`, `decrypt.ts`) write one platform-analytics point per operation - `{ operation, algorithm, size, count }`, with no tenant identifier - whenever this toggle is on. The builders below reconstruct a representative point from an audit row's own `context` so the preview shows exactly the shape that leaves the tenant. Add an entry here for any future event type that starts feeding `EAAS_PLATFORM_ANALYTICS`, so this preview stays honest about what the toggle controls.
+ */
+const ANALYTICS_PREVIEW_BUILDERS: Partial<Record<TenantLogEventType, (context: Record<string, unknown>) => Record<string, unknown>>> = {
+	[TenantLogEventType['encrypted data']]: (context) => cryptoAnalyticsPreview('encrypt', context),
+	[TenantLogEventType['decrypted data']]: (context) => cryptoAnalyticsPreview('decrypt', context),
+};
+
+function cryptoAnalyticsPreview(operation: 'encrypt' | 'decrypt', context: CryptoOperationContext): Record<string, unknown> {
+	const first = context.operations?.[0];
+	return {
+		operation,
+		algorithm: first?.cipher ?? '',
+		size: first?.size ?? context.size ?? null,
+		count: context.count ?? 1,
+	};
+}
 
 /**
  * Jurisdiction alone - the one thing needed to address a tenant's logs Durable Object that the page layout doesn't already put on `sharedMap`.

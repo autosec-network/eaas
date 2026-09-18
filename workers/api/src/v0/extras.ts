@@ -4,4 +4,6 @@ export enum APITags {
 	Stats = 'Stats',
 	'API Key Management' = 'API Key Management',
 	'Keyring Management' = 'Keyring Management',
+	Encrypt = 'Encrypt',
+	Decrypt = 'Decrypt',
 }

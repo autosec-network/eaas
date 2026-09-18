@@ -25,6 +25,14 @@ export enum TenantLogEventType {
 	 * The tenant's `platform_analytics` property (`db/properties/tenant`) was flipped on or off - `context.enabled` carries the new value.
 	 */
 	'changed platform analytics setting' = 12,
+	/**
+	 * One `POST /encrypt` call (embedded JSON or uploaded files) against one keyring - a batch spanning several keyrings emits one row per keyring, each carrying that keyring's `kr_id` and the `dk_id` it encrypted under. `context` holds `algorithm`/`bitStrength` (as requested), `cipher` (the resolved `node:crypto` cipher name, which is also what the anonymized `EAAS_PLATFORM_ANALYTICS` row carries), `items` (how many inputs), and `size` (an `AnalyticsSize` bucket of the plaintext bytes) - never the plaintext, the ciphertext, or any key material. A refused attempt is logged with `status: denied` and a failed one with `status: error`.
+	 */
+	'encrypted data' = 13,
+	/**
+	 * Same as {@link TenantLogEventType['encrypted data']} for `POST /decrypt`. `size` buckets the recovered plaintext; a ciphertext whose signature or authentication tag doesn't verify is logged with `status: error`, and one addressed to a data key outside the keyring's retrieval window with `status: denied`.
+	 */
+	'decrypted data' = 14,
 }
 
 export enum TenantLogEventStatus {

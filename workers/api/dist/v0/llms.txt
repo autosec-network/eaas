@@ -871,3 +871,1180 @@ Crypto operation volume per Cloudflare PoP over the last week. All timestamps ar
   }
 }
 ```
+
+### POST /encrypt
+
+- **Method:** `POST`
+- **Path:** `/encrypt`
+- **Tags:** Encrypt
+
+Encrypt one payload against a keyring. Returns a self-describing ciphertext string.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+**One of:**
+
+- **`algorithm` (required)**
+
+  `string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm"` — An AES mode, whose key strength you choose
+
+- **`bitStrength` (required)**
+
+  `string`, possible values: `"128", "192", "256"` — The cipher key strength in bits
+
+- **`input` (required)**
+
+  `string` — The data to encrypt, in \`inputFormat\`
+
+- **`inputFormat` (required)**
+
+  `string`, possible values: `"utf8", "hex", "base64", "base64url"` — The encoding of \`input\`
+
+- **`keyringName` (required)**
+
+  `string` — The keyring to encrypt with, case-insensitive
+
+- **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — The encoding of the returned ciphertext
+
+- **`reference`**
+
+  `string` — An opaque caller-supplied string, echoed back on the result, to correlate a response with the request that produced it
+
+* **`algorithm` (required)**
+
+  `string`, possible values: `"chacha20-poly1305"` — ChaCha20-Poly1305, which has no configurable key strength
+
+* **`input` (required)**
+
+  `string` — The data to encrypt, in \`inputFormat\`
+
+* **`inputFormat` (required)**
+
+  `string`, possible values: `"utf8", "hex", "base64", "base64url"` — The encoding of \`input\`
+
+* **`keyringName` (required)**
+
+  `string` — The keyring to encrypt with, case-insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"base64", "base64url", "hex"` — The encoding of the returned ciphertext
+
+* **`reference`**
+
+  `string` — An opaque caller-supplied string, echoed back on the result, to correlate a response with the request that produced it
+
+**Example:**
+
+```json
+{
+  "keyringName": "",
+  "outputFormat": "base64",
+  "input": "Hello world",
+  "inputFormat": "utf8",
+  "reference": "",
+  "algorithm": "aes-gcm",
+  "bitStrength": "256"
+}
+```
+
+#### Responses
+
+##### Status: 200 The ciphertext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+  - **`value` (required)**
+
+    `string` — The ciphertext, encoded per the request \`outputFormat\`: \`0.\<dk\_id>.\<algorithm>.\<bitStrength>.\<preamble>\` followed by one or more independently signed frames
+
+  - **`reference`**
+
+    `string` — The \`reference\` from the request, if one was sent
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": {
+    "value": "0.MDAw….cHJlYW1ibGU.ZnJhbWUw.ZnJhbWUx",
+    "reference": ""
+  }
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 422 No input could be encrypted.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+### POST /encrypt/{keyringName}/{algorithm}/{bitStrength}
+
+- **Method:** `POST`
+- **Path:** `/encrypt/{keyringName}/{algorithm}/{bitStrength}`
+- **Tags:** Encrypt
+
+Encrypt a file sent as the raw request body with an AES mode, streaming the ciphertext back as a download. The body is read and written a chunk at a time and is never held whole, so there is no size limit. The download is named from `X-Filename`, or from the `Content-Disposition` request header, with `.enc` appended.
+
+#### Parameters
+
+##### `keyringName` required
+
+- **In:** `path`
+
+`string`
+
+##### `algorithm` required
+
+- **In:** `path`
+
+`string`, possible values: `"aes-cbc", "aes-ctr", "aes-gcm"`
+
+##### `bitStrength` required
+
+- **In:** `path`
+
+`string`, possible values: `"128", "192", "256"`
+
+##### `format`
+
+- **In:** `query`
+
+`string`, possible values: `"base64", "base64url", "hex"`
+
+#### Request Body
+
+##### Content-Type: application/octet-stream
+
+`string`, format: `binary` — The file to encrypt as the raw request body
+
+**Example:**
+
+```json
+"@filename"
+```
+
+#### Responses
+
+##### Status: 200 The ciphertext download
+
+###### Content-Type: text/plain
+
+`string` — The streamed ciphertext string
+
+**Example:**
+
+```json
+""
+```
+
+##### Status: 400 Bad request.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+### POST /encrypt/{keyringName}/{algorithm}
+
+- **Method:** `POST`
+- **Path:** `/encrypt/{keyringName}/{algorithm}`
+- **Tags:** Encrypt
+
+Encrypt a file sent as the raw request body with ChaCha20-Poly1305, streaming the ciphertext back as a download. The body is read and written a chunk at a time and is never held whole, so there is no size limit. The download is named from `X-Filename`, or from the `Content-Disposition` request header, with `.enc` appended.
+
+#### Parameters
+
+##### `keyringName` required
+
+- **In:** `path`
+
+`string`
+
+##### `algorithm` required
+
+- **In:** `path`
+
+`string`, possible values: `"chacha20-poly1305"`
+
+##### `format`
+
+- **In:** `query`
+
+`string`, possible values: `"base64", "base64url", "hex"`
+
+#### Request Body
+
+##### Content-Type: application/octet-stream
+
+`string`, format: `binary` — The file to encrypt as the raw request body
+
+**Example:**
+
+```json
+"@filename"
+```
+
+#### Responses
+
+##### Status: 200 The ciphertext download
+
+###### Content-Type: text/plain
+
+`string` — The streamed ciphertext string
+
+**Example:**
+
+```json
+""
+```
+
+##### Status: 400 Bad request.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+### POST /decrypt
+
+- **Method:** `POST`
+- **Path:** `/decrypt`
+- **Tags:** Decrypt
+
+Decrypt one ciphertext produced by the encrypt endpoint.
+
+#### Request Body
+
+##### Content-Type: application/json
+
+- **`input` (required)**
+
+  `string` — The ciphertext, as produced by the encrypt endpoint
+
+- **`keyringName` (required)**
+
+  `string` — The keyring the ciphertext was encrypted with, case-insensitive
+
+- **`outputFormat` (required)**
+
+  `string`, possible values: `"utf8", "hex", "base64", "base64url"` — The encoding of the returned plaintext
+
+- **`reference`**
+
+  `string` — An opaque caller-supplied string, echoed back on the result, to correlate a response with the request that produced it
+
+**Example:**
+
+```json
+{
+  "keyringName": "",
+  "input": "0.MDAw….cHJlYW1ibGU.ZnJhbWUw.ZnJhbWUx",
+  "outputFormat": "utf8",
+  "reference": ""
+}
+```
+
+#### Responses
+
+##### Status: 200 The plaintext
+
+###### Content-Type: application/json
+
+- **`result` (required)**
+
+  `object`
+
+  - **`value` (required)**
+
+    `string` — The recovered plaintext, encoded per the request \`outputFormat\`
+
+  - **`reference`**
+
+    `string` — The \`reference\` from the request, if one was sent
+
+- **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": {
+    "value": "Hello world",
+    "reference": ""
+  }
+}
+```
+
+##### Status: 400 Malformed ciphertext.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 422 A ciphertext failed verification.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+### POST /decrypt/{keyringName}
+
+- **Method:** `POST`
+- **Path:** `/decrypt/{keyringName}`
+- **Tags:** Decrypt
+
+Decrypt a ciphertext file sent as the raw request body, streaming the plaintext back as a download. The body is read and written a chunk at a time and is never held whole, so there is no size limit. The algorithm and strength are read from the ciphertext itself. The download is named from `X-Filename`, or from the `Content-Disposition` request header, with a trailing `.enc` removed.
+
+#### Parameters
+
+##### `keyringName` required
+
+- **In:** `path`
+
+`string`
+
+#### Request Body
+
+##### Content-Type: application/octet-stream
+
+`string`, format: `binary` — The ciphertext file as the raw request body
+
+**Example:**
+
+```json
+"@filename"
+```
+
+#### Responses
+
+##### Status: 200 The streamed plaintext download
+
+###### Content-Type: application/octet-stream
+
+`string`, format: `binary`
+
+**Example:**
+
+```json
+"@filename"
+```
+
+##### Status: 400 Bad request.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 403 Access denied.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 422 The ciphertext failed verification.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+##### Status: 500 Internal server error.
+
+###### Content-Type: application/problem+json
+
+- **`status` (required)**
+
+  `integer`
+
+- **`title` (required)**
+
+  `string`
+
+- **`type` (required)**
+
+  `string`, format: `uri`
+
+- **`detail`**
+
+  `string`
+
+- **`errors`**
+
+  `array`
+
+  **Items:**
+
+- **`instance`**
+
+  `string`
+
+**Example:**
+
+```json
+{
+  "type": "https://api.eaas.autosec.network/#tag/api-key-management/DELETE/apikeys/{token_id}",
+  "status": 400,
+  "title": "Bad Request",
+  "detail": "Request validation failed",
+  "instance": "/v0/apikeys",
+  "errors": []
+}
+```
+
+## Schemas
+
+### EncryptOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+  - **`value` (required)**
+
+    `string` — The ciphertext, encoded per the request \`outputFormat\`: \`0.\<dk\_id>.\<algorithm>.\<bitStrength>.\<preamble>\` followed by one or more independently signed frames
+
+  - **`reference`**
+
+    `string` — The \`reference\` from the request, if one was sent
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": {
+    "value": "0.MDAw….cHJlYW1ibGU.ZnJhbWUw.ZnJhbWUx",
+    "reference": ""
+  }
+}
+```
+
+### EncryptInput
+
+- **Type:**
+
+**Example:**
+
+### DecryptOutput
+
+- **Type:**`object`
+
+* **`result` (required)**
+
+  `object`
+
+  - **`value` (required)**
+
+    `string` — The recovered plaintext, encoded per the request \`outputFormat\`
+
+  - **`reference`**
+
+    `string` — The \`reference\` from the request, if one was sent
+
+* **`success` (required)**
+
+  `boolean`
+
+**Example:**
+
+```json
+{
+  "success": true,
+  "result": {
+    "value": "Hello world",
+    "reference": ""
+  }
+}
+```
+
+### DecryptInput
+
+- **Type:**`object`
+
+* **`input` (required)**
+
+  `string` — The ciphertext, as produced by the encrypt endpoint
+
+* **`keyringName` (required)**
+
+  `string` — The keyring the ciphertext was encrypted with, case-insensitive
+
+* **`outputFormat` (required)**
+
+  `string`, possible values: `"utf8", "hex", "base64", "base64url"` — The encoding of the returned plaintext
+
+* **`reference`**
+
+  `string` — An opaque caller-supplied string, echoed back on the result, to correlate a response with the request that produced it
+
+**Example:**
+
+```json
+{
+  "keyringName": "",
+  "input": "0.MDAw….cHJlYW1ibGU.ZnJhbWUw.ZnJhbWUx",
+  "outputFormat": "utf8",
+  "reference": ""
+}
+```

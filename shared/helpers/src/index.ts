@@ -30,6 +30,34 @@ export function isTenantWorkflowInstanceId(instanceId: string, t_id_hex: string)
 	return /^[0-9a-f]{64}$/.test(instanceId) && instanceId.startsWith(t_id_hex.toLowerCase());
 }
 
+/**
+ * `keyrings.count_rotation` and `datakeys.generation_count` are big-endian blobs standing in for bigints, because drizzle's native bigint is broken for SQLite.
+ *
+ * @link https://github.com/drizzle-team/drizzle-orm/issues/2902
+ * @link https://github.com/drizzle-team/drizzle-orm/issues/3609
+ */
+export function blobToBigInt(blob: Uint8Array | null | undefined): bigint | null {
+	if (!blob) return null;
+	// `BigInt('0x')` throws rather than returning 0n, so a zero-length blob has to be caught before the parse
+	return blob.byteLength === 0 ? BigInt(0) : BigInt(`0x${Array.from(blob, (byte) => byte.toString(16).padStart(2, '0')).join('')}`);
+}
+
+/**
+ * The inverse of {@link blobToBigInt}, as the hex `unhex()` expects. SQLite's `unhex()` rejects an odd-length string, so the digits are left-padded to a whole number of bytes.
+ */
+export function bigIntToHex(value: bigint): string {
+	const hex = value.toString(16);
+	return hex.length % 2 === 0 ? hex : `0${hex}`;
+}
+
+/**
+ * A bigint blob as a decimal string, which is how these values cross to a browser or over JSON - `JSON.stringify` refuses a `BigInt`.
+ */
+export function blobToDecimalString(blob: Uint8Array | null | undefined): string | null {
+	const value = blobToBigInt(blob);
+	return value === null ? null : value.toString(10);
+}
+
 export async function createApiKey(_existingAk_id_hex?: string) {
 	const existingAk_id_hex = await zm
 		.optional(

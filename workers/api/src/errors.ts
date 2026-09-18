@@ -27,6 +27,8 @@ const PATH_TAG_MAP: Readonly<Record<string, string>> = {
 	stats: 'stats',
 	hash: 'free',
 	keyrings: 'keyring-management',
+	encrypt: 'encrypt',
+	decrypt: 'decrypt',
 };
 
 // ─── Serialised error shapes ─────────────────────────────────────────────────

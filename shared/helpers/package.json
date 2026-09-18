@@ -17,6 +17,10 @@
 			"import": "./dist/bitwarden-sessions.js",
 			"types": "./dist/bitwarden-sessions.d.ts"
 		},
+		"./ciphertext": {
+			"import": "./dist/ciphertext.js",
+			"types": "./dist/ciphertext.d.ts"
+		},
 		"./noise": {
 			"import": "./dist/noise.js",
 			"types": "./dist/noise.d.ts"

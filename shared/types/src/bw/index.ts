@@ -49,7 +49,11 @@ export enum ApiKeyVersions {
 
 export enum CipherTextVersions {
 	/**
-	 * `0.<dk_id>.<algorithm>.<bitStrength>.<preamble>.<cipher text>.<mac>`
+	 * `0.<dk_id>.<algorithm>.<bitStrength>.<preamble>.<frame>.<frame>…` - one or more frames, each independently authenticated.
+	 *
+	 * A frame's bytes are `<final flag (1 byte)><cipher><mac>`, and its `mac` is an HMAC over `<header><preamble><frame index, u64 big-endian><final flag><cipher>` where `<header>` is the ASCII `0.<dk_id>.<algorithm>.<bitStrength>` prefix. The final frame of an AEAD algorithm carries that algorithm's authentication tag as the last 16 bytes of its `<cipher>`.
+	 *
+	 * Framing is what lets a decrypt verify before it releases: a reader authenticates each frame on arrival and only then writes that frame's plaintext out, instead of streaming an entire unverified payload and discovering at the very end that the message was forged. Binding the frame index and the final flag into each `mac` is what makes reordering, splicing and truncation detectable - a reader that reaches the end of the stream without a frame flagged final rejects the message.
 	 */
-	dkKrPreambleCipherSignature = 0,
+	dkKrPreambleFramedCipher = 0,
 }
