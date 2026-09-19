@@ -43,7 +43,7 @@
 		"zod": "4.5.4"
 	},
 	"devDependencies": {
-		"@scalar/openapi-to-markdown": "0.5.44",
+		"@scalar/openapi-to-markdown": "0.6.0",
 		"cloudflare": "7.1.0"
 	}
 }
