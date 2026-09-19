@@ -118,10 +118,86 @@ const withZod: RequestHandler<ZodRequest> = (request) => {
 	};
 };
 
+/**
+ * Wildcard-DNS-to-IP services whose hostnames embed the resolved target address in an otherwise letter-terminated label (e.g. `169.254.169.254.nip.io` resolves straight to `169.254.169.254`). ParamSchema's `z.regexes.domain` shape-check alone lets these through since their last label is alphabetic.
+ */
+const WILDCARD_DNS_HOST_SUFFIXES = ['nip.io', 'sslip.io', 'xip.io', 'traefik.me'];
+/** Hostname suffixes that denote loopback/link-local-ish names but still contain a dot, so the domain regex alone doesn't reject them. */
+const DISALLOWED_HOST_SUFFIXES = ['.local', '.localhost', '.internal', '.localdomain', '.home.arpa'];
+/**
+ * One initial fetch plus at most this many redirect hops equals 5 fetches total, exactly Cloudflare Snippets' own `limits.subrequests: 5` cap (see wrangler.jsonc), so a chain of redirects gives up with a clean 502 instead of running into the platform's own subrequest-limit error.
+ */
+const MAX_REDIRECT_HOPS = 4;
+const REDIRECT_STATUS_CODES = [301, 302, 303, 307, 308];
+
+/**
+ * Host policy re-applied to every redirect `Location` before it is followed, using the exact same `z.regexes.domain` shape-check ParamSchema applies to the original `url` param (so a redirect can never reach a hostname the entry point itself would have rejected - e.g. bare IP literals, IPv6 literals, or bare single-label names like `localhost`/`metadata` all fail this regex the same way they fail ParamSchema), plus a small denylist for cases the regex alone lets through: known IP-embedding wildcard-DNS providers and loopback/link-local-ish suffixes. The Workers runtime has no DNS-resolution API, so this can only reject hosts by shape; it cannot resolve a hostname and check the IP it actually points to, so DNS-rebinding between this check and the fetch below is not fully closeable here.
+ */
+function isDisallowedTarget(url: URL): boolean {
+	if (!/^https?:$/.test(url.protocol)) {
+		return true;
+	}
+
+	const hostname = url.hostname.toLowerCase();
+
+	if (!z.regexes.domain.test(hostname)) {
+		return true;
+	}
+
+	if (WILDCARD_DNS_HOST_SUFFIXES.some((suffix) => hostname === suffix || hostname.endsWith(`.${suffix}`))) {
+		return true;
+	}
+
+	if (DISALLOWED_HOST_SUFFIXES.some((suffix) => hostname.endsWith(suffix))) {
+		return true;
+	}
+
+	return false;
+}
+
+/**
+ * Performs the upstream fetch without letting the runtime auto-follow redirects, since a redirect target is attacker-influenced (the upstream is attacker-chosen) and must pass the same host policy as the original `url` param before it is ever requested. Capped by `MAX_REDIRECT_HOPS` to prevent redirect loops.
+ */
+async function fetchWithValidatedRedirects(initialUrl: URL, init: RequestInit): Promise<Response> {
+	let targetUrl = initialUrl;
+
+	for (let hop = 0; hop <= MAX_REDIRECT_HOPS; hop++) {
+		const response = await fetch(targetUrl, { ...init, redirect: 'manual' });
+
+		if (!REDIRECT_STATUS_CODES.includes(response.status)) {
+			return response;
+		}
+
+		const location = response.headers.get('Location');
+		if (!location) {
+			throw new StatusError(502, 'Upstream redirect is missing a Location header');
+		}
+
+		let nextUrl: URL;
+		try {
+			nextUrl = new URL(location, targetUrl.href);
+		} catch {
+			throw new StatusError(502, 'Upstream returned an invalid redirect target');
+		}
+
+		if (isDisallowedTarget(nextUrl)) {
+			throw new StatusError(400, 'Redirect target is not allowed');
+		}
+
+		targetUrl = nextUrl;
+	}
+
+	throw new StatusError(502, 'Too many redirects');
+}
+
 const proxyHandler: RequestHandler<ZodRequest> = async (request) => {
 	const { url } = await request.valid.param();
 
-	const upstream = await fetch(url, {
+	if (isDisallowedTarget(url)) {
+		throw new StatusError(400, 'URL host is not allowed');
+	}
+
+	const upstream = await fetchWithValidatedRedirects(url, {
 		method: request.method === 'HEAD' ? 'HEAD' : 'GET',
 		headers: {
 			'User-Agent': `Autosec-Image-Proxy/1.0 (${['CloudflareSnippets', ...(request.cf ? [`Colo=${(request.cf as IncomingRequestCfPropertiesBase).colo}`] : []), `+${new URL(request.url).origin}`].join('; ')})`,
