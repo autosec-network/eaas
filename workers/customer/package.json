@@ -45,7 +45,7 @@
 		"@simplewebauthn/browser": "9.0.1",
 		"@simplewebauthn/server": "9.0.3",
 		"cron-validate": "1.5.3",
-		"drizzle-orm": "1.0.0-rc.4",
+		"drizzle-orm": "1.0.0-rc.5-5935859",
 		"zod": "4.5.4"
 	},
 	"devDependencies": {
