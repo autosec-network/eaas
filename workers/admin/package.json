@@ -47,12 +47,12 @@
 		"zod": "4.5.4"
 	},
 	"devDependencies": {
-		"@builder.io/qwik": "1.20.0",
-		"@builder.io/qwik-city": "1.20.0",
+		"@builder.io/qwik": "1.20.1",
+		"@builder.io/qwik-city": "1.20.1",
 		"@rollup/plugin-node-resolve": "16.0.3",
 		"@tailwindcss/vite": "4.3.3",
 		"eslint-plugin-drizzle": "0.2.3",
-		"eslint-plugin-qwik": "1.20.0",
+		"eslint-plugin-qwik": "1.20.1",
 		"flowbite": "4.0.2",
 		"prettier-plugin-tailwindcss": "0.8.1",
 		"tailwindcss": "4.3.3",
