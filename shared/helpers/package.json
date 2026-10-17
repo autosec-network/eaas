@@ -54,7 +54,7 @@
 	"homepage": "https://github.com/autosec-network/eaas/blob/production/shared/helpers/README.md",
 	"dependencies": {
 		"types": "*",
-		"uuid": "14.0.2",
+		"uuid": "14.0.3",
 		"zod": "4.5.4"
 	}
 }

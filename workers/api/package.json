@@ -39,7 +39,7 @@
 		"iata-location": "1.0.1",
 		"jose": "6.2.12",
 		"types": "*",
-		"uuid": "14.0.2",
+		"uuid": "14.0.3",
 		"zod": "4.5.4"
 	},
 	"devDependencies": {
