@@ -54,13 +54,13 @@
 		"@builder.io/qwik-city": "1.20.0",
 		"@inlang/paraglide-js": "2.24.1",
 		"@rollup/plugin-node-resolve": "16.0.3",
-		"@tailwindcss/vite": "4.3.3",
+		"@tailwindcss/vite": "4.3.5",
 		"@vitejs/plugin-basic-ssl": "2.3.0",
 		"eslint-plugin-drizzle": "0.2.3",
 		"eslint-plugin-qwik": "1.20.0",
 		"flowbite": "4.0.2",
 		"prettier-plugin-tailwindcss": "0.8.1",
-		"tailwindcss": "4.3.3",
+		"tailwindcss": "4.3.5",
 		"turnstile-types": "1.2.3",
 		"vite-tsconfig-paths": "6.1.1"
 	}
